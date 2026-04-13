@@ -12,14 +12,32 @@ export function AppBootstrap() {
     void syncFromRepository();
   });
 
+  const registerPwaServiceWorker = useEffectEvent(() => {
+    if (process.env.NODE_ENV !== "production") {
+      return;
+    }
+
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+      return;
+    }
+
+    void navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((registration) => registration.update().catch(() => undefined))
+      .catch((error) => {
+        console.warn("[mingle:pwa] service worker registration failed", error);
+      });
+  });
+
   useEffect(() => {
     void hydrate();
+    registerPwaServiceWorker();
     const stop = startSessionPolling(async () => {
       handleSync();
     });
 
     return stop;
-  }, [handleSync, hydrate]);
+  }, [handleSync, hydrate, registerPwaServiceWorker]);
 
   return null;
 }

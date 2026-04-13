@@ -1,1 +1,100 @@
-if(!self.define){let e,s={};const n=(n,t)=>(n=new URL(n+".js",t).href,s[n]||new Promise(s=>{if("document"in self){const e=document.createElement("script");e.src=n,e.onload=s,document.head.appendChild(e)}else e=n,importScripts(n),s()}).then(()=>{let e=s[n];if(!e)throw new Error(`Module ${n} didn’t register its module`);return e}));self.define=(t,c)=>{const a=e||("document"in self?document.currentScript.src:"")||location.href;if(s[a])return;let i={};const r=e=>n(e,a),o={module:{uri:a},exports:i,require:r};s[a]=Promise.all(t.map(e=>o[e]||r(e))).then(e=>(c(...e),i))}}define(["./workbox-9396710b"],function(e){"use strict";importScripts(),self.skipWaiting(),e.clientsClaim(),e.precacheAndRoute([{url:"/_next/static/chunks/100-4bad94e6dc7b8396.js",revision:"4bad94e6dc7b8396"},{url:"/_next/static/chunks/325-402aadfe79b1a417.js",revision:"402aadfe79b1a417"},{url:"/_next/static/chunks/398-d806cb924c6e6fdb.js",revision:"d806cb924c6e6fdb"},{url:"/_next/static/chunks/443.9a618d3818759d54.js",revision:"9a618d3818759d54"},{url:"/_next/static/chunks/448-7b9f9f28ec88a9d3.js",revision:"7b9f9f28ec88a9d3"},{url:"/_next/static/chunks/582.aa85d8ad716c2449.js",revision:"aa85d8ad716c2449"},{url:"/_next/static/chunks/619-568f158c9c251355.js",revision:"568f158c9c251355"},{url:"/_next/static/chunks/738-65c3d23258928a4a.js",revision:"65c3d23258928a4a"},{url:"/_next/static/chunks/9b430ef3-cad6cbce4f38a8d0.js",revision:"cad6cbce4f38a8d0"},{url:"/_next/static/chunks/app/_global-error/page-615c98dee229f4d8.js",revision:"615c98dee229f4d8"},{url:"/_next/static/chunks/app/_not-found/page-cce9b6a5c86ce251.js",revision:"cce9b6a5c86ce251"},{url:"/_next/static/chunks/app/admin/page-539f94cd4c632b70.js",revision:"539f94cd4c632b70"},{url:"/_next/static/chunks/app/api/notifications/fcm-token/route-615c98dee229f4d8.js",revision:"615c98dee229f4d8"},{url:"/_next/static/chunks/app/api/uploads/profile/route-615c98dee229f4d8.js",revision:"615c98dee229f4d8"},{url:"/_next/static/chunks/app/customer/page-48b8059026db2dda.js",revision:"48b8059026db2dda"},{url:"/_next/static/chunks/app/layout-8498801f1faa38f2.js",revision:"8498801f1faa38f2"},{url:"/_next/static/chunks/app/manifest.webmanifest/route-615c98dee229f4d8.js",revision:"615c98dee229f4d8"},{url:"/_next/static/chunks/app/page-31cb43447c3652bc.js",revision:"31cb43447c3652bc"},{url:"/_next/static/chunks/bacf7dd3-f538e881ba9c8b87.js",revision:"f538e881ba9c8b87"},{url:"/_next/static/chunks/framework-1c48d65d32a2299b.js",revision:"1c48d65d32a2299b"},{url:"/_next/static/chunks/main-app-feec2805170a0830.js",revision:"feec2805170a0830"},{url:"/_next/static/chunks/main-c2ae5542ad94ef5c.js",revision:"c2ae5542ad94ef5c"},{url:"/_next/static/chunks/next/dist/client/components/builtin/app-error-615c98dee229f4d8.js",revision:"615c98dee229f4d8"},{url:"/_next/static/chunks/next/dist/client/components/builtin/forbidden-615c98dee229f4d8.js",revision:"615c98dee229f4d8"},{url:"/_next/static/chunks/next/dist/client/components/builtin/global-error-beeea803e21af0b2.js",revision:"beeea803e21af0b2"},{url:"/_next/static/chunks/next/dist/client/components/builtin/not-found-615c98dee229f4d8.js",revision:"615c98dee229f4d8"},{url:"/_next/static/chunks/next/dist/client/components/builtin/unauthorized-615c98dee229f4d8.js",revision:"615c98dee229f4d8"},{url:"/_next/static/chunks/polyfills-42372ed130431b0a.js",revision:"846118c33b2c0e922d7b3a7676f81f6f"},{url:"/_next/static/chunks/webpack-39d7dee7a921b792.js",revision:"39d7dee7a921b792"},{url:"/_next/static/css/f6537a9e0ac10c19.css",revision:"f6537a9e0ac10c19"},{url:"/_next/static/rbXSN_-NdmRrLQYLQ4eoW/_buildManifest.js",revision:"55c1137757bd8eb1221879799b0c4aed"},{url:"/_next/static/rbXSN_-NdmRrLQYLQ4eoW/_ssgManifest.js",revision:"b6652df95db52feb4daf4eca35380933"},{url:"/firebase-messaging-sw.js",revision:"769a768fef996f7322e957ae409e9238"},{url:"/icon.svg",revision:"f326655baedea22eb10293f55397bdfb"},{url:"/icons/icon-192.png",revision:"4b03ada3bfce9124d3f783bead79028f"},{url:"/icons/icon-512.png",revision:"a1bab13596ef42fd840ffa26ab09389f"}],{ignoreURLParametersMatching:[]}),e.cleanupOutdatedCaches(),e.registerRoute("/",new e.NetworkFirst({cacheName:"start-url",plugins:[{cacheWillUpdate:async({request:e,response:s,event:n,state:t})=>s&&"opaqueredirect"===s.type?new Response(s.body,{status:200,statusText:"OK",headers:s.headers}):s}]}),"GET"),e.registerRoute(/^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,new e.CacheFirst({cacheName:"google-fonts-webfonts",plugins:[new e.ExpirationPlugin({maxEntries:4,maxAgeSeconds:31536e3})]}),"GET"),e.registerRoute(/^https:\/\/fonts\.(?:googleapis)\.com\/.*/i,new e.StaleWhileRevalidate({cacheName:"google-fonts-stylesheets",plugins:[new e.ExpirationPlugin({maxEntries:4,maxAgeSeconds:604800})]}),"GET"),e.registerRoute(/\.(?:eot|otf|ttc|ttf|woff|woff2|font.css)$/i,new e.StaleWhileRevalidate({cacheName:"static-font-assets",plugins:[new e.ExpirationPlugin({maxEntries:4,maxAgeSeconds:604800})]}),"GET"),e.registerRoute(/\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,new e.StaleWhileRevalidate({cacheName:"static-image-assets",plugins:[new e.ExpirationPlugin({maxEntries:64,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\/_next\/image\?url=.+$/i,new e.StaleWhileRevalidate({cacheName:"next-image",plugins:[new e.ExpirationPlugin({maxEntries:64,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:mp3|wav|ogg)$/i,new e.CacheFirst({cacheName:"static-audio-assets",plugins:[new e.RangeRequestsPlugin,new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:mp4)$/i,new e.CacheFirst({cacheName:"static-video-assets",plugins:[new e.RangeRequestsPlugin,new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:js)$/i,new e.StaleWhileRevalidate({cacheName:"static-js-assets",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:css|less)$/i,new e.StaleWhileRevalidate({cacheName:"static-style-assets",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\/_next\/data\/.+\/.+\.json$/i,new e.StaleWhileRevalidate({cacheName:"next-data",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:json|xml|csv)$/i,new e.NetworkFirst({cacheName:"static-data-assets",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(({url:e})=>{if(!(self.origin===e.origin))return!1;const s=e.pathname;return!s.startsWith("/api/auth/")&&!!s.startsWith("/api/")},new e.NetworkFirst({cacheName:"apis",networkTimeoutSeconds:10,plugins:[new e.ExpirationPlugin({maxEntries:16,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(({url:e})=>{if(!(self.origin===e.origin))return!1;return!e.pathname.startsWith("/api/")},new e.NetworkFirst({cacheName:"others",networkTimeoutSeconds:10,plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(({url:e})=>!(self.origin===e.origin),new e.NetworkFirst({cacheName:"cross-origin",networkTimeoutSeconds:10,plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:3600})]}),"GET")});
+const STATIC_CACHE = "mingle-static-v2";
+const RUNTIME_CACHE = "mingle-runtime-v2";
+const APP_SHELL = ["/customer", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.webmanifest"];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(STATIC_CACHE)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .catch(() => undefined)
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== STATIC_CACHE && key !== RUNTIME_CACHE)
+            .map((key) => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+
+  if (request.method !== "GET") {
+    return;
+  }
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/firebase-cloud-messaging-push-scope")) {
+    return;
+  }
+
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirst(request, "/customer"));
+    return;
+  }
+
+  if (
+    url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".png") ||
+    url.pathname.endsWith(".svg") ||
+    url.pathname.endsWith(".webmanifest")
+  ) {
+    event.respondWith(staleWhileRevalidate(request));
+  }
+});
+
+async function networkFirst(request, fallbackPath) {
+  const cache = await caches.open(RUNTIME_CACHE);
+
+  try {
+    const response = await fetch(request);
+    cache.put(request, response.clone());
+    return response;
+  } catch {
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    const fallbackResponse = await caches.match(fallbackPath);
+    if (fallbackResponse) {
+      return fallbackResponse;
+    }
+
+    return new Response("Offline", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" }
+    });
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cachedResponse = await cache.match(request);
+  const networkPromise = fetch(request)
+    .then((response) => {
+      cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => undefined);
+
+  return cachedResponse ?? networkPromise ?? fetch(request);
+}
