@@ -1,0 +1,37 @@
+{
+  "name": "mingle-production",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.883.0",
+    "@aws-sdk/s3-request-presigner": "^3.883.0",
+    "@supabase/supabase-js": "^2.49.4",
+    "firebase": "^11.10.0",
+    "framer-motion": "^12.12.2",
+    "next": "^16.1.6",
+    "next-pwa": "^5.6.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

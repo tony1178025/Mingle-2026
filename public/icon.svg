@@ -1,0 +1,56 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#221340"/>
+      <stop offset="100%" stop-color="#0D0618"/>
+    </radialGradient>
+    <radialGradient id="haze" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#7A55D4" stop-opacity="0.14"/>
+      <stop offset="60%" stop-color="#D48197" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#0D0618" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="innerGlow" cx="50%" cy="45%" r="35%">
+      <stop offset="0%" stop-color="#D48197" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#7A55D4" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0D0618" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fL" x1="130" y1="140" x2="260" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D48197" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#7A55D4" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="fR" x1="252" y1="140" x2="382" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7A55D4" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#D48197" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="ix" x1="220" y1="160" x2="292" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D48197" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#B8637A" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#7A55D4" stop-opacity="0.35"/>
+    </linearGradient>
+    <radialGradient id="gold" cx="62%" cy="28%" r="12%">
+      <stop offset="0%" stop-color="#C5A059" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#C5A059" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="128" fill="url(#haze)"/>
+  <!-- Atmospheric glow -->
+  <circle cx="256" cy="248" r="140" fill="url(#innerGlow)"/>
+  <!-- Two ethereal forms -->
+  <ellipse cx="218" cy="258" rx="98" ry="120" fill="url(#fL)" filter="url(#glow)"/>
+  <ellipse cx="294" cy="258" rx="98" ry="120" fill="url(#fR)" filter="url(#glow)"/>
+  <!-- Intersection -->
+  <path d="M256 160c-30 28-48 64-48 98s18 70 48 98c30-28 48-64 48-98s-18-70-48-98z" fill="url(#ix)"/>
+  <!-- Subtle strokes -->
+  <ellipse cx="218" cy="258" rx="98" ry="120" fill="none" stroke="rgba(212,129,151,0.18)" stroke-width="1.5"/>
+  <ellipse cx="294" cy="258" rx="98" ry="120" fill="none" stroke="rgba(122,85,212,0.18)" stroke-width="1.5"/>
+  <!-- Gold accent -->
+  <circle cx="310" cy="168" r="28" fill="url(#gold)"/>
+  <!-- Glass edge -->
+  <rect x="56" y="56" width="400" height="400" rx="102" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+</svg>
