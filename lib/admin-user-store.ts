@@ -33,36 +33,67 @@ type InMemoryAdminUserStoreOptions = {
   users: AdminUserRecord[];
 };
 
+export type AdminBootstrapPasswordSource =
+  | "MINGLE_ADMIN_BOOTSTRAP_PASSWORD"
+  | "MINGLE_ADMIN_PASSWORD";
+
+type AdminLoginIdentifier = {
+  kind: "email" | "id";
+  value: string;
+};
+
 let adminUserStoreOverride: AdminUserStore | null = null;
 
 export function hashAdminPassword(password: string) {
   return createHash("sha256").update(`mingle-admin:${password}`).digest("hex");
 }
 
-function normalizeLogin(login: string) {
-  return login.trim().toLowerCase();
-}
-
-function normalizeAdminUserInput<T extends { email: string | null; role: string; branchId: string | null }>(
-  input: T
-) {
-  const email = input.email?.trim().toLowerCase() ?? null;
-  const role = input.role;
-  const branchId = role === "HQ_ADMIN" ? null : input.branchId?.trim() || null;
-
-  if (!email) {
-    throw new Error("관리자 로그인 이메일을 입력해 주세요.");
+export function resolveAdminBootstrapPassword():
+  | {
+      password: string;
+      source: AdminBootstrapPasswordSource;
+    }
+  | null {
+  const bootstrapPassword = process.env.MINGLE_ADMIN_BOOTSTRAP_PASSWORD?.trim();
+  if (bootstrapPassword) {
+    return {
+      password: bootstrapPassword,
+      source: "MINGLE_ADMIN_BOOTSTRAP_PASSWORD"
+    };
   }
 
-  if (role !== "HQ_ADMIN" && !branchId) {
-    throw new Error("지점 관리자와 스태프는 브랜치 지정이 필요합니다.");
+  const legacyPassword = process.env.MINGLE_ADMIN_PASSWORD?.trim();
+  if (legacyPassword) {
+    return {
+      password: legacyPassword,
+      source: "MINGLE_ADMIN_PASSWORD"
+    };
+  }
+
+  return null;
+}
+
+function normalizeLoginIdentifier(login: string): AdminLoginIdentifier {
+  const value = login.trim().toLowerCase();
+  if (!value) {
+    throw new Error("관리자 로그인 ID 또는 이메일을 입력해주세요.");
   }
 
   return {
-    ...input,
-    email,
-    branchId
+    kind: value.includes("@") ? "email" : "id",
+    value
   };
+}
+
+function matchesLoginIdentifier(
+  candidate: Pick<AdminUserRecord, "id" | "email">,
+  login: AdminLoginIdentifier
+) {
+  if (login.kind === "email") {
+    return candidate.email === login.value;
+  }
+
+  return candidate.id === login.value;
 }
 
 function mapAdminUserRow(row: AdminUserRow): AdminUserRecord {
@@ -96,6 +127,50 @@ function sanitizeAdminUser(record: AdminUserRecord): AdminUserSummary {
   };
 }
 
+function normalizeAdminUserInput<
+  T extends { email: string | null; role: string; branchId: string | null }
+>(input: T) {
+  const email = input.email?.trim().toLowerCase() ?? null;
+  const role = input.role;
+  const branchId = role === "HQ_ADMIN" ? null : input.branchId?.trim() || null;
+
+  if (!email) {
+    throw new Error("관리자 로그인 이메일을 입력해주세요.");
+  }
+
+  if (role !== "HQ_ADMIN" && !branchId) {
+    throw new Error("BRANCH_ADMIN 과 STAFF 는 branchId 가 필요합니다.");
+  }
+
+  return {
+    ...input,
+    email,
+    branchId
+  };
+}
+
+function canUseBootstrapPasswordForSeededUser(
+  user: Pick<AdminUserRecord, "isActive" | "lastLoginAt">,
+  password: string
+) {
+  const bootstrapPassword = resolveAdminBootstrapPassword();
+  if (!bootstrapPassword) {
+    return null;
+  }
+
+  // Bootstrap password is only accepted for seeded accounts that have never logged in.
+  // Once the first login succeeds, normal stored password_hash validation remains the only path.
+  if (!user.isActive || user.lastLoginAt) {
+    return null;
+  }
+
+  if (password !== bootstrapPassword.password) {
+    return null;
+  }
+
+  return bootstrapPassword;
+}
+
 async function assertEmailAvailable(
   client: SupabaseClient,
   email: string,
@@ -116,6 +191,23 @@ async function assertEmailAvailable(
   }
 }
 
+async function findAdminUserRowByLogin(
+  client: SupabaseClient,
+  login: AdminLoginIdentifier
+) {
+  const query =
+    login.kind === "email"
+      ? client.from("admin_users").select("*").eq("email", login.value)
+      : client.from("admin_users").select("*").eq("id", login.value);
+
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    throw new Error(`관리자 사용자 정보를 조회하지 못했습니다. ${error.message}`);
+  }
+
+  return (data as AdminUserRow | null) ?? null;
+}
+
 class SupabaseAdminUserStore implements AdminUserStore {
   private readonly client: SupabaseClient;
 
@@ -128,39 +220,52 @@ class SupabaseAdminUserStore implements AdminUserStore {
   }
 
   async findAdminSessionByCredentials(login: string, password: string) {
-    const normalizedLogin = normalizeLogin(login);
-    const passwordHash = hashAdminPassword(password);
-    const { data, error } = await this.client
-      .from("admin_users")
-      .select("*")
-      .or(`id.eq.${normalizedLogin},email.eq.${normalizedLogin}`)
-      .eq("password_hash", passwordHash)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (error) {
-      throw new Error(`관리자 사용자 정보를 조회하지 못했습니다. ${error.message}`);
+    // Login is deterministic:
+    // - identifiers containing "@" are treated as email
+    // - all other identifiers are treated as admin user ids
+    const loginIdentifier = normalizeLoginIdentifier(login);
+    const data = await findAdminUserRowByLogin(this.client, loginIdentifier);
+    if (!data || !data.is_active) {
+      return null;
     }
 
-    if (!data) {
+    const passwordHash = hashAdminPassword(password);
+    const bootstrapPassword = canUseBootstrapPasswordForSeededUser(
+      {
+        isActive: data.is_active,
+        lastLoginAt: data.last_login_at
+      },
+      password
+    );
+    const passwordMatched = data.password_hash === passwordHash;
+    if (!passwordMatched && !bootstrapPassword) {
       return null;
     }
 
     const now = new Date().toISOString();
-    const { error: updateError } = await this.client
+    const { data: updatedRow, error: updateError } = await this.client
       .from("admin_users")
-      .update({ last_login_at: now, updated_at: now })
-      .eq("id", data.id);
+      .update({
+        last_login_at: now,
+        updated_at: now,
+        ...(passwordMatched
+          ? {}
+          : {
+              // Recover first-time seeded accounts whose stored hash was created from an older
+              // bootstrap password source. After the first successful bootstrap login, the row is
+              // aligned with the current bootstrap password and future logins use password_hash only.
+              password_hash: hashAdminPassword(bootstrapPassword!.password)
+            })
+      })
+      .eq("id", data.id)
+      .select("*")
+      .single();
 
     if (updateError) {
       throw new Error(`관리자 마지막 로그인 시간을 기록하지 못했습니다. ${updateError.message}`);
     }
 
-    const adminUser = mapAdminUserRow({
-      ...(data as AdminUserRow),
-      last_login_at: now,
-      updated_at: now
-    });
+    const adminUser = mapAdminUserRow(updatedRow as AdminUserRow);
     return {
       adminUserId: adminUser.id,
       role: adminUser.role,
@@ -186,7 +291,7 @@ class SupabaseAdminUserStore implements AdminUserStore {
     await assertEmailAvailable(this.client, normalized.email);
     const now = new Date().toISOString();
     const row: AdminUserRow = {
-      id: input.id?.trim() || normalized.email.replace(/[^a-z0-9]+/g, "_"),
+      id: input.id?.trim().toLowerCase() || normalized.email.replace(/[^a-z0-9]+/g, "_"),
       email: normalized.email,
       password_hash: hashAdminPassword(input.password),
       role: normalized.role,
@@ -286,17 +391,24 @@ export function createInMemoryAdminUserStore(
     },
 
     async findAdminSessionByCredentials(login: string, password: string) {
-      const normalizedLogin = normalizeLogin(login);
-      const passwordHash = hashAdminPassword(password);
+      const loginIdentifier = normalizeLoginIdentifier(login);
       const user = users.find(
-        (candidate) =>
-          candidate.isActive &&
-          candidate.passwordHash === passwordHash &&
-          (candidate.id === normalizedLogin || candidate.email === normalizedLogin)
+        (candidate) => candidate.isActive && matchesLoginIdentifier(candidate, loginIdentifier)
       );
 
       if (!user) {
         return null;
+      }
+
+      const passwordHash = hashAdminPassword(password);
+      const bootstrapPassword = canUseBootstrapPasswordForSeededUser(user, password);
+      const passwordMatched = user.passwordHash === passwordHash;
+      if (!passwordMatched && !bootstrapPassword) {
+        return null;
+      }
+
+      if (!passwordMatched) {
+        user.passwordHash = hashAdminPassword(bootstrapPassword!.password);
       }
 
       user.lastLoginAt = new Date().toISOString();
@@ -321,7 +433,7 @@ export function createInMemoryAdminUserStore(
       ensureEmailAvailable(normalized.email);
       const now = new Date().toISOString();
       const record: AdminUserRecord = {
-        id: input.id?.trim() || normalized.email.replace(/[^a-z0-9]+/g, "_"),
+        id: input.id?.trim().toLowerCase() || normalized.email.replace(/[^a-z0-9]+/g, "_"),
         email: normalized.email,
         passwordHash: hashAdminPassword(input.password),
         role: normalized.role,
@@ -370,7 +482,7 @@ function isSupabaseAdminStoreConfigured() {
 
 function createSupabaseAdminClient() {
   if (!isSupabaseAdminStoreConfigured()) {
-    throw new Error("Supabase admin user store 환경 변수가 설정되지 않았습니다.");
+    throw new Error("Supabase admin user store environment variables are not configured.");
   }
 
   return createClient(

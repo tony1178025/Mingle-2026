@@ -30,6 +30,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = (await request.json()) as { login?: string; password?: string };
+  // Admin login uses an explicit identifier contract:
+  // - email input resolves against admin_users.email
+  // - non-email input resolves against admin_users.id
+  // Passwords are always verified against password_hash; bootstrap env passwords only help
+  // first-login recovery for seeded accounts inside the store layer.
   if (!body.login || !body.password) {
     return new NextResponse("관리자 로그인 ID와 비밀번호를 모두 입력해 주세요.", {
       status: 401
