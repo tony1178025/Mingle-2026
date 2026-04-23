@@ -1,12 +1,18 @@
-import { resolveDataMode } from "@/lib/data";
-import { createBrowserSeedRepository } from "@/lib/repositories/seed-repository";
-import { createSupabaseRepository } from "@/lib/repositories/supabase-repository";
-import type { SessionSnapshot } from "@/types/mingle";
+import { createHttpRepository } from "@/lib/repositories/http-repository";
+import type {
+  CommandResult,
+  GrantHeartsRequest,
+  GrantHeartsResponse,
+  MingleCommand,
+  ReservationSessionContextRequest,
+  SessionSnapshotResponse
+} from "@/types/mingle";
 
 export interface MingleRepository {
-  getSessionSnapshot(): Promise<SessionSnapshot>;
-  saveSessionSnapshot(snapshot: SessionSnapshot): Promise<SessionSnapshot>;
-  resetDemo(): Promise<SessionSnapshot>;
+  getSessionSnapshot(): Promise<SessionSnapshotResponse>;
+  getReservationSessionContext(request: ReservationSessionContextRequest): Promise<CommandResult>;
+  executeCommand(command: MingleCommand): Promise<CommandResult>;
+  grantHearts(request: GrantHeartsRequest): Promise<GrantHeartsResponse>;
 }
 
 let repository: MingleRepository | null = null;
@@ -16,8 +22,7 @@ export function getMingleRepository(): MingleRepository {
     return repository;
   }
 
-  const mode = resolveDataMode();
-  repository = mode === "supabase" ? createSupabaseRepository() : createBrowserSeedRepository();
+  repository = createHttpRepository();
   return repository;
 }
 

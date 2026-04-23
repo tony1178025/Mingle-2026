@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "backfill:db-authority": "node --experimental-strip-types ./scripts/backfill-db-authority.ts",
+    "seed:admin-users": "node --experimental-strip-types ./scripts/seed-admin-users.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"

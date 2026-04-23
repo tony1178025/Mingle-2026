@@ -2,11 +2,11 @@ import type { StateCreator } from "zustand";
 import type {
   AdminPanel,
   CheckinDraft,
+  ContentTemplateRecord,
   CustomerTab,
-  ParticipantRecord,
-  PaymentCheckoutState,
   ProfileDraft,
   RotationPreview,
+  Round2Attendance,
   SessionPhase,
   SessionSnapshot,
   ToastState
@@ -17,7 +17,6 @@ export type SessionSlice = {
   snapshot: SessionSnapshot | null;
   hydrate: () => Promise<void>;
   syncFromRepository: () => Promise<void>;
-  resetDemo: () => Promise<void>;
 };
 
 export type UiSlice = {
@@ -34,20 +33,28 @@ export type UiSlice = {
 export type CheckinSlice = {
   checkinDraft: CheckinDraft;
   profileDraft: ProfileDraft;
-  updateCheckinMode: (mode: CheckinDraft["mode"]) => void;
   updateCheckinValue: (value: string) => void;
-  updateStaffNote: (value: string) => void;
   verifyCheckin: () => Promise<boolean>;
   updateProfileDraft: <K extends keyof ProfileDraft>(field: K, value: ProfileDraft[K]) => void;
   completeProfile: () => Promise<boolean>;
 };
 
 export type ViewerSlice = {
-  viewerParticipantId: string | null;
-  viewParticipantProfile: (participantId: string) => Promise<void>;
+  currentParticipantId: string | null;
   sendHeart: (recipientId: string) => Promise<boolean>;
-  purchaseHeartBundle: () => Promise<PaymentCheckoutState>;
   submitReport: (targetId: string, reason: string, details: string) => Promise<boolean>;
+  updateParticipantProfile: (nextProfile: {
+    nickname: string;
+    age: number;
+    jobCategory: string;
+    job: string;
+    heightCm: number;
+    animalType: string;
+    energyType: "E" | "I";
+    photoUrl: string | null;
+  }) => Promise<boolean>;
+  updateRound2Attendance: (attendance: Round2Attendance) => Promise<boolean>;
+  acknowledgeRotation: () => Promise<boolean>;
 };
 
 export type AdminSlice = {
@@ -56,22 +63,23 @@ export type AdminSlice = {
   toggleRevealSenders: (value: boolean) => Promise<void>;
   generateRotationPreview: () => Promise<void>;
   applyRotationPreview: () => Promise<void>;
+  resolveReport: (reportId: string) => Promise<void>;
+  setBlacklistStatus: (
+    participantId: string,
+    blocked: boolean,
+    reason?: string
+  ) => Promise<boolean>;
+  grantHearts: (participantId: string, heartsToAdd: number) => Promise<boolean>;
 };
 
-export type MingleStoreState = SessionSlice & UiSlice & CheckinSlice & ViewerSlice & AdminSlice;
+export type ContentSlice = {
+  contentLibrary: readonly ContentTemplateRecord[];
+  activateContent: (templateId: string, targetTableId?: number | null, message?: string) => Promise<void>;
+  clearContent: () => Promise<void>;
+  publishAnnouncement: (message: string) => Promise<void>;
+  respondToContent: (value: string, recipientId?: string | null) => Promise<boolean>;
+};
+
+export type MingleStoreState = SessionSlice & UiSlice & CheckinSlice & ViewerSlice & AdminSlice & ContentSlice;
 
 export type StoreSlice<T> = StateCreator<MingleStoreState, [], [], T>;
-
-export type SetState = Parameters<StoreSlice<{}>>[0];
-export type GetState = Parameters<StoreSlice<{}>>[1];
-
-export type SnapshotUpdater = (snapshot: SessionSnapshot) => SessionSnapshot;
-
-export type PersistSnapshot = (nextSnapshot: SessionSnapshot, extra?: Partial<MingleStoreState>) => Promise<void>;
-
-export type UpdateSnapshot = (
-  updater: SnapshotUpdater,
-  extra?: Partial<MingleStoreState>
-) => Promise<SessionSnapshot | null>;
-
-export type ViewerParticipant = ParticipantRecord | null;

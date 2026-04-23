@@ -1,14 +1,26 @@
 import { classifyParticipants } from "@/engine/tiering";
-import { getMingleRepository } from "@/lib/repositories";
-import { MINGLE_CONSTANTS, getViewerState, setViewerParticipantId } from "@/lib/mingle";
-import type { MingleStoreState, PersistSnapshot, SetState, SnapshotUpdater, UpdateSnapshot } from "@/stores/types";
-import type { SessionSnapshot } from "@/types/mingle";
+import {
+  findParticipant,
+  MINGLE_CONSTANTS,
+  setCachedParticipantId
+} from "@/lib/mingle";
+import type { CommandResult, SessionSnapshot } from "@/types/mingle";
 
 export function normalizeSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
-  const participants = classifyParticipants(snapshot.participants);
   return {
     ...snapshot,
-    participants,
+    participants: classifyParticipants(
+      snapshot.participants.map((participant) => ({
+        ...participant,
+        round2Attendance: participant.round2Attendance ?? "UNDECIDED"
+      }))
+    ),
+    activeContentIds: snapshot.activeContentIds ?? [],
+    liveContent: snapshot.liveContent ?? null,
+    contentResponses: snapshot.contentResponses ?? [],
+    anonymousMessages: snapshot.anonymousMessages ?? [],
+    announcements: snapshot.announcements ?? [],
+    rotationInstruction: snapshot.rotationInstruction ?? null,
     session: {
       ...snapshot.session,
       tableCount: snapshot.session.tableCount || MINGLE_CONSTANTS.tableCount,
@@ -17,33 +29,73 @@ export function normalizeSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
   };
 }
 
-export function createPersistSnapshot(set: SetState): PersistSnapshot {
-  return async (nextSnapshot, extra = {}) => {
-    const normalized = normalizeSnapshot(nextSnapshot);
-    set({ snapshot: normalized, ...extra });
-    await getMingleRepository().saveSessionSnapshot(normalized);
+export function applyCommandResult(
+  set: (partial: Record<string, unknown>) => void,
+  result: CommandResult,
+  extra: Record<string, unknown> = {}
+) {
+  const snapshot = normalizeSnapshot(result.snapshot);
+  const nextState: Record<string, unknown> = {
+    snapshot,
+    ...extra
+  };
+
+  if (result.rotationPreview !== undefined) {
+    nextState.rotationPreview = result.rotationPreview;
+  }
+
+  if (result.participantId !== undefined) {
+    if (result.participantId === null) {
+      setCachedParticipantId(null);
+      nextState.currentParticipantId = null;
+    } else if (findParticipant(snapshot.participants, result.participantId)) {
+      setCachedParticipantId(result.participantId);
+      nextState.currentParticipantId = result.participantId;
+    }
+  }
+
+  set(nextState);
+}
+
+export function resolveRuntimeParticipantState(
+  snapshot: SessionSnapshot,
+  candidateParticipantId: string | null | undefined
+) {
+  const participant = findParticipant(snapshot.participants, candidateParticipantId);
+  return {
+    currentParticipantId: participant?.id ?? null,
+    selectedTableId: participant?.tableId ?? 1,
+    isValid: Boolean(participant) || !candidateParticipantId
   };
 }
 
-export function createUpdateSnapshot(
-  set: SetState,
-  get: () => MingleStoreState
-): UpdateSnapshot {
-  const persistSnapshot = createPersistSnapshot(set);
+export function getInitialViewerState(
+  snapshot: SessionSnapshot,
+  serverParticipantId: string | null
+) {
+  const resolved = resolveRuntimeParticipantState(snapshot, serverParticipantId);
+  if (!resolved.isValid || !resolved.currentParticipantId) {
+    setCachedParticipantId(null);
+  } else {
+    setCachedParticipantId(resolved.currentParticipantId);
+  }
 
-  return async (updater: SnapshotUpdater, extra = {}) => {
-    const snapshot = get().snapshot;
-    if (!snapshot) return null;
-    const nextSnapshot = updater(snapshot);
-    await persistSnapshot(nextSnapshot, extra);
-    return normalizeSnapshot(nextSnapshot);
+  return {
+    currentParticipantId: resolved.currentParticipantId,
+    selectedTableId: resolved.selectedTableId
   };
 }
 
-export function getInitialViewerState() {
-  return getViewerState();
-}
+export function syncCachedParticipantState(
+  snapshot: SessionSnapshot,
+  serverParticipantId: string | null
+) {
+  const resolved = resolveRuntimeParticipantState(snapshot, serverParticipantId);
+  if (!resolved.isValid || !resolved.currentParticipantId) {
+    setCachedParticipantId(null);
+  } else {
+    setCachedParticipantId(resolved.currentParticipantId);
+  }
 
-export function clearViewerState() {
-  setViewerParticipantId(null);
+  return resolved;
 }

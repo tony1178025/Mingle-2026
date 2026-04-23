@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useEffectEvent } from "react";
+import { startSessionRealtime } from "@/lib/realtime/channel";
 import { startSessionPolling } from "@/lib/realtime/polling";
 import { useMingleStore } from "@/stores/useMingleStore";
 
 export function AppBootstrap() {
-  const hydrate = useMingleStore((state) => state.hydrate);
+  const hydrate = useMingleStore((state) => state.hydrated);
+  const runHydrate = useMingleStore((state) => state.hydrate);
   const syncFromRepository = useMingleStore((state) => state.syncFromRepository);
 
   const handleSync = useEffectEvent(() => {
@@ -21,23 +23,28 @@ export function AppBootstrap() {
       return;
     }
 
-    void navigator.serviceWorker
-      .register("/sw.js", { scope: "/" })
-      .then((registration) => registration.update().catch(() => undefined))
-      .catch((error) => {
-        console.warn("[mingle:pwa] service worker registration failed", error);
-      });
+    void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
   });
 
   useEffect(() => {
-    void hydrate();
+    if (!hydrate) {
+      void runHydrate();
+    }
+
     registerPwaServiceWorker();
-    const stop = startSessionPolling(async () => {
-      handleSync();
+
+    let stopPolling: (() => void) | null = null;
+    const stopRealtime = startSessionRealtime(handleSync, () => {
+      if (!stopPolling) {
+        stopPolling = startSessionPolling(handleSync, 2000);
+      }
     });
 
-    return stop;
-  }, [handleSync, hydrate, registerPwaServiceWorker]);
+    return () => {
+      stopRealtime();
+      stopPolling?.();
+    };
+  }, [handleSync, hydrate, registerPwaServiceWorker, runHydrate]);
 
   return null;
 }

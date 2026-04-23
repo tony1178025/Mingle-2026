@@ -16,10 +16,13 @@ export function createPollingTransport(intervalMs = MINGLE_CONSTANTS.pollingInte
   };
 }
 
-export function startSessionPolling(sync: () => Promise<void> | void) {
+export function startSessionPolling(
+  sync: () => Promise<void> | void,
+  intervalMs = MINGLE_CONSTANTS.pollingIntervalMs
+) {
   if (typeof window === "undefined") {
     return () => undefined;
   }
 
-  return createPollingTransport().start(sync);
+  return createPollingTransport(intervalMs).start(sync);
 }

@@ -1,95 +1,141 @@
-import { applyRotationPreview, generateRotationPreview } from "@/engine/rotation";
-import { createAuditLog, createToast } from "@/lib/mingle";
+import { createToast } from "@/lib/mingle";
 import { getMingleRepository } from "@/lib/repositories";
-import { normalizeSnapshot } from "@/stores/helpers";
+import { applyCommandResult } from "@/stores/helpers";
 import type { AdminSlice, StoreSlice } from "@/stores/types";
 
 export const createAdminSlice: StoreSlice<AdminSlice> = (set, get) => ({
   rotationPreview: null,
 
   async setPhase(phase) {
-    const snapshot = get().snapshot;
-    if (!snapshot || snapshot.session.phase === phase) return;
-
-    const audit = createAuditLog(
-      "PHASE_CHANGED",
-      "admin",
-      "ADMIN",
-      `${phase} 단계로 전환했습니다.`,
-      { phase },
-      snapshot.session.id
-    );
-
-    const nextSnapshot = normalizeSnapshot({
-      ...snapshot,
-      session: { ...snapshot.session, phase, updatedAt: audit.createdAt },
-      auditLogs: [audit, ...snapshot.auditLogs]
-    });
-
-    await getMingleRepository().saveSessionSnapshot(nextSnapshot);
-    set({
-      snapshot: nextSnapshot,
-      toast: createToast("success", "세션 단계를 변경했습니다.")
-    });
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "admin.setPhase",
+        phase
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("success", "세션 단계를 변경했습니다.")
+      });
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "단계 변경에 실패했습니다.")
+      });
+    }
   },
 
   async toggleRevealSenders(value) {
-    const snapshot = get().snapshot;
-    if (!snapshot || snapshot.session.revealSenders === value) return;
-
-    const audit = createAuditLog(
-      "REVEAL_TOGGLED",
-      "admin",
-      "ADMIN",
-      value ? "보낸 사람 공개를 켰습니다." : "보낸 사람 공개를 껐습니다.",
-      { revealSenders: value },
-      snapshot.session.id
-    );
-
-    const nextSnapshot = normalizeSnapshot({
-      ...snapshot,
-      session: {
-        ...snapshot.session,
-        revealSenders: value,
-        revealTriggeredAt: value ? audit.createdAt : null,
-        updatedAt: audit.createdAt
-      },
-      auditLogs: [audit, ...snapshot.auditLogs]
-    });
-
-    await getMingleRepository().saveSessionSnapshot(nextSnapshot);
-    set({
-      snapshot: nextSnapshot,
-      toast: createToast(
-        "success",
-        value ? "보낸 사람 공개를 열었습니다." : "보낸 사람 공개를 닫았습니다."
-      )
-    });
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "admin.toggleReveal",
+        value
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("success", value ? "공개를 시작했습니다." : "공개를 중지했습니다.")
+      });
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "공개 제어에 실패했습니다.")
+      });
+    }
   },
 
   async generateRotationPreview() {
-    const snapshot = get().snapshot;
-    if (!snapshot) return;
-
-    const preview = generateRotationPreview(snapshot);
-    set({
-      adminPanel: "rotation",
-      rotationPreview: preview,
-      toast: createToast("info", "회전 미리보기를 생성했습니다.")
-    });
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "admin.generateRotationPreview"
+      });
+      applyCommandResult(set, result, {
+        adminPanel: "rotation",
+        toast: createToast("info", "테이블 이동 미리보기를 생성했습니다.")
+      });
+    } catch (error) {
+      set({
+        toast: createToast(
+          "warning",
+          error instanceof Error ? error.message : "이동 미리보기 생성에 실패했습니다."
+        )
+      });
+    }
   },
 
   async applyRotationPreview() {
-    const snapshot = get().snapshot;
     const rotationPreview = get().rotationPreview;
-    if (!snapshot || !rotationPreview) return;
+    if (!rotationPreview) {
+      return;
+    }
 
-    const nextSnapshot = normalizeSnapshot(applyRotationPreview(snapshot, rotationPreview));
-    await getMingleRepository().saveSessionSnapshot(nextSnapshot);
-    set({
-      snapshot: nextSnapshot,
-      rotationPreview: null,
-      toast: createToast("success", "회전 미리보기를 실제 배치에 적용했습니다.")
-    });
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "admin.applyRotation",
+        preview: rotationPreview
+      });
+      applyCommandResult(set, result, {
+        rotationPreview: null,
+        toast: createToast("success", "테이블 이동을 적용했습니다.")
+      });
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "이동 적용에 실패했습니다.")
+      });
+    }
+  },
+
+  async resolveReport(reportId) {
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "admin.resolveReport",
+        reportId
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("success", "신고 처리를 완료했습니다.")
+      });
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "신고 처리에 실패했습니다.")
+      });
+    }
+  },
+
+  async setBlacklistStatus(participantId, blocked, reason) {
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "admin.setBlacklistStatus",
+        participantId,
+        blocked,
+        reason
+      });
+      applyCommandResult(set, result, {
+        toast: createToast(
+          "success",
+          blocked ? "참가자 차단을 적용했습니다." : "참가자 차단을 해제했습니다."
+        )
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast(
+          "warning",
+          error instanceof Error ? error.message : "참가자 차단 상태 변경에 실패했습니다."
+        )
+      });
+      return false;
+    }
+  },
+
+  async grantHearts(participantId, heartsToAdd) {
+    try {
+      const result = await getMingleRepository().grantHearts({
+        participantId,
+        heartsToAdd
+      });
+      applyCommandResult(set, { snapshot: result.snapshot }, {
+        toast: createToast("success", `하트 ${heartsToAdd}개를 지급했습니다.`)
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "하트 지급에 실패했습니다.")
+      });
+      return false;
+    }
   }
 });

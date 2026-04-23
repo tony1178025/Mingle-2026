@@ -1,4 +1,4 @@
-# Production Upgrade Report
+﻿# Production Upgrade Report
 
 ## Changelog
 
@@ -24,7 +24,7 @@
 ## Remaining external integrations
 
 - Real QR scanner / device camera flow
-- Real payment provider for heart bundle purchases
+- Offline admin heart grant flow
 - Supabase persistence and Realtime subscription wiring
 - Auth / participant identity binding
 - File upload storage for profile photos
@@ -44,3 +44,4 @@
 - Round 1 and Round 2 are visually distinct through background, contrast, and emphasis shifts.
 - Admin UI now optimizes immediate scan value rather than decorative dashboard density.
 - Typography uses a Korean-first system font strategy with a premium serif accent only where it adds emotional weight.
+

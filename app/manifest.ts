@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "밍글 Mingle",
     short_name: "밍글",
-    description: "프리미엄 소셜 디스커버리 플랫폼",
+    description: "프리미엄 오프라인 소셜 디스커버리 파티 플랫폼",
     start_url: "/customer",
     display: "standalone",
     background_color: "#0D0618",

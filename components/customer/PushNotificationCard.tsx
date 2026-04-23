@@ -7,7 +7,7 @@ import { useMingleStore } from "@/stores/useMingleStore";
 
 export function PushNotificationCard() {
   const snapshot = useMingleStore((state) => state.snapshot);
-  const viewerParticipantId = useMingleStore((state) => state.viewerParticipantId);
+  const currentParticipantId = useMingleStore((state) => state.currentParticipantId);
   const [status, setStatus] = useState("알림 권한은 아직 요청하지 않았습니다.");
   const [busy, setBusy] = useState(false);
 
@@ -26,7 +26,7 @@ export function PushNotificationCard() {
           try {
             const token = await registerPushToken({
               sessionId: snapshot?.session.id ?? null,
-              participantId: viewerParticipantId
+              participantId: currentParticipantId
             });
             setStatus(`알림 등록이 완료되었습니다. 토큰: ${token.slice(0, 12)}...`);
           } catch (error) {

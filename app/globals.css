@@ -1,7 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════
-   밍글 / Mingle — Midnight Connection Design System
-   Direction B: emotional-first, warmer, more mysterious
-   Premium dark luxury · Velvet depth · Atmospheric diffusion
+   밍글 / Mingle — Midnight Connection (Corrected)
+   "오늘 밤 가장 기대되는 프리미엄 파티"
+   갤러리가 아니라 파티. 차갑지 않고 따뜻하게.
+   과한 연출 대신 빠른 정보·가벼운 인터랙션·사회적 에너지.
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
@@ -10,54 +11,59 @@
   --font-display: "Cormorant Garamond", "Iowan Old Style", serif;
 
   /* ── Core Brand Tokens ──────────────────────────────────────── */
-  --brand-bg-deep: #1A0B2E;
+  --brand-bg-deep: #1E1232;
   --brand-accent-rose: #D48197;
-  --brand-detail-gold: #C5A059;
+  --brand-detail-gold: #D4B36A;
 
-  /* ── Background System (Velvet Midnight) ────────────────────── */
-  --bg-foundation: #0D0618;
-  --bg-base: #120822;
-  --bg-elevated: #1A0B2E;
-  --bg-surface: #221340;
-  --bg-surface-secondary: #2A1750;
+  /* ── Background System (20% 라이트닝 — 파티 에너지) ────────── */
+  --bg-foundation: #110A1E;
+  --bg-base: #16102A;
+  --bg-elevated: #1E1232;
+  --bg-surface: #271842;
+  --bg-surface-secondary: #30204E;
 
-  /* ── Ink / Dark Foundations ──────────────────────────────────── */
-  --ink-950: #0D0618;
-  --ink-900: #120822;
-  --ink-800: #1A0B2E;
-  --ink-700: #2A1750;
+  /* ── Ink Foundations ─────────────────────────────────────────── */
+  --ink-950: #110A1E;
+  --ink-900: #16102A;
+  --ink-800: #1E1232;
+  --ink-700: #30204E;
 
   /* ── Paper / Light (admin) ──────────────────────────────────── */
   --paper-50: #F8F5FC;
   --paper-100: #F0EAF7;
   --paper-200: #DED4EE;
 
-  /* ── Text System ────────────────────────────────────────────── */
-  --text-primary: #F2ECF8;
-  --text-secondary: #B8A8D0;
-  --text-muted: #7E6B9A;
+  /* ── Text System (높은 대비, 정보 우선) ─────────────────────── */
+  --text-primary: #F5F0FA;
+  --text-secondary: #C4B6DA;
+  --text-muted: #8E7CAA;
   --text-strong: #110D1A;
   --text-on-accent: #FFFFFF;
 
-  /* ── Accent Palette (Muted Rose Pulse) ──────────────────────── */
+  /* ── Rose Accent (따뜻한 에너지) ────────────────────────────── */
   --accent-600: #B8637A;
   --accent-500: #D48197;
-  --accent-400: #E2A0B2;
-  --accent-300: #EFC0CC;
-  --accent-glow: rgba(212, 129, 151, 0.18);
-  --accent-pulse: rgba(212, 129, 151, 0.12);
+  --accent-400: #E8A4B6;
+  --accent-300: #F0C0CC;
+  --accent-glow: rgba(212, 129, 151, 0.20);
+  --accent-pulse: rgba(212, 129, 151, 0.14);
 
-  /* ── Violet Depths ──────────────────────────────────────────── */
+  /* ── Violet ─────────────────────────────────────────────────── */
   --violet-600: #6344B8;
   --violet-500: #7A55D4;
   --violet-400: #9B7AE8;
-  --violet-glow: rgba(122, 85, 212, 0.16);
+  --violet-glow: rgba(122, 85, 212, 0.14);
 
-  /* ── Gold Micro-details ─────────────────────────────────────── */
-  --gold-500: #C5A059;
-  --gold-400: #D4B06A;
-  --gold-300: #E4C88A;
-  --gold-glow: rgba(197, 160, 89, 0.14);
+  /* ── Warm Gold (파티 조명 에너지) ────────────────────────────── */
+  --gold-500: #D4B36A;
+  --gold-400: #E0C07A;
+  --gold-300: #ECD498;
+  --gold-glow: rgba(212, 179, 106, 0.16);
+
+  /* ── Warm Orange (앰비언트 라이트 큐) ───────────────────────── */
+  --warm-500: #D49A6A;
+  --warm-400: #E0AD82;
+  --warm-glow: rgba(212, 154, 106, 0.12);
 
   /* ── Semantic States ────────────────────────────────────────── */
   --success-500: #3DA87E;
@@ -67,42 +73,40 @@
   --danger-500: #C94F5A;
   --danger-glow: rgba(201, 79, 90, 0.14);
 
-  /* ── Border / Line System ───────────────────────────────────── */
-  --line-dark: rgba(255, 255, 255, 0.07);
-  --line-dark-strong: rgba(255, 255, 255, 0.13);
-  --line-dark-accent: rgba(212, 129, 151, 0.18);
+  /* ── Border / Line (약간 밝게 — 가독성) ─────────────────────── */
+  --line-dark: rgba(255, 255, 255, 0.09);
+  --line-dark-strong: rgba(255, 255, 255, 0.16);
+  --line-dark-accent: rgba(212, 129, 151, 0.20);
   --line-light: rgba(17, 13, 26, 0.08);
   --line-light-strong: rgba(17, 13, 26, 0.14);
 
-  /* ── Surface System (Velvet + Lacquer) ──────────────────────── */
-  --surface-dark: rgba(255, 255, 255, 0.04);
-  --surface-dark-strong: rgba(255, 255, 255, 0.07);
-  --surface-dark-hover: rgba(255, 255, 255, 0.09);
+  /* ── Surface System (과한 래커 제거, 클린) ──────────────────── */
+  --surface-dark: rgba(255, 255, 255, 0.05);
+  --surface-dark-strong: rgba(255, 255, 255, 0.08);
+  --surface-dark-hover: rgba(255, 255, 255, 0.11);
   --surface-light: rgba(255, 255, 255, 0.94);
   --surface-light-strong: #FFFFFF;
 
-  /* ── Glow System (Atmospheric Diffusion) ────────────────────── */
-  --glow-soft: rgba(212, 129, 151, 0.06);
-  --glow-rose: rgba(212, 129, 151, 0.12);
+  /* ── Glow (절제 — 앰비언트 파티 라이트) ─────────────────────── */
+  --glow-soft: rgba(212, 129, 151, 0.08);
+  --glow-rose: rgba(212, 129, 151, 0.14);
   --glow-violet: rgba(122, 85, 212, 0.10);
-  --glow-gold: rgba(197, 160, 89, 0.08);
-  --glow-warm: rgba(212, 129, 151, 0.08);
+  --glow-gold: rgba(212, 179, 106, 0.10);
+  --glow-warm: rgba(212, 154, 106, 0.08);
 
-  /* ── Shadow System (Cinematic Depth) ────────────────────────── */
-  --shadow-deep: 0 28px 72px rgba(6, 2, 16, 0.52), 0 12px 28px rgba(6, 2, 16, 0.28);
-  --shadow-dark: 0 24px 60px rgba(6, 2, 16, 0.42);
-  --shadow-soft: 0 18px 40px rgba(6, 2, 16, 0.22);
-  --shadow-subtle: 0 8px 24px rgba(6, 2, 16, 0.16);
-  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.04), inset 0 0 20px rgba(212, 129, 151, 0.03);
+  /* ── Shadow (가볍게 — 시네마틱 과잉 제거) ───────────────────── */
+  --shadow-dark: 0 16px 40px rgba(8, 4, 18, 0.32);
+  --shadow-soft: 0 10px 28px rgba(8, 4, 18, 0.18);
+  --shadow-subtle: 0 4px 16px rgba(8, 4, 18, 0.12);
 
-  /* ── Radius System ──────────────────────────────────────────── */
-  --radius-xl: 28px;
-  --radius-lg: 22px;
-  --radius-md: 18px;
-  --radius-sm: 14px;
-  --radius-xs: 10px;
+  /* ── Radius ─────────────────────────────────────────────────── */
+  --radius-xl: 24px;
+  --radius-lg: 20px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
 
-  /* ── Spacing (Intimate Premium) ─────────────────────────────── */
+  /* ── Spacing ────────────────────────────────────────────────── */
   --space-1: 0.5rem;
   --space-2: 0.75rem;
   --space-3: 1rem;
@@ -112,40 +116,118 @@
   --space-7: 3rem;
   --space-8: 4rem;
 
-  /* ── Motion / Easing ────────────────────────────────────────── */
+  /* ── Motion (가볍고 반응적 — 드라마틱 제거) ─────────────────── */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-decel: cubic-bezier(0, 0, 0.2, 1);
   --ease-accel: cubic-bezier(0.4, 0, 1, 1);
-  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-quick: 160ms;
-  --dur-base: 240ms;
-  --dur-page: 360ms;
-  --dur-reveal: 600ms;
+  --ease-snappy: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --dur-quick: 120ms;
+  --dur-base: 180ms;
+  --dur-page: 260ms;
 
-  /* ── Focus States (Gold accent) ─────────────────────────────── */
-  --focus-ring-dark: 0 0 0 1px rgba(197, 160, 89, 0.22), 0 0 0 4px rgba(197, 160, 89, 0.10);
-  --focus-ring-light: 0 0 0 1px rgba(17, 13, 26, 0.10), 0 0 0 4px rgba(122, 85, 212, 0.12);
+  /* ── Focus States ───────────────────────────────────────────── */
+  --focus-ring-dark: 0 0 0 1px rgba(212, 179, 106, 0.24), 0 0 0 3px rgba(212, 179, 106, 0.10);
+  --focus-ring-light: 0 0 0 1px rgba(17, 13, 26, 0.10), 0 0 0 3px rgba(122, 85, 212, 0.12);
 
-  /* ── Hero Gradients (Atmospheric Diffusion) ─────────────────── */
+  /* ── Hero Gradients (앰비언트 파티 라이트) ───────────────────── */
   --hero-gradient:
-    radial-gradient(ellipse at 8% 4%, rgba(122, 85, 212, 0.22), transparent 32%),
-    radial-gradient(ellipse at 92% 8%, rgba(212, 129, 151, 0.16), transparent 34%),
-    radial-gradient(ellipse at 50% 98%, rgba(197, 160, 89, 0.05), transparent 28%);
+    radial-gradient(ellipse at 10% 6%, rgba(122, 85, 212, 0.18), transparent 34%),
+    radial-gradient(ellipse at 88% 10%, rgba(212, 129, 151, 0.18), transparent 36%),
+    radial-gradient(ellipse at 60% 95%, rgba(212, 179, 106, 0.08), transparent 30%);
 
   --hero-gradient-r2:
-    radial-gradient(ellipse at 78% 8%, rgba(197, 160, 89, 0.12), transparent 28%),
-    radial-gradient(ellipse at 18% 14%, rgba(212, 129, 151, 0.20), transparent 30%),
-    radial-gradient(ellipse at 55% 96%, rgba(122, 85, 212, 0.08), transparent 32%);
+    radial-gradient(ellipse at 75% 10%, rgba(212, 179, 106, 0.14), transparent 30%),
+    radial-gradient(ellipse at 20% 15%, rgba(212, 129, 151, 0.22), transparent 32%),
+    radial-gradient(ellipse at 50% 90%, rgba(212, 154, 106, 0.08), transparent 28%);
 
-  /* ── Premium CTA Gradient ───────────────────────────────────── */
-  --cta-gradient: linear-gradient(135deg, #D48197 0%, #B8637A 50%, #8B4A6A 100%);
-  --cta-glow: 0 16px 40px rgba(212, 129, 151, 0.28), 0 4px 12px rgba(212, 129, 151, 0.14);
-  --cta-hover-glow: 0 20px 48px rgba(212, 129, 151, 0.34), 0 6px 16px rgba(212, 129, 151, 0.18);
+  /* ── CTA (에너지감 있는 로즈) ───────────────────────────────── */
+  --cta-gradient: linear-gradient(135deg, #D88DA0 0%, #C46E84 60%, #A25670 100%);
+  --cta-glow: 0 10px 28px rgba(212, 129, 151, 0.24);
+  --cta-hover-glow: 0 14px 36px rgba(212, 129, 151, 0.32);
+}
+
+.rotation-move-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.rotation-summary-list {
+  margin-bottom: 1rem;
+}
+
+.rotation-move-row {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-sm);
+  background: var(--surface-dark);
+}
+
+.admin-shell .rotation-move-row {
+  background: var(--surface-light);
+  border-color: var(--line-light);
+}
+
+.rotation-move-row strong {
+  display: block;
+}
+
+.rotation-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(10, 6, 18, 0.78);
+  backdrop-filter: blur(12px);
+}
+
+.rotation-modal-card {
+  width: min(100%, 30rem);
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(212, 179, 106, 0.22);
+  background:
+    radial-gradient(circle at top, rgba(212, 129, 151, 0.16), transparent 40%),
+    rgba(24, 16, 40, 0.96);
+  box-shadow: 0 24px 60px rgba(8, 4, 18, 0.4);
+}
+
+.rotation-modal-title {
+  margin: 0;
+  font-size: clamp(1.8rem, 6vw, 2.4rem);
+  line-height: 1.05;
+}
+
+.rotation-modal-copy {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.rotation-timer {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 4.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(212, 179, 106, 0.28);
+  background: rgba(212, 129, 151, 0.1);
+  color: var(--text-primary);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Global Reset & Defaults
+   Global Reset
    ═══════════════════════════════════════════════════════════════ */
 
 * {
@@ -168,7 +250,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-weight: 400;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   line-height: 1.6;
 }
 
@@ -194,14 +276,13 @@ select,
 textarea {
   width: 100%;
   border: 1px solid var(--line-dark);
-  border-radius: 16px;
-  padding: 0.9rem 1.1rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
   color: inherit;
   outline: none;
   transition:
     border-color var(--dur-base) var(--ease-standard),
-    transform var(--dur-base) var(--ease-standard),
     box-shadow var(--dur-base) var(--ease-standard),
     background var(--dur-base) var(--ease-standard);
 }
@@ -209,9 +290,9 @@ textarea {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  border-color: rgba(197, 160, 89, 0.45);
+  border-color: rgba(212, 179, 106, 0.40);
   box-shadow: var(--focus-ring-dark);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  background: rgba(255, 255, 255, 0.07);
 }
 
 input::placeholder,
@@ -230,7 +311,7 @@ img {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Shell Systems
+   Shells
    ═══════════════════════════════════════════════════════════════ */
 
 .portal-shell,
@@ -239,17 +320,15 @@ img {
   min-height: 100vh;
 }
 
-/* ── Portal (Landing) ─────────────────────────────────────────── */
-
 .portal-shell {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-7);
   background:
-    radial-gradient(ellipse at 12% 8%, rgba(122, 85, 212, 0.18), transparent 36%),
-    radial-gradient(ellipse at 85% 16%, rgba(212, 129, 151, 0.14), transparent 38%),
-    radial-gradient(ellipse at 50% 90%, rgba(197, 160, 89, 0.04), transparent 30%),
+    radial-gradient(ellipse at 14% 10%, rgba(122, 85, 212, 0.16), transparent 38%),
+    radial-gradient(ellipse at 82% 18%, rgba(212, 129, 151, 0.16), transparent 40%),
+    radial-gradient(ellipse at 50% 85%, rgba(212, 179, 106, 0.06), transparent 32%),
     linear-gradient(180deg, var(--ink-950) 0%, var(--bg-foundation) 100%);
 }
 
@@ -265,23 +344,23 @@ img {
 .surface {
   border: 1px solid var(--line-dark);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(28px) saturate(110%);
+  backdrop-filter: blur(16px) saturate(108%);
 }
 
 .portal-copy {
-  padding: clamp(2rem, 5vw, 4rem);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
-  box-shadow: var(--shadow-inner-glow);
+  padding: clamp(2rem, 5vw, 3.5rem);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .portal-title,
 .hero-title,
 .admin-title {
   margin: 0.5rem 0 1rem;
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-size: clamp(2.4rem, 5vw, 4.6rem);
-  line-height: 0.98;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
   color: var(--text-primary);
 }
 
@@ -296,70 +375,99 @@ img {
 .participant-copy p,
 .content-card p {
   color: var(--text-secondary);
-  line-height: 1.75;
+  line-height: 1.7;
+}
+
+.portal-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.85rem 0 1.2rem;
 }
 
 .portal-actions,
 .button-row {
   display: flex;
-  gap: 0.85rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .portal-panel {
   padding: var(--space-6);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018));
+  background: rgba(255, 255, 255, 0.04);
   display: grid;
   gap: 1rem;
-  box-shadow: var(--shadow-inner-glow);
 }
 
 .portal-panel-row {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.9rem;
+  align-items: start;
 }
 
-/* ── Eyebrow / Label System ───────────────────────────────────── */
+.portal-panel-row span {
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.portal-meta-grid,
+.session-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+  margin-top: 1.2rem;
+}
+
+.portal-meta-card,
+.session-quick-card {
+  padding: 1rem 1.05rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-dark);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: var(--shadow-subtle);
+}
+
+.portal-meta-card strong,
+.session-quick-card strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.portal-meta-card p,
+.session-quick-card p {
+  margin: 0.45rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+/* ── Eyebrow ──────────────────────────────────────────────────── */
 
 .eyebrow {
   margin: 0;
-  color: var(--brand-detail-gold);
+  color: var(--gold-400);
   text-transform: uppercase;
-  letter-spacing: 0.28em;
-  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
   font-weight: 600;
-  opacity: 0.75;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Surface System (Matte Velvet + Soft Lacquer)
+   Surface (깔끔하게 — ::before 글로우 레이어 제거)
    ═══════════════════════════════════════════════════════════════ */
 
 .surface {
-  padding: 1.4rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
-  box-shadow: var(--shadow-dark), var(--shadow-inner-glow);
-  position: relative;
-}
-
-.surface::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at 50% 0%, var(--glow-soft), transparent 70%);
-  pointer-events: none;
-  opacity: 0.5;
+  padding: 1.35rem;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: var(--shadow-soft);
 }
 
 .inner-surface-highlight {
-  background:
-    radial-gradient(circle at top right, rgba(197, 160, 89, 0.06), transparent 40%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-  border-color: rgba(197, 160, 89, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(212, 179, 106, 0.14);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -376,7 +484,7 @@ img {
 
 .section-title {
   margin: 0.35rem 0;
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -388,22 +496,22 @@ img {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Button System (Premium Interactive)
+   Button System (반응적, 가벼운 에너지)
    ═══════════════════════════════════════════════════════════════ */
 
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
-  padding: 0.85rem 1.25rem;
+  min-height: 44px;
+  padding: 0.8rem 1.15rem;
   border: 1px solid transparent;
-  border-radius: 16px;
+  border-radius: 14px;
   cursor: pointer;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   transition:
-    transform var(--dur-base) var(--ease-premium),
+    transform var(--dur-quick) var(--ease-snappy),
     background var(--dur-base) var(--ease-standard),
     border-color var(--dur-base) var(--ease-standard),
     box-shadow var(--dur-base) var(--ease-standard);
@@ -411,6 +519,11 @@ img {
 
 .button:hover {
   transform: translateY(-1px);
+}
+
+.button:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 60ms;
 }
 
 .button:focus-visible,
@@ -443,12 +556,12 @@ img {
 
 .button-secondary {
   color: var(--text-on-accent);
-  background: linear-gradient(135deg, rgba(122, 85, 212, 0.88), rgba(99, 68, 184, 0.86));
-  box-shadow: 0 12px 32px rgba(122, 85, 212, 0.22);
+  background: linear-gradient(135deg, rgba(122, 85, 212, 0.90), rgba(99, 68, 184, 0.88));
+  box-shadow: 0 8px 24px rgba(122, 85, 212, 0.20);
 }
 
 .button-secondary:hover {
-  box-shadow: 0 16px 40px rgba(122, 85, 212, 0.28);
+  box-shadow: 0 12px 32px rgba(122, 85, 212, 0.26);
 }
 
 .button-ghost {
@@ -465,49 +578,48 @@ img {
 .button-danger {
   color: var(--text-on-accent);
   background: linear-gradient(135deg, #C94F5A 0%, #A33B44 100%);
-  box-shadow: 0 12px 28px rgba(201, 79, 90, 0.22);
+  box-shadow: 0 8px 24px rgba(201, 79, 90, 0.20);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Badge System
+   Badge
    ═══════════════════════════════════════════════════════════════ */
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
-  padding: 0 0.85rem;
+  min-height: 26px;
+  padding: 0 0.75rem;
   border-radius: 999px;
   font-size: 0.73rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
 .badge-neutral {
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--line-dark);
 }
 
 .badge-accent {
   color: var(--text-on-accent);
   background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
-  box-shadow: 0 4px 12px rgba(212, 129, 151, 0.18);
 }
 
 .badge-success {
   color: var(--text-on-accent);
-  background: rgba(61, 168, 126, 0.88);
+  background: rgba(61, 168, 126, 0.90);
 }
 
 .badge-warning {
   color: var(--text-on-accent);
-  background: rgba(212, 137, 90, 0.88);
+  background: rgba(212, 137, 90, 0.90);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Customer Shell (Dark Luxury)
+   Customer Shell (따뜻한 파티 에너지)
    ═══════════════════════════════════════════════════════════════ */
 
 .customer-shell {
@@ -519,7 +631,7 @@ img {
 .customer-shell[data-phase="ROUND_2"] {
   background:
     var(--hero-gradient-r2),
-    linear-gradient(180deg, #1A0C1E 0%, var(--bg-foundation) 100%);
+    linear-gradient(180deg, #1C1020 0%, var(--bg-foundation) 100%);
 }
 
 .customer-stage,
@@ -547,6 +659,12 @@ img {
   align-content: start;
 }
 
+.hero-copy-stack {
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+}
+
 .customer-hero,
 .admin-hero {
   display: grid;
@@ -572,27 +690,14 @@ img {
 .hero-signal-card,
 .hero-side-list > div,
 .admin-hero-actions {
-  padding: 1rem 1.15rem;
+  padding: 1rem 1.1rem;
   border-radius: var(--radius-md);
   background: var(--surface-dark);
   border: 1px solid var(--line-dark);
 }
 
 .hero-signal-card {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018));
-  box-shadow: var(--shadow-inner-glow);
-  position: relative;
-}
-
-.hero-signal-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at 50% 0%, var(--glow-soft), transparent 70%);
-  pointer-events: none;
-  opacity: 0.4;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .hero-side-kicker {
@@ -605,18 +710,34 @@ img {
 .hero-signal-card p {
   margin: 0.45rem 0 0;
   color: var(--text-secondary);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   line-height: 1.6;
 }
 
 .hero-side-list strong,
 .hero-signal-card strong,
 .admin-hero-actions strong {
-  font-size: 1rem;
+  font-size: 1.04rem;
+  line-height: 1.4;
+}
+
+.admin-quick-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.admin-action-card {
+  min-height: 0;
+}
+
+.admin-action-card p {
+  margin: 0.45rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Tab / Segmented Control
+   Tab / Segmented
    ═══════════════════════════════════════════════════════════════ */
 
 .tab-nav,
@@ -633,8 +754,8 @@ img {
 
 .tab-nav-item,
 .segmented-item {
-  min-height: 40px;
-  padding: 0.7rem 1.05rem;
+  min-height: 38px;
+  padding: 0.65rem 1rem;
   border-radius: 999px;
   border: 1px solid var(--line-dark);
   background: var(--surface-dark);
@@ -644,16 +765,14 @@ img {
     background var(--dur-base) var(--ease-standard),
     border-color var(--dur-base) var(--ease-standard),
     color var(--dur-base) var(--ease-standard),
-    box-shadow var(--dur-base) var(--ease-standard),
-    transform var(--dur-quick) var(--ease-standard);
+    transform var(--dur-quick) var(--ease-snappy);
 }
 
 .tab-nav-item-active,
 .segmented-item-active {
-  background: rgba(212, 129, 151, 0.12);
-  border-color: rgba(212, 129, 151, 0.32);
+  background: rgba(212, 129, 151, 0.14);
+  border-color: rgba(212, 129, 151, 0.34);
   color: var(--text-primary);
-  box-shadow: 0 0 16px rgba(212, 129, 151, 0.08);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -713,15 +832,14 @@ img {
   display: grid;
   gap: 0.35rem;
   text-align: left;
-  padding: 1.05rem;
+  padding: 1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-dark);
   background: var(--surface-dark);
   color: var(--text-secondary);
   transition:
     border-color var(--dur-base) var(--ease-standard),
-    background var(--dur-base) var(--ease-standard),
-    box-shadow var(--dur-base) var(--ease-standard);
+    background var(--dur-base) var(--ease-standard);
 }
 
 .choice-card strong {
@@ -729,16 +847,15 @@ img {
 }
 
 .choice-card-active {
-  border-color: rgba(212, 129, 151, 0.38);
-  background: rgba(212, 129, 151, 0.08);
-  box-shadow: 0 0 20px rgba(212, 129, 151, 0.06);
+  border-color: rgba(212, 129, 151, 0.36);
+  background: rgba(212, 129, 151, 0.10);
 }
 
 .upload-preview {
   width: 120px;
   height: 120px;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid var(--line-dark);
 }
 
@@ -749,7 +866,7 @@ img {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Table / Seat System
+   Table / Seat
    ═══════════════════════════════════════════════════════════════ */
 
 .table-strip {
@@ -768,16 +885,15 @@ img {
   display: grid;
   gap: 0.2rem;
   min-width: 116px;
-  padding: 0.95rem 1.05rem;
-  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
   border: 1px solid var(--line-dark);
   background: var(--surface-dark);
   color: var(--text-secondary);
   text-align: left;
   transition:
     border-color var(--dur-base) var(--ease-standard),
-    background var(--dur-base) var(--ease-standard),
-    box-shadow var(--dur-base) var(--ease-standard);
+    background var(--dur-base) var(--ease-standard);
 }
 
 .table-chip strong {
@@ -785,25 +901,23 @@ img {
 }
 
 .table-chip-active {
-  border-color: rgba(197, 160, 89, 0.38);
+  border-color: rgba(212, 179, 106, 0.36);
   background: linear-gradient(135deg, rgba(212, 129, 151, 0.10), rgba(122, 85, 212, 0.08));
-  box-shadow: 0 0 18px rgba(197, 160, 89, 0.06);
 }
 
 .table-pill {
   display: grid;
   gap: 0.2rem;
   min-width: 116px;
-  padding: 0.95rem 1.05rem;
-  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
   border: 1px solid var(--line-dark);
   background: var(--surface-dark);
   color: var(--text-secondary);
   text-align: left;
   transition:
     border-color var(--dur-base) var(--ease-standard),
-    background var(--dur-base) var(--ease-standard),
-    box-shadow var(--dur-base) var(--ease-standard);
+    background var(--dur-base) var(--ease-standard);
 }
 
 .table-pill strong {
@@ -811,20 +925,18 @@ img {
 }
 
 .table-pill-active {
-  border-color: rgba(197, 160, 89, 0.38);
+  border-color: rgba(212, 179, 106, 0.36);
   background: linear-gradient(135deg, rgba(212, 129, 151, 0.10), rgba(122, 85, 212, 0.08));
-  box-shadow: 0 0 18px rgba(197, 160, 89, 0.06);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Card Systems
+   Cards
    ═══════════════════════════════════════════════════════════════ */
 
 .table-detail-card,
 .table-overview-card,
 .hearts-status-card,
-.sender-card,
-.purchase-card {
+.sender-card {
   overflow: hidden;
 }
 
@@ -879,7 +991,7 @@ img {
 .preview-card,
 .metric-card,
 .inner-surface {
-  padding: 1.05rem;
+  padding: 1rem;
 }
 
 .participant-card {
@@ -955,8 +1067,8 @@ img {
 .stat-chip {
   display: grid;
   gap: 0.25rem;
-  padding: 0.95rem 1.05rem;
-  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
   background: var(--surface-dark);
   border: 1px solid var(--line-dark);
 }
@@ -968,12 +1080,11 @@ img {
 
 .status-callout {
   margin: 1rem 0 0;
-  padding: 1rem 1.1rem;
-  border-radius: 18px;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
   color: var(--text-primary);
   background: linear-gradient(135deg, rgba(212, 129, 151, 0.12), rgba(122, 85, 212, 0.08));
   border: 1px solid rgba(212, 129, 151, 0.22);
-  box-shadow: 0 0 24px rgba(212, 129, 151, 0.04);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -994,8 +1105,8 @@ img {
   justify-content: space-between;
   gap: 0.8rem;
   align-items: flex-start;
-  padding: 0.95rem 1.05rem;
-  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
   background: var(--surface-dark);
   border: 1px solid var(--line-dark);
 }
@@ -1027,7 +1138,7 @@ img {
 .content-card h3,
 .inner-title {
   margin: 0 0 0.35rem;
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 600;
 }
 
@@ -1035,12 +1146,8 @@ img {
   color: var(--text-primary);
 }
 
-.purchase-card .section-header {
-  margin-bottom: 0;
-}
-
 /* ═══════════════════════════════════════════════════════════════
-   Metric Cards & Signals
+   Metric & Signal Cards
    ═══════════════════════════════════════════════════════════════ */
 
 .metric-grid {
@@ -1058,9 +1165,8 @@ img {
   border-radius: var(--radius-md);
   border: 1px solid var(--line-dark);
   background: var(--surface-dark);
-  padding: 1.05rem;
+  padding: 1rem;
   box-shadow: var(--shadow-subtle);
-  position: relative;
 }
 
 .ops-signal-label {
@@ -1073,30 +1179,30 @@ img {
 
 .ops-signal-card strong {
   display: block;
-  font-size: 1.15rem;
+  font-size: 1.12rem;
 }
 
 .ops-signal-card p {
   margin: 0.45rem 0 0;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.55;
   font-size: 0.92rem;
 }
 
 .ops-signal-card-warning {
-  border-color: rgba(212, 137, 90, 0.22);
+  border-color: rgba(212, 137, 90, 0.24);
 }
 
 .ops-signal-card-danger {
-  border-color: rgba(201, 79, 90, 0.22);
+  border-color: rgba(201, 79, 90, 0.24);
 }
 
 .ops-signal-card-accent {
-  border-color: rgba(212, 129, 151, 0.22);
+  border-color: rgba(212, 129, 151, 0.24);
 }
 
 .ops-signal-card-success {
-  border-color: rgba(61, 168, 126, 0.20);
+  border-color: rgba(61, 168, 126, 0.22);
 }
 
 .metric-card {
@@ -1104,9 +1210,8 @@ img {
 }
 
 .metric-card-accent {
-  background: linear-gradient(135deg, rgba(212, 129, 151, 0.10), rgba(122, 85, 212, 0.07));
-  border-color: rgba(212, 129, 151, 0.16);
-  box-shadow: 0 0 24px rgba(212, 129, 151, 0.04);
+  background: linear-gradient(135deg, rgba(212, 129, 151, 0.10), rgba(122, 85, 212, 0.06));
+  border-color: rgba(212, 129, 151, 0.18);
 }
 
 .metric-value {
@@ -1117,7 +1222,7 @@ img {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Heat Meter (Atmospheric)
+   Heat Meter
    ═══════════════════════════════════════════════════════════════ */
 
 .heat-meter {
@@ -1131,7 +1236,7 @@ img {
   height: 7px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .heat-meter-fill {
@@ -1170,7 +1275,7 @@ img {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Admin Shell (Light — Preserved Readability)
+   Admin Shell (라이트 — 가독성 보존)
    ═══════════════════════════════════════════════════════════════ */
 
 .admin-shell {
@@ -1189,11 +1294,7 @@ img {
 .admin-shell .qr-card {
   background: var(--surface-light);
   border-color: var(--line-light);
-  box-shadow: 0 12px 32px rgba(17, 13, 26, 0.06), 0 4px 12px rgba(17, 13, 26, 0.04);
-}
-
-.admin-shell .surface::before {
-  display: none;
+  box-shadow: 0 8px 24px rgba(17, 13, 26, 0.05), 0 2px 8px rgba(17, 13, 26, 0.03);
 }
 
 .admin-shell .eyebrow {
@@ -1248,7 +1349,7 @@ img {
 }
 
 .ops-table-card {
-  padding: 1.05rem;
+  padding: 1rem;
   text-align: left;
   transition:
     border-color var(--dur-base) var(--ease-standard),
@@ -1257,7 +1358,7 @@ img {
 
 .ops-table-card-active {
   border-color: rgba(212, 129, 151, 0.28);
-  box-shadow: 0 0 0 2px rgba(212, 129, 151, 0.08), 0 12px 32px rgba(17, 13, 26, 0.06);
+  box-shadow: 0 0 0 2px rgba(212, 129, 151, 0.08), 0 8px 24px rgba(17, 13, 26, 0.05);
 }
 
 .ops-table-meta {
@@ -1304,7 +1405,7 @@ img {
   width: min(100%, 240px);
   aspect-ratio: 1 / 1;
   margin-top: 1rem;
-  border-radius: 20px;
+  border-radius: 18px;
 }
 
 .qr-skeleton {
@@ -1326,7 +1427,7 @@ img {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Toast System (Cinematic)
+   Toast
    ═══════════════════════════════════════════════════════════════ */
 
 .toast {
@@ -1338,20 +1439,20 @@ img {
   gap: 0.75rem;
   align-items: center;
   min-width: min(720px, calc(100vw - 24px));
-  padding: 0.95rem 1.1rem;
-  border-radius: 20px;
-  background: rgba(13, 6, 24, 0.94);
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: rgba(17, 10, 30, 0.92);
   border: 1px solid var(--line-dark);
-  box-shadow: var(--shadow-deep);
+  box-shadow: var(--shadow-dark);
   z-index: 80;
-  backdrop-filter: blur(20px) saturate(120%);
+  backdrop-filter: blur(16px);
 }
 
 .toast-admin {
   background: rgba(255, 255, 255, 0.96);
   color: var(--text-strong);
   border-color: var(--line-light);
-  box-shadow: 0 18px 48px rgba(17, 13, 26, 0.12);
+  box-shadow: 0 12px 32px rgba(17, 13, 26, 0.10);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1361,22 +1462,18 @@ img {
 .skeleton-block {
   min-height: 120px;
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.04));
   background-size: 200% 100%;
-  animation: shimmer 1.8s linear infinite;
+  animation: shimmer 1.4s linear infinite;
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Splash Screen
+   Splash Screen (빠르고 에너지 있는 — 과한 연출 제거)
    ═══════════════════════════════════════════════════════════════ */
 
 .splash-screen {
@@ -1396,18 +1493,18 @@ img {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 40%, rgba(122, 85, 212, 0.12), transparent 50%),
-    radial-gradient(ellipse at 30% 60%, rgba(212, 129, 151, 0.08), transparent 45%),
-    radial-gradient(ellipse at 70% 35%, rgba(197, 160, 89, 0.04), transparent 40%);
+    radial-gradient(ellipse at 50% 42%, rgba(212, 129, 151, 0.10), transparent 50%),
+    radial-gradient(ellipse at 35% 55%, rgba(122, 85, 212, 0.06), transparent 40%),
+    radial-gradient(ellipse at 65% 38%, rgba(212, 179, 106, 0.04), transparent 36%);
   pointer-events: none;
 }
 
 .splash-icon {
   position: relative;
-  width: 96px;
-  height: 96px;
-  margin-bottom: 2rem;
-  animation: splashReveal var(--dur-reveal) var(--ease-premium) both;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 1.5rem;
+  animation: splashIn 400ms var(--ease-snappy) both;
 }
 
 .splash-lockup {
@@ -1415,59 +1512,35 @@ img {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.65rem;
-  animation: splashReveal var(--dur-reveal) var(--ease-premium) 0.15s both;
+  gap: 0.5rem;
+  animation: splashIn 400ms var(--ease-snappy) 100ms both;
 }
 
 .splash-brand-kr {
   font-family: var(--font-ui);
-  font-size: 2.4rem;
+  font-size: 2.2rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.08em;
   color: var(--text-primary);
 }
 
 .splash-brand-en {
   font-family: var(--font-ui);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 400;
-  letter-spacing: 0.32em;
+  letter-spacing: 0.22em;
   color: var(--text-muted);
   text-transform: uppercase;
 }
 
-.splash-pulse {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(212, 129, 151, 0.08), transparent 70%);
-  animation: splashPulse 3s var(--ease-standard) infinite;
-  pointer-events: none;
-}
-
-@keyframes splashReveal {
+@keyframes splashIn {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.97);
+    transform: translateY(8px) scale(0.98);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes splashPulse {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.4;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.15);
-    opacity: 0.15;
   }
 }
 

@@ -1,4 +1,4 @@
-# Mingle Architecture
+﻿# Mingle Architecture
 
 ## Active runtime shape
 
@@ -19,7 +19,7 @@
 - Domain state mutations always flow through store actions:
   - check-in verification
   - profile completion
-  - heart send / bundle purchase
+  - heart send / admin heart grant
   - phase change
   - reveal toggle
   - rotation preview / apply
@@ -66,3 +66,4 @@
   - API response contracts
 - Current repository is local/demo-first, but the UI talks to a repository interface rather than random inline mocks.
 - Supabase browser client is intentionally lazy-initialized to stay compatible with future App Router production builds.
+

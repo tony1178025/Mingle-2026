@@ -1,0 +1,2023 @@
+{
+  "version": 2,
+  "session": {
+    "id": "session_signature_20260412",
+    "name": "Mingle Saturday Signature",
+    "hqId": "hq_mingle",
+    "branchId": "branch_seongsu",
+    "branchName": "성수",
+    "eventId": "event_signature_20260412",
+    "venueName": "성수 루프하우스",
+    "venueAddress": "서울 성동구 성수이로 97, 3F",
+    "sessionDateLabel": "4월 12일 토요일",
+    "sessionTimeLabel": "19:30 입장 · 20:00 시작",
+    "attendanceLabel": "남녀 25명 · 거의 만석",
+    "attendanceHint": "처음 온 사람도 금방 섞일 만큼 리듬이 좋은 주말 세션",
+    "code": "0554",
+    "phase": "CHECKIN",
+    "revealSenders": false,
+    "revealTriggeredAt": null,
+    "startedAt": "2026-04-23T02:55:00.554Z",
+    "updatedAt": "2026-04-23T03:28:46.756Z",
+    "tableCount": 5,
+    "tableCapacity": 6,
+    "customerSessionVersion": 1
+  },
+  "participants": [
+    {
+      "id": "f_13",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_13",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "나연",
+      "gender": "F",
+      "age": 28,
+      "jobCategory": "크리에이티브",
+      "job": "영상 제작",
+      "photoUrl": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 167,
+      "animalType": "고양이상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 5,
+      "round2Attendance": "YES",
+      "receivedHearts": 7,
+      "sentHearts": 4,
+      "profileViews": 14,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_11",
+        "f_12",
+        "m_11",
+        "m_12"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_11",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_12",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_11",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_12",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [
+        "m_11"
+      ],
+      "popularityScore": 16.52,
+      "tier": "A",
+      "subTier": "HIGH",
+      "score": 38.58,
+      "attractionScore": 55.3,
+      "engagementScore": 17.3,
+      "isVip": false,
+      "isHighValue": true,
+      "joinedAt": "2026-04-23T02:30:00.554Z",
+      "lastActiveAt": "2026-04-23T03:28:46.756Z"
+    },
+    {
+      "id": "f_05",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_05",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "은서",
+      "gender": "F",
+      "age": 30,
+      "jobCategory": "금융/전문직",
+      "job": "애널리스트",
+      "photoUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 168,
+      "animalType": "사슴상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 2,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 7,
+      "sentHearts": 3,
+      "profileViews": 12,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_04",
+        "m_03",
+        "m_04",
+        "m_05"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_04",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_03",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_04",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_05",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [
+        "m_11"
+      ],
+      "likedByParticipantIds": [],
+      "popularityScore": 14.11,
+      "tier": "A",
+      "subTier": "HIGH",
+      "score": 35.4,
+      "attractionScore": 52.6,
+      "engagementScore": 13.5,
+      "isVip": false,
+      "isHighValue": true,
+      "joinedAt": "2026-04-23T02:46:00.554Z",
+      "lastActiveAt": "2026-04-23T02:46:00.554Z"
+    },
+    {
+      "id": "m_11",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_11",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "승현",
+      "gender": "M",
+      "age": 31,
+      "jobCategory": "사업개발/기획",
+      "job": "사업개발",
+      "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 184,
+      "animalType": "강아지상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 5,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 6,
+      "sentHearts": 4,
+      "profileViews": 12,
+      "heartsRemaining": 0,
+      "metParticipantIds": [
+        "f_11",
+        "f_12",
+        "f_13",
+        "m_12"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_11",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_12",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_13",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_12",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [
+        "f_13"
+      ],
+      "likedByParticipantIds": [
+        "f_05"
+      ],
+      "popularityScore": 14.56,
+      "tier": "A",
+      "subTier": "MID",
+      "score": 33.85,
+      "attractionScore": 47.4,
+      "engagementScore": 16.6,
+      "isVip": false,
+      "isHighValue": true,
+      "joinedAt": "2026-04-23T02:33:00.554Z",
+      "lastActiveAt": "2026-04-23T02:33:00.554Z"
+    },
+    {
+      "id": "f_01",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_01",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "지민",
+      "gender": "F",
+      "age": 28,
+      "jobCategory": "사업개발/기획",
+      "job": "사업개발",
+      "photoUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 166,
+      "animalType": "고양이상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 1,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 6,
+      "sentHearts": 2,
+      "profileViews": 11,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_02",
+        "f_03",
+        "m_01",
+        "m_02"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_02",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_03",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_01",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_02",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [
+        "m_03"
+      ],
+      "popularityScore": 13.88,
+      "tier": "A",
+      "subTier": "MID",
+      "score": 30.21,
+      "attractionScore": 46.05,
+      "engagementScore": 10.05,
+      "isVip": false,
+      "isHighValue": true,
+      "joinedAt": "2026-04-23T02:54:00.554Z",
+      "lastActiveAt": "2026-04-23T02:54:00.554Z"
+    },
+    {
+      "id": "f_08",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_08",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "유진",
+      "gender": "F",
+      "age": 28,
+      "jobCategory": "IT/프로덕트",
+      "job": "데이터 분석가",
+      "photoUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 169,
+      "animalType": "사슴상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 3,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 6,
+      "sentHearts": 2,
+      "profileViews": 11,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_06",
+        "f_07",
+        "m_06",
+        "m_07"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_06",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_07",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_06",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_07",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 12.08,
+      "tier": "A",
+      "subTier": "LOW",
+      "score": 30.21,
+      "attractionScore": 46.05,
+      "engagementScore": 10.05,
+      "isVip": true,
+      "isHighValue": true,
+      "joinedAt": "2026-04-23T02:40:00.554Z",
+      "lastActiveAt": "2026-04-23T02:40:00.554Z"
+    },
+    {
+      "id": "f_02",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_02",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "서현",
+      "gender": "F",
+      "age": 27,
+      "jobCategory": "브랜드/마케팅",
+      "job": "브랜드 마케터",
+      "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 163,
+      "animalType": "여우상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 1,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 5,
+      "sentHearts": 3,
+      "profileViews": 9,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_01",
+        "f_03",
+        "m_01",
+        "m_02"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_01",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_03",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_01",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_02",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 10.37,
+      "tier": "B",
+      "subTier": "HIGH",
+      "score": 26.84,
+      "attractionScore": 38.15,
+      "engagementScore": 12.45,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:52:00.554Z",
+      "lastActiveAt": "2026-04-23T02:52:00.554Z"
+    },
+    {
+      "id": "m_08",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_08",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "도윤",
+      "gender": "M",
+      "age": 32,
+      "jobCategory": "금융/전문직",
+      "job": "변호사",
+      "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 183,
+      "animalType": "강아지상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 4,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 5,
+      "sentHearts": 3,
+      "profileViews": 9,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_09",
+        "f_10",
+        "m_09",
+        "m_10"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_09",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_10",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_09",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_10",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 10.37,
+      "tier": "B",
+      "subTier": "HIGH",
+      "score": 26.84,
+      "attractionScore": 38.15,
+      "engagementScore": 12.45,
+      "isVip": false,
+      "isHighValue": true,
+      "joinedAt": "2026-04-23T02:39:00.554Z",
+      "lastActiveAt": "2026-04-23T02:39:00.554Z"
+    },
+    {
+      "id": "m_03",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_03",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "준호",
+      "gender": "M",
+      "age": 29,
+      "jobCategory": "사업개발/기획",
+      "job": "서비스 기획",
+      "photoUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 182,
+      "animalType": "사슴상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 2,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 5,
+      "sentHearts": 2,
+      "profileViews": 10,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_04",
+        "f_05",
+        "m_04",
+        "m_05"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_04",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_05",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_04",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_05",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [
+        "f_01"
+      ],
+      "likedByParticipantIds": [],
+      "popularityScore": 10.3,
+      "tier": "B",
+      "subTier": "HIGH",
+      "score": 26.39,
+      "attractionScore": 39.5,
+      "engagementScore": 9.7,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:49:00.554Z",
+      "lastActiveAt": "2026-04-23T02:49:00.554Z"
+    },
+    {
+      "id": "f_03",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_03",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "민서",
+      "gender": "F",
+      "age": 26,
+      "jobCategory": "IT/프로덕트",
+      "job": "프로덕트 디자이너",
+      "photoUrl": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 165,
+      "animalType": "토끼상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 1,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 4,
+      "sentHearts": 4,
+      "profileViews": 10,
+      "heartsRemaining": 0,
+      "metParticipantIds": [
+        "f_01",
+        "f_02",
+        "m_01",
+        "m_02"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_01",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_02",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_01",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_02",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 9.2,
+      "tier": "B",
+      "subTier": "HIGH",
+      "score": 26.2,
+      "attractionScore": 34.3,
+      "engagementScore": 15.9,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:50:00.554Z",
+      "lastActiveAt": "2026-04-23T02:50:00.554Z"
+    },
+    {
+      "id": "f_07",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_07",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "수아",
+      "gender": "F",
+      "age": 25,
+      "jobCategory": "브랜드/마케팅",
+      "job": "PR",
+      "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 162,
+      "animalType": "강아지상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 3,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 4,
+      "sentHearts": 4,
+      "profileViews": 8,
+      "heartsRemaining": 0,
+      "metParticipantIds": [
+        "f_06",
+        "f_08",
+        "m_06",
+        "m_07"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_06",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_08",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_06",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_07",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 8.84,
+      "tier": "B",
+      "subTier": "MID",
+      "score": 24.38,
+      "attractionScore": 31.6,
+      "engagementScore": 15.2,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:42:00.554Z",
+      "lastActiveAt": "2026-04-23T02:42:00.554Z"
+    },
+    {
+      "id": "m_01",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_01",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "민재",
+      "gender": "M",
+      "age": 30,
+      "jobCategory": "IT/프로덕트",
+      "job": "백엔드",
+      "photoUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 181,
+      "animalType": "강아지상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 1,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 3,
+      "sentHearts": 4,
+      "profileViews": 8,
+      "heartsRemaining": 0,
+      "metParticipantIds": [
+        "f_01",
+        "f_02",
+        "f_03",
+        "m_02"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_01",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_02",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_03",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_02",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 7.24,
+      "tier": "B",
+      "subTier": "MID",
+      "score": 21.47,
+      "attractionScore": 26.4,
+      "engagementScore": 15.2,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:53:00.554Z",
+      "lastActiveAt": "2026-04-23T02:53:00.554Z"
+    },
+    {
+      "id": "m_10",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_10",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "건우",
+      "gender": "M",
+      "age": 30,
+      "jobCategory": "IT/프로덕트",
+      "job": "프론트엔드",
+      "photoUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 181,
+      "animalType": "고양이상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 4,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 4,
+      "sentHearts": 2,
+      "profileViews": 7,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_09",
+        "f_10",
+        "m_08",
+        "m_09"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_09",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_10",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_08",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_09",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 8.16,
+      "tier": "B",
+      "subTier": "MID",
+      "score": 20.75,
+      "attractionScore": 30.25,
+      "engagementScore": 8.65,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:35:00.554Z",
+      "lastActiveAt": "2026-04-23T02:35:00.554Z"
+    },
+    {
+      "id": "f_10",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_10",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "하린",
+      "gender": "F",
+      "age": 27,
+      "jobCategory": "크리에이티브",
+      "job": "사진가",
+      "photoUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 165,
+      "animalType": "토끼상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 4,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 3,
+      "sentHearts": 2,
+      "profileViews": 6,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_09",
+        "m_08",
+        "m_09",
+        "m_10"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_09",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_08",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_09",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_10",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 6.38,
+      "tier": "B",
+      "subTier": "MID",
+      "score": 16.92,
+      "attractionScore": 23.7,
+      "engagementScore": 8.3,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:36:00.554Z",
+      "lastActiveAt": "2026-04-23T02:36:00.554Z"
+    },
+    {
+      "id": "f_09",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_09",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "서윤",
+      "gender": "F",
+      "age": 29,
+      "jobCategory": "사업개발/기획",
+      "job": "프로젝트 매니저",
+      "photoUrl": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 166,
+      "animalType": "곰상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 4,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 2,
+      "sentHearts": 3,
+      "profileViews": 7,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_10",
+        "m_08",
+        "m_09",
+        "m_10"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_10",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_08",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_09",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_10",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 5.21,
+      "tier": "B",
+      "subTier": "LOW",
+      "score": 16.29,
+      "attractionScore": 19.85,
+      "engagementScore": 11.75,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:38:00.554Z",
+      "lastActiveAt": "2026-04-23T02:38:00.554Z"
+    },
+    {
+      "id": "m_05",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_05",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "태오",
+      "gender": "M",
+      "age": 26,
+      "jobCategory": "IT/프로덕트",
+      "job": "프론트엔드",
+      "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 179,
+      "animalType": "여우상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 2,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 2,
+      "sentHearts": 3,
+      "profileViews": 6,
+      "heartsRemaining": 0,
+      "metParticipantIds": [
+        "f_04",
+        "f_05",
+        "m_03",
+        "m_04"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_04",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_05",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_03",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_04",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 5.03,
+      "tier": "B",
+      "subTier": "LOW",
+      "score": 15.38,
+      "attractionScore": 18.5,
+      "engagementScore": 11.4,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:45:00.554Z",
+      "lastActiveAt": "2026-04-23T02:45:00.554Z"
+    },
+    {
+      "id": "f_06",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_06",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "하윤",
+      "gender": "F",
+      "age": 27,
+      "jobCategory": "크리에이티브",
+      "job": "아트 디렉터",
+      "photoUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 164,
+      "animalType": "고양이상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 3,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 3,
+      "sentHearts": 1,
+      "profileViews": 5,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_07",
+        "f_08",
+        "m_06",
+        "m_07"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_07",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_08",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_06",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_07",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 5.95,
+      "tier": "B",
+      "subTier": "LOW",
+      "score": 14.65,
+      "attractionScore": 22.35,
+      "engagementScore": 4.85,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:44:00.554Z",
+      "lastActiveAt": "2026-04-23T02:44:00.554Z"
+    },
+    {
+      "id": "f_04",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_04",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "채원",
+      "gender": "F",
+      "age": 29,
+      "jobCategory": "커뮤니티/교육",
+      "job": "커뮤니티 매니저",
+      "photoUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 167,
+      "animalType": "강아지상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 2,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 2,
+      "sentHearts": 2,
+      "profileViews": 6,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_05",
+        "m_03",
+        "m_04",
+        "m_05"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_05",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_03",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_04",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_05",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 4.78,
+      "tier": "C",
+      "subTier": "HIGH",
+      "score": 14.01,
+      "attractionScore": 18.5,
+      "engagementScore": 8.3,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:48:00.554Z",
+      "lastActiveAt": "2026-04-23T02:48:00.554Z"
+    },
+    {
+      "id": "m_12",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_12",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "동현",
+      "gender": "M",
+      "age": 29,
+      "jobCategory": "금융/전문직",
+      "job": "회계사",
+      "photoUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 179,
+      "animalType": "곰상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 5,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 2,
+      "sentHearts": 2,
+      "profileViews": 5,
+      "heartsRemaining": 1,
+      "metParticipantIds": [
+        "f_11",
+        "f_12",
+        "f_13",
+        "m_11"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_11",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_12",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_13",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_11",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 4.6,
+      "tier": "C",
+      "subTier": "HIGH",
+      "score": 13.1,
+      "attractionScore": 17.15,
+      "engagementScore": 7.95,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:31:00.554Z",
+      "lastActiveAt": "2026-04-23T02:31:00.554Z"
+    },
+    {
+      "id": "f_12",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_12",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "예진",
+      "gender": "F",
+      "age": 24,
+      "jobCategory": "브랜드/마케팅",
+      "job": "콘텐츠 에디터",
+      "photoUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 163,
+      "animalType": "사슴상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 5,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 2,
+      "sentHearts": 1,
+      "profileViews": 5,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_11",
+        "f_13",
+        "m_11",
+        "m_12"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_11",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_13",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_11",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_12",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 4.35,
+      "tier": "C",
+      "subTier": "HIGH",
+      "score": 11.74,
+      "attractionScore": 17.15,
+      "engagementScore": 4.85,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:32:00.554Z",
+      "lastActiveAt": "2026-04-23T02:32:00.554Z"
+    },
+    {
+      "id": "f_11",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_f_11",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "가은",
+      "gender": "F",
+      "age": 26,
+      "jobCategory": "커뮤니티/교육",
+      "job": "교사",
+      "photoUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 161,
+      "animalType": "여우상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 5,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 1,
+      "sentHearts": 1,
+      "profileViews": 4,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_12",
+        "f_13",
+        "m_11",
+        "m_12"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_12",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_13",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_11",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_12",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 2.57,
+      "tier": "C",
+      "subTier": "HIGH",
+      "score": 7.92,
+      "attractionScore": 10.6,
+      "engagementScore": 4.5,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:34:00.554Z",
+      "lastActiveAt": "2026-04-23T02:34:00.554Z"
+    },
+    {
+      "id": "m_02",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_02",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "현우",
+      "gender": "M",
+      "age": 31,
+      "jobCategory": "금융/전문직",
+      "job": "컨설턴트",
+      "photoUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 178,
+      "animalType": "곰상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 1,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 1,
+      "sentHearts": 1,
+      "profileViews": 4,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_01",
+        "f_02",
+        "f_03",
+        "m_01"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_01",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_02",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_03",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_01",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 2.57,
+      "tier": "C",
+      "subTier": "MID",
+      "score": 7.92,
+      "attractionScore": 10.6,
+      "engagementScore": 4.5,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:51:00.554Z",
+      "lastActiveAt": "2026-04-23T02:51:00.554Z"
+    },
+    {
+      "id": "m_07",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_07",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "성민",
+      "gender": "M",
+      "age": 29,
+      "jobCategory": "커뮤니티/교육",
+      "job": "HR",
+      "photoUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 177,
+      "animalType": "토끼상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 3,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 1,
+      "sentHearts": 1,
+      "profileViews": 3,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_06",
+        "f_07",
+        "f_08",
+        "m_06"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_06",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_07",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_08",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_06",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 2.39,
+      "tier": "C",
+      "subTier": "MID",
+      "score": 7.01,
+      "attractionScore": 9.25,
+      "engagementScore": 4.15,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:41:00.554Z",
+      "lastActiveAt": "2026-04-23T02:41:00.554Z"
+    },
+    {
+      "id": "m_09",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_09",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "우진",
+      "gender": "M",
+      "age": 28,
+      "jobCategory": "브랜드/마케팅",
+      "job": "퍼포먼스 마케터",
+      "photoUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 178,
+      "animalType": "여우상",
+      "energyType": "E",
+      "checkinMode": "qr",
+      "tableId": 4,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 1,
+      "sentHearts": 0,
+      "profileViews": 3,
+      "heartsRemaining": 3,
+      "metParticipantIds": [
+        "f_09",
+        "f_10",
+        "m_08",
+        "m_10"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_09",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_10",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_08",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_10",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 2.14,
+      "tier": "C",
+      "subTier": "MID",
+      "score": 5.64,
+      "attractionScore": 9.25,
+      "engagementScore": 1.05,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:37:00.554Z",
+      "lastActiveAt": "2026-04-23T02:37:00.554Z"
+    },
+    {
+      "id": "m_04",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_04",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "시윤",
+      "gender": "M",
+      "age": 27,
+      "jobCategory": "브랜드/마케팅",
+      "job": "콘텐츠 에디터",
+      "photoUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 176,
+      "animalType": "고양이상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 2,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 0,
+      "sentHearts": 1,
+      "profileViews": 2,
+      "heartsRemaining": 2,
+      "metParticipantIds": [
+        "f_04",
+        "f_05",
+        "m_03",
+        "m_05"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_04",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_05",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_03",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_05",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 0.61,
+      "tier": "C",
+      "subTier": "LOW",
+      "score": 3.18,
+      "attractionScore": 2.7,
+      "engagementScore": 3.8,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:47:00.554Z",
+      "lastActiveAt": "2026-04-23T02:47:00.554Z"
+    },
+    {
+      "id": "m_06",
+      "sessionId": "session_signature_20260412",
+      "branchId": "branch_seongsu",
+      "reservationId": "reservation_m_06",
+      "reservationExternalId": null,
+      "phone": null,
+      "nickname": "지환",
+      "gender": "M",
+      "age": 28,
+      "jobCategory": "사업개발/기획",
+      "job": "운영 기획",
+      "photoUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=640&q=80&auto=format&fit=crop",
+      "heightCm": 180,
+      "animalType": "곰상",
+      "energyType": "I",
+      "checkinMode": "qr",
+      "tableId": 3,
+      "round2Attendance": "UNDECIDED",
+      "receivedHearts": 0,
+      "sentHearts": 0,
+      "profileViews": 1,
+      "heartsRemaining": 3,
+      "metParticipantIds": [
+        "f_06",
+        "f_07",
+        "f_08",
+        "m_07"
+      ],
+      "encounterHistory": [
+        {
+          "participantId": "f_06",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_07",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "f_08",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        },
+        {
+          "participantId": "m_07",
+          "count": 1,
+          "lastRoundSeen": 0,
+          "interactionStrength": 0
+        }
+      ],
+      "likedParticipantIds": [],
+      "likedByParticipantIds": [],
+      "popularityScore": 0.18,
+      "tier": "C",
+      "subTier": "LOW",
+      "score": 0.91,
+      "attractionScore": 1.35,
+      "engagementScore": 0.35,
+      "isVip": false,
+      "isHighValue": false,
+      "joinedAt": "2026-04-23T02:43:00.554Z",
+      "lastActiveAt": "2026-04-23T02:43:00.554Z"
+    }
+  ],
+  "hearts": [
+    {
+      "id": "heart_01",
+      "sessionId": "session_signature_20260412",
+      "senderId": "m_03",
+      "recipientId": "f_01",
+      "createdAt": "2026-04-23T02:55:00.554Z"
+    },
+    {
+      "id": "heart_02",
+      "sessionId": "session_signature_20260412",
+      "senderId": "f_05",
+      "recipientId": "m_11",
+      "createdAt": "2026-04-23T02:55:00.554Z"
+    },
+    {
+      "id": "heart_03",
+      "sessionId": "session_signature_20260412",
+      "senderId": "m_11",
+      "recipientId": "f_13",
+      "createdAt": "2026-04-23T02:55:00.554Z"
+    }
+  ],
+  "reports": [],
+  "auditLogs": [
+    {
+      "id": "audit_0df3ad5f",
+      "sessionId": "session_signature_20260412",
+      "action": "PROFILE_UPDATED",
+      "actorId": "f_13",
+      "actorRole": "CUSTOMER",
+      "message": "2李?李몄꽍 ?щ?瑜?YES濡?蹂寃쏀뻽?듬땲??",
+      "createdAt": "2026-04-23T03:28:46.757Z",
+      "metadata": {
+        "attendance": "YES"
+      }
+    },
+    {
+      "id": "audit_bootstrap",
+      "sessionId": "session_signature_20260412",
+      "action": "SESSION_BOOTSTRAP",
+      "actorId": "system",
+      "actorRole": "SYSTEM",
+      "message": "데모 운영 세션을 초기화했습니다.",
+      "createdAt": "2026-04-23T02:55:00.554Z",
+      "metadata": {
+        "tableCount": 5
+      }
+    }
+  ],
+  "seatingAssignments": [
+    {
+      "id": "seat_f_01_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_01",
+      "tableId": 1,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_01_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_01",
+      "tableId": 1,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_02_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_02",
+      "tableId": 1,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_02_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_02",
+      "tableId": 1,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_03_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_03",
+      "tableId": 1,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_03_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_03",
+      "tableId": 2,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_04_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_04",
+      "tableId": 2,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_04_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_04",
+      "tableId": 2,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_05_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_05",
+      "tableId": 2,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_05_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_05",
+      "tableId": 2,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_06_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_06",
+      "tableId": 3,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_06_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_06",
+      "tableId": 3,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_07_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_07",
+      "tableId": 3,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_07_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_07",
+      "tableId": 3,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_08_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_08",
+      "tableId": 3,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_08_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_08",
+      "tableId": 4,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_09_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_09",
+      "tableId": 4,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_09_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_09",
+      "tableId": 4,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_10_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_10",
+      "tableId": 4,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_10_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_10",
+      "tableId": 4,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_11_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_11",
+      "tableId": 5,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_11_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_11",
+      "tableId": 5,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_12_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_12",
+      "tableId": 5,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_m_12_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "m_12",
+      "tableId": 5,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    },
+    {
+      "id": "seat_f_13_0",
+      "sessionId": "session_signature_20260412",
+      "rotationRound": 0,
+      "participantId": "f_13",
+      "tableId": 5,
+      "assignedAt": "2026-04-23T02:55:00.554Z",
+      "assignmentSource": "INITIAL"
+    }
+  ],
+  "activeContentIds": [],
+  "liveContent": null,
+  "contentResponses": [],
+  "anonymousMessages": [],
+  "announcements": [],
+  "rotationInstruction": null
+}

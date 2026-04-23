@@ -1,46 +1,45 @@
-# Mingle 프로젝트 배경지식 인덱스
+﻿# Mingle ?꾨줈?앺듃 諛곌꼍吏???몃뜳??
+???대뜑??**Mingle ?꾨줈?앺듃 援ы쁽/由щ럭/由ъ꽌移섏뿉 ?꾩슂??諛곌꼍吏???쒗룷?명꽣(?먮Ц 寃쎈줈)?앹? ?쒗빑??遺덈? 洹쒖튃?앹쓣 ??怨녹뿉 怨좎젙**?섍린 ?꾪븳 ??μ냼??
 
-이 폴더는 **Mingle 프로젝트 구현/리뷰/리서치에 필요한 배경지식 “포인터(원문 경로)”와 “핵심 불변 규칙”을 한 곳에 고정**하기 위한 저장소다.
-
-## 원문 소스(외부 파일)
+## ?먮Ц ?뚯뒪(?몃? ?뚯씪)
 
 - **Deep research report (MD)**  
-  - path: `c:\Users\hyunh\Desktop\사업개발\deep-research-report_260413_1.00pm.md`
-  - purpose: 프리미엄 UI/UX 근거 수집 + Codex 실행 프롬프트(비즈니스 불변 규칙 포함)
+  - path: `c:\Users\hyunh\Desktop\?ъ뾽媛쒕컻\deep-research-report_260413_1.00pm.md`
+  - purpose: ?꾨━誘몄뾼 UI/UX 洹쇨굅 ?섏쭛 + Codex ?ㅽ뻾 ?꾨＼?꾪듃(鍮꾩쫰?덉뒪 遺덈? 洹쒖튃 ?ы븿)
 
-- **Mingle UI/운영 데모 코드 (JSX)**  
-  - path: `c:\Users\hyunh\Desktop\사업개발\MingleV4.jsx`
-  - purpose: 고객/어드민 단일 파일 데모(탭/게임/테이블/하트/운영 대시보드 등)
+- **Mingle UI/?댁쁺 ?곕え 肄붾뱶 (JSX)**  
+  - path: `c:\Users\hyunh\Desktop\?ъ뾽媛쒕컻\MingleV4.jsx`
+  - purpose: 怨좉컼/?대뱶誘??⑥씪 ?뚯씪 ?곕え(??寃뚯엫/?뚯씠釉??섑듃/?댁쁺 ??쒕낫????
 
-- **Mingle UI/운영 데모 코드 최종본 (JSX)**  
-  - path: `c:\Users\hyunh\Desktop\사업개발\MingleV4_Final_20260412_1537.jsx`
-  - purpose: `MingleV4.jsx` 대비 게임(이상형 키워드/매력 카드 등) 확장 버전
+- **Mingle UI/?댁쁺 ?곕え 肄붾뱶 理쒖쥌蹂?(JSX)**  
+  - path: `c:\Users\hyunh\Desktop\?ъ뾽媛쒕컻\MingleV4_Final_20260412_1537.jsx`
+  - purpose: `MingleV4.jsx` ?鍮?寃뚯엫(?댁긽???ㅼ썙??留ㅻ젰 移대뱶 ?? ?뺤옣 踰꾩쟾
 
-- **프로덕션 번들(아카이브, tar.gz)**  
-  - path: `c:\Users\hyunh\Desktop\사업개발\mingle-prod_20260412_1650.tar.gz`
-  - note: 바이너리이므로 레포에 복사하지 않고, 무결성 추적용 메타데이터만 보관
+- **?꾨줈?뺤뀡 踰덈뱾(?꾩뭅?대툕, tar.gz)**  
+  - path: `c:\Users\hyunh\Desktop\?ъ뾽媛쒕컻\mingle-prod_20260412_1650.tar.gz`
+  - note: 諛붿씠?덈━?대?濡??덊룷??蹂듭궗?섏? ?딄퀬, 臾닿껐??異붿쟻??硫뷀??곗씠?곕쭔 蹂닿?
   - size(bytes): `63956`
-  - lastWriteTime(local): `2026-04-13 오전 9:58:55`
+  - lastWriteTime(local): `2026-04-13 ?ㅼ쟾 9:58:55`
   - sha256: `DD57610845E854D619F23B07298B121ABD8A64471F8145D50C854B10524D6410`
 
-## 레포 내부 배경지식(이미 포함)
+## ?덊룷 ?대? 諛곌꼍吏???대? ?ы븿)
 
 - **Cursor onboarding background for Mingle (MD)**  
   - path: `.cursor/Mingle_Background_Knowledge_260413_0614.md`
-  - purpose: 제품 구조/운영 플로우/고정 비즈니스 규칙/디자인 의도
+  - purpose: ?쒗뭹 援ъ“/?댁쁺 ?뚮줈??怨좎젙 鍮꾩쫰?덉뒪 洹쒖튃/?붿옄???섎룄
 
-## “고정 비즈니스 규칙” (요약 고정본)
+## ?쒓퀬??鍮꾩쫰?덉뒪 洹쒖튃??(?붿빟 怨좎젙蹂?
 
-아래 규칙은 제품 방향성/수익/운영 안전과 직결되며, 구현/리팩토링 시 **절대 임의 변경 금지**.
+?꾨옒 洹쒖튃? ?쒗뭹 諛⑺뼢???섏씡/?댁쁺 ?덉쟾怨?吏곴껐?섎ŉ, 援ы쁽/由ы뙥?좊쭅 ??**?덈? ?꾩쓽 蹂寃?湲덉?**.
 
-- **하트 가격**: 남녀 모두 유료 하트 1개 5,000원
-- **1부**: 받은 하트 “개수만” 노출(상대/디테일 공개 금지)
-- **2부 공개(리빌) 조건**: 아래가 모두 true일 때만
+- **?섑듃 媛寃?*: ?⑤? 紐⑤몢 ?좊즺 ?섑듃 1媛?5,000??- **1遺**: 諛쏆? ?섑듃 ?쒓컻?섎쭔???몄텧(?곷?/?뷀뀒??怨듦컻 湲덉?)
+- **2遺 怨듦컻(由щ퉴) 議곌굔**: ?꾨옒媛 紐⑤몢 true???뚮쭔
   - `phase === ROUND_2`
   - `admin reveal toggle === ON`
-  - `usedFreeHearts >= 3`
-  - “타이머 자동 공개” 금지(관리자 트리거 기반)
-- **Heat**: admin-only (고객 화면 노출 금지)
-- **탐색 UX**: 고객 탐색은 table-based 유지(플랫 리스트로 퇴행 금지)
-- **프로필**: MBTI는 E/I만, 한줄소개 없음, 불필요 필드 확장 금지
+  - `admin reveal toggle in ROUND_2`
+  - ?쒗??대㉧ ?먮룞 怨듦컻??湲덉?(愿由ъ옄 ?몃━嫄?湲곕컲)
+- **Heat**: admin-only (怨좉컼 ?붾㈃ ?몄텧 湲덉?)
+- **?먯깋 UX**: 怨좉컼 ?먯깋? table-based ?좎?(?뚮옯 由ъ뒪?몃줈 ?댄뻾 湲덉?)
+- **?꾨줈??*: MBTI??E/I留? ?쒖쨪?뚭컻 ?놁쓬, 遺덊븘???꾨뱶 ?뺤옣 湲덉?
+
 

@@ -1,4 +1,4 @@
-# Production Readiness Report
+﻿# Production Readiness Report
 
 ## Ready now
 
@@ -20,7 +20,7 @@
 ## Not fully production-ready yet (needs live integration)
 
 - Real auth/role gating
-- Live payment settlement and reconciliation
+- Offline admin heart grant operations
 - Production Supabase policies and migration pipeline
 - Full observability and alerting backend
 - Venue device stress and failure-mode QA
@@ -31,4 +31,5 @@
 - **Business-rule fidelity**: high (critical reveal/heart/profile/table constraints preserved).
 - **Operational practicality**: good for cockpit-level decisioning; needs real infra integrations to go live.
 - **Risk posture**: materially improved; no critical rule drift found after this pass.
+
 

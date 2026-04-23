@@ -2,11 +2,14 @@ import type {
   AuditAction,
   AuditActorRole,
   AuditLogRecord,
+  BlacklistRecord,
+  BlacklistRow,
   CheckinDraft,
-  CheckinMode,
-  CheckinResolution,
   HeartRecord,
   HeartRow,
+  IncidentRecord,
+  IncidentRow,
+  ParticipantEncounterRecord,
   ParticipantGender,
   ParticipantRecord,
   ParticipantRow,
@@ -20,24 +23,31 @@ import type {
   SessionSnapshot,
   TableSummary,
   ToastState
-} from "@/types/mingle";
+} from "../types/mingle.ts";
 
 export const STORAGE_KEYS = {
-  snapshot: "mingle:session:v3",
   viewer: "mingle:viewer:v3"
 } as const;
 
 export const MINGLE_CONSTANTS = {
   brandName: "Mingle",
+  hqId: "hq_mingle",
+  branchId: "branch_seongsu",
+  eventId: "event_signature_20260412",
   sessionName: "Mingle Saturday Signature",
   branchName: "성수",
+  venueName: "성수 루프하우스",
+  venueAddress: "서울 성동구 성수이로 97, 3F",
+  sessionDateLabel: "4월 12일 토요일",
+  sessionTimeLabel: "19:30 입장 · 20:00 시작",
+  attendanceLabel: "남녀 25명 · 거의 만석",
+  attendanceHint: "처음 온 사람도 금방 섞일 만큼 리듬이 좋은 주말 세션",
   defaultSessionCode: "2026",
-  pollingIntervalMs: 5000,
+  sessionExpiryHours: 24,
+  pollingIntervalMs: 2000,
   tableCount: 5,
   tableCapacity: 6,
-  freeHeartLimit: 3,
-  heartBundleSize: 3,
-  heartBundlePriceKrw: 5000
+  initialHearts: 3
 } as const;
 
 export const JOB_OPTIONS: Record<string, string[]> = {
@@ -107,18 +117,37 @@ const PHOTO_IDS = [
   "photo-1472099645785-5658abf4ff4e"
 ];
 
-const NOW = "2026-04-12T19:30:00.000+09:00";
-const ACTIVE_CONTENT_IDS = ["question-cards", "table-pairing", "balance-pick"] as const;
-
 type SeedStat = {
   receivedHearts: number;
   sentHearts: number;
   profileViews: number;
-  usedFreeHearts: number;
-  paidHeartBalance?: number;
+  heartsRemaining: number;
   isVip?: boolean;
   isHighValue?: boolean;
 };
+
+type LegacyHeartBalance = {
+  heartsRemaining?: number;
+  legacySpentHearts?: number;
+  legacyGrantedHearts?: number;
+};
+
+export function deriveHeartsRemaining(balance: LegacyHeartBalance) {
+  if (typeof balance.heartsRemaining === "number") {
+    return Math.max(0, balance.heartsRemaining);
+  }
+
+  return Math.max(
+    0,
+    MINGLE_CONSTANTS.initialHearts -
+      (balance.legacySpentHearts ?? 0) +
+      (balance.legacyGrantedHearts ?? 0)
+  );
+}
+
+function remainingHearts(spent: number, granted = 0) {
+  return Math.max(0, MINGLE_CONSTANTS.initialHearts - spent + granted);
+}
 
 export function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -132,9 +161,121 @@ export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+export function normalizePhoneNumber(phone: string | null | undefined) {
+  if (!phone) return null;
+
+  let digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+
+  if (digits.startsWith("82")) {
+    digits = `0${digits.slice(2)}`;
+  }
+
+  return digits.length >= 9 ? digits : null;
+}
+
+export function maskPhoneNumber(phone: string | null | undefined) {
+  const normalized = normalizePhoneNumber(phone);
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.length === 11) {
+    return `${normalized.slice(0, 3)}-${normalized.slice(3, 5)}**-${normalized.slice(7)}`;
+  }
+
+  if (normalized.length === 10) {
+    return `${normalized.slice(0, 3)}-${normalized.slice(3, 4)}**-${normalized.slice(6)}`;
+  }
+
+  return normalized;
+}
+
 export function average(values: number[]) {
   if (!values.length) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+export function normalizeEncounterHistory(
+  encounterHistory: ParticipantEncounterRecord[] | undefined,
+  metParticipantIds: string[] = []
+) {
+  const encounterMap = new Map<string, ParticipantEncounterRecord>();
+
+  for (const encounter of encounterHistory ?? []) {
+    encounterMap.set(encounter.participantId, {
+      participantId: encounter.participantId,
+      count: Math.max(1, encounter.count),
+      lastRoundSeen: encounter.lastRoundSeen ?? 0,
+      interactionStrength: encounter.interactionStrength ?? 0
+    });
+  }
+
+  for (const participantId of metParticipantIds) {
+    if (!encounterMap.has(participantId)) {
+      encounterMap.set(participantId, {
+        participantId,
+        count: 1,
+        lastRoundSeen: 0,
+        interactionStrength: 0
+      });
+    }
+  }
+
+  return [...encounterMap.values()].sort(
+    (left, right) => right.count - left.count || left.participantId.localeCompare(right.participantId, "ko")
+  );
+}
+
+export function calculatePopularitySignal(participant: ParticipantRecord) {
+  return Number(
+    (
+      participant.receivedHearts * 1.6 +
+      participant.likedByParticipantIds.length * 1.8 +
+      participant.profileViews * 0.18 +
+      participant.sentHearts * 0.25
+    ).toFixed(2)
+  );
+}
+
+export function applyDerivedParticipantSignals(
+  participants: ParticipantRecord[],
+  hearts: HeartRecord[]
+) {
+  const likedMap = new Map<string, Set<string>>();
+  const likedByMap = new Map<string, Set<string>>();
+
+  for (const heart of hearts) {
+    const liked = likedMap.get(heart.senderId) ?? new Set<string>();
+    liked.add(heart.recipientId);
+    likedMap.set(heart.senderId, liked);
+
+    const likedBy = likedByMap.get(heart.recipientId) ?? new Set<string>();
+    likedBy.add(heart.senderId);
+    likedByMap.set(heart.recipientId, likedBy);
+  }
+
+  return participants.map((participant) => {
+    const encounterHistory = normalizeEncounterHistory(
+      participant.encounterHistory,
+      participant.metParticipantIds
+    );
+    const likedParticipantIds = [...(likedMap.get(participant.id) ?? new Set<string>())];
+    const likedByParticipantIds = [...(likedByMap.get(participant.id) ?? new Set<string>())];
+    const enriched = {
+      ...participant,
+      encounterHistory,
+      metParticipantIds: encounterHistory.map((item) => item.participantId),
+      likedParticipantIds,
+      likedByParticipantIds,
+      lastActiveAt: participant.lastActiveAt ?? participant.joinedAt
+    };
+
+    return {
+      ...enriched,
+      popularityScore: calculatePopularitySignal(enriched)
+    };
+  });
 }
 
 export function createId(prefix: string) {
@@ -172,24 +313,16 @@ export function buildPhoto(index: number) {
   return `https://images.unsplash.com/${PHOTO_IDS[index % PHOTO_IDS.length]}?w=640&q=80&auto=format&fit=crop`;
 }
 
-function checksum(value: string) {
-  return [...value].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+export function generateSessionCode(seed = Date.now()) {
+  const numeric = Math.abs(seed % 10000);
+  return numeric.toString().padStart(4, "0");
 }
 
-export function resolveCheckinReservation(mode: CheckinMode, rawValue: string): CheckinResolution {
-  const key = `${mode}:${rawValue}`;
-  const code = checksum(key);
-  const gender: ParticipantGender = code % 2 === 0 ? "F" : "M";
-  const reservationIndex = code % 997;
-
-  return {
-    reservationId: `reservation_${reservationIndex.toString().padStart(3, "0")}`,
-    gender,
-    reservationLabel:
-      gender === "F"
-        ? `${FEMALE_NAMES[reservationIndex % FEMALE_NAMES.length]} 예약`
-        : `${MALE_NAMES[reservationIndex % MALE_NAMES.length]} 예약`
-  };
+export function isSessionExpired(startedAt: string, now = new Date()) {
+  const startedMs = new Date(startedAt).getTime();
+  if (Number.isNaN(startedMs)) return false;
+  const elapsed = now.getTime() - startedMs;
+  return elapsed >= MINGLE_CONSTANTS.sessionExpiryHours * 60 * 60 * 1000;
 }
 
 function participantSeed(
@@ -204,11 +337,17 @@ function participantSeed(
   animalType: string,
   energyType: "E" | "I",
   stats: SeedStat,
-  joinedOffsetMinutes: number
+  joinedOffsetMinutes: number,
+  baseTime: Date
 ): ParticipantRecord {
+  const joinedAt = new Date(baseTime.getTime() - joinedOffsetMinutes * 60 * 1000).toISOString();
   return {
     id,
+    sessionId: "session_signature_20260412",
+    branchId: MINGLE_CONSTANTS.branchId,
     reservationId: `reservation_${id}`,
+    reservationExternalId: null,
+    phone: null,
     nickname,
     gender,
     age,
@@ -218,17 +357,18 @@ function participantSeed(
     heightCm,
     animalType,
     energyType,
-    checkinMode: tableId % 3 === 0 ? "staff" : tableId % 2 === 0 ? "code" : "qr",
+    checkinMode: "qr",
     tableId,
+    round2Attendance: "UNDECIDED",
     receivedHearts: stats.receivedHearts,
     sentHearts: stats.sentHearts,
     profileViews: stats.profileViews,
-    usedFreeHearts: stats.usedFreeHearts,
-    paidHeartBalance: stats.paidHeartBalance ?? 0,
-    purchasedBundles: stats.paidHeartBalance
-      ? Math.ceil(stats.paidHeartBalance / MINGLE_CONSTANTS.heartBundleSize)
-      : 0,
+    heartsRemaining: stats.heartsRemaining,
     metParticipantIds: [],
+    encounterHistory: [],
+    likedParticipantIds: [],
+    likedByParticipantIds: [],
+    popularityScore: 0,
     tier: "C",
     subTier: "LOW",
     score: 0,
@@ -236,37 +376,38 @@ function participantSeed(
     engagementScore: 0,
     isVip: stats.isVip ?? false,
     isHighValue: stats.isHighValue ?? false,
-    joinedAt: `2026-04-12T18:${String(joinedOffsetMinutes).padStart(2, "0")}:00.000+09:00`
+    joinedAt,
+    lastActiveAt: joinedAt
   };
 }
 
-function buildSeedParticipants() {
+function buildSeedParticipants(baseTime: Date) {
   const participants: ParticipantRecord[] = [
-    participantSeed("f_01", FEMALE_NAMES[0], "F", "사업개발/기획", "사업개발", 1, 28, 166, "고양이상", "E", { receivedHearts: 6, sentHearts: 2, profileViews: 11, usedFreeHearts: 2, isHighValue: true }, 1),
-    participantSeed("m_01", MALE_NAMES[0], "M", "IT/프로덕트", "백엔드", 1, 30, 181, "강아지상", "I", { receivedHearts: 3, sentHearts: 4, profileViews: 8, usedFreeHearts: 3 }, 2),
-    participantSeed("f_02", FEMALE_NAMES[1], "F", "브랜드/마케팅", "브랜드 마케터", 1, 27, 163, "여우상", "I", { receivedHearts: 5, sentHearts: 3, profileViews: 9, usedFreeHearts: 1 }, 3),
-    participantSeed("m_02", MALE_NAMES[1], "M", "금융/전문직", "컨설턴트", 1, 31, 178, "곰상", "E", { receivedHearts: 1, sentHearts: 1, profileViews: 4, usedFreeHearts: 1 }, 4),
-    participantSeed("f_03", FEMALE_NAMES[2], "F", "IT/프로덕트", "프로덕트 디자이너", 1, 26, 165, "토끼상", "E", { receivedHearts: 4, sentHearts: 4, profileViews: 10, usedFreeHearts: 3 }, 5),
-    participantSeed("m_03", MALE_NAMES[2], "M", "사업개발/기획", "서비스 기획", 2, 29, 182, "사슴상", "E", { receivedHearts: 5, sentHearts: 2, profileViews: 10, usedFreeHearts: 2 }, 6),
-    participantSeed("f_04", FEMALE_NAMES[3], "F", "커뮤니티/교육", "커뮤니티 매니저", 2, 29, 167, "강아지상", "I", { receivedHearts: 2, sentHearts: 2, profileViews: 6, usedFreeHearts: 1 }, 7),
-    participantSeed("m_04", MALE_NAMES[3], "M", "브랜드/마케팅", "콘텐츠 에디터", 2, 27, 176, "고양이상", "I", { receivedHearts: 0, sentHearts: 1, profileViews: 2, usedFreeHearts: 1 }, 8),
-    participantSeed("f_05", FEMALE_NAMES[4], "F", "금융/전문직", "애널리스트", 2, 30, 168, "사슴상", "E", { receivedHearts: 7, sentHearts: 3, profileViews: 12, usedFreeHearts: 3, paidHeartBalance: 1, isHighValue: true }, 9),
-    participantSeed("m_05", MALE_NAMES[4], "M", "IT/프로덕트", "프론트엔드", 2, 26, 179, "여우상", "E", { receivedHearts: 2, sentHearts: 3, profileViews: 6, usedFreeHearts: 3 }, 10),
-    participantSeed("f_06", FEMALE_NAMES[5], "F", "크리에이티브", "아트 디렉터", 3, 27, 164, "고양이상", "I", { receivedHearts: 3, sentHearts: 1, profileViews: 5, usedFreeHearts: 1 }, 11),
-    participantSeed("m_06", MALE_NAMES[5], "M", "사업개발/기획", "운영 기획", 3, 28, 180, "곰상", "I", { receivedHearts: 0, sentHearts: 0, profileViews: 1, usedFreeHearts: 0 }, 12),
-    participantSeed("f_07", FEMALE_NAMES[6], "F", "브랜드/마케팅", "PR", 3, 25, 162, "강아지상", "E", { receivedHearts: 4, sentHearts: 4, profileViews: 8, usedFreeHearts: 3 }, 13),
-    participantSeed("m_07", MALE_NAMES[6], "M", "커뮤니티/교육", "HR", 3, 29, 177, "토끼상", "E", { receivedHearts: 1, sentHearts: 1, profileViews: 3, usedFreeHearts: 1 }, 14),
-    participantSeed("f_08", FEMALE_NAMES[7], "F", "IT/프로덕트", "데이터 분석가", 3, 28, 169, "사슴상", "E", { receivedHearts: 6, sentHearts: 2, profileViews: 11, usedFreeHearts: 2, isVip: true, isHighValue: true }, 15),
-    participantSeed("m_08", MALE_NAMES[7], "M", "금융/전문직", "변호사", 4, 32, 183, "강아지상", "I", { receivedHearts: 5, sentHearts: 3, profileViews: 9, usedFreeHearts: 2, isHighValue: true }, 16),
-    participantSeed("f_09", FEMALE_NAMES[8], "F", "사업개발/기획", "프로젝트 매니저", 4, 29, 166, "곰상", "E", { receivedHearts: 2, sentHearts: 3, profileViews: 7, usedFreeHearts: 2 }, 17),
-    participantSeed("m_09", MALE_NAMES[8], "M", "브랜드/마케팅", "퍼포먼스 마케터", 4, 28, 178, "여우상", "E", { receivedHearts: 1, sentHearts: 0, profileViews: 3, usedFreeHearts: 0 }, 18),
-    participantSeed("f_10", FEMALE_NAMES[9], "F", "크리에이티브", "사진가", 4, 27, 165, "토끼상", "I", { receivedHearts: 3, sentHearts: 2, profileViews: 6, usedFreeHearts: 2 }, 19),
-    participantSeed("m_10", MALE_NAMES[9], "M", "IT/프로덕트", "프론트엔드", 4, 30, 181, "고양이상", "E", { receivedHearts: 4, sentHearts: 2, profileViews: 7, usedFreeHearts: 2 }, 20),
-    participantSeed("f_11", FEMALE_NAMES[10], "F", "커뮤니티/교육", "교사", 5, 26, 161, "여우상", "E", { receivedHearts: 1, sentHearts: 1, profileViews: 4, usedFreeHearts: 1 }, 21),
-    participantSeed("m_11", MALE_NAMES[10], "M", "사업개발/기획", "사업개발", 5, 31, 184, "강아지상", "I", { receivedHearts: 6, sentHearts: 4, profileViews: 12, usedFreeHearts: 3, isHighValue: true }, 22),
-    participantSeed("f_12", FEMALE_NAMES[11], "F", "브랜드/마케팅", "콘텐츠 에디터", 5, 24, 163, "사슴상", "E", { receivedHearts: 2, sentHearts: 1, profileViews: 5, usedFreeHearts: 1 }, 23),
-    participantSeed("m_12", MALE_NAMES[11], "M", "금융/전문직", "회계사", 5, 29, 179, "곰상", "E", { receivedHearts: 2, sentHearts: 2, profileViews: 5, usedFreeHearts: 2 }, 24),
-    participantSeed("f_13", FEMALE_NAMES[12], "F", "크리에이티브", "영상 제작", 5, 28, 167, "고양이상", "I", { receivedHearts: 7, sentHearts: 4, profileViews: 14, usedFreeHearts: 3, paidHeartBalance: 2, isHighValue: true }, 25)
+    participantSeed("f_01", FEMALE_NAMES[0], "F", "사업개발/기획", "사업개발", 1, 28, 166, "고양이상", "E", { receivedHearts: 6, sentHearts: 2, profileViews: 11, heartsRemaining: remainingHearts(2), isHighValue: true }, 1, baseTime),
+    participantSeed("m_01", MALE_NAMES[0], "M", "IT/프로덕트", "백엔드", 1, 30, 181, "강아지상", "I", { receivedHearts: 3, sentHearts: 4, profileViews: 8, heartsRemaining: remainingHearts(3) }, 2, baseTime),
+    participantSeed("f_02", FEMALE_NAMES[1], "F", "브랜드/마케팅", "브랜드 마케터", 1, 27, 163, "여우상", "I", { receivedHearts: 5, sentHearts: 3, profileViews: 9, heartsRemaining: remainingHearts(1) }, 3, baseTime),
+    participantSeed("m_02", MALE_NAMES[1], "M", "금융/전문직", "컨설턴트", 1, 31, 178, "곰상", "E", { receivedHearts: 1, sentHearts: 1, profileViews: 4, heartsRemaining: remainingHearts(1) }, 4, baseTime),
+    participantSeed("f_03", FEMALE_NAMES[2], "F", "IT/프로덕트", "프로덕트 디자이너", 1, 26, 165, "토끼상", "E", { receivedHearts: 4, sentHearts: 4, profileViews: 10, heartsRemaining: remainingHearts(3) }, 5, baseTime),
+    participantSeed("m_03", MALE_NAMES[2], "M", "사업개발/기획", "서비스 기획", 2, 29, 182, "사슴상", "E", { receivedHearts: 5, sentHearts: 2, profileViews: 10, heartsRemaining: remainingHearts(2) }, 6, baseTime),
+    participantSeed("f_04", FEMALE_NAMES[3], "F", "커뮤니티/교육", "커뮤니티 매니저", 2, 29, 167, "강아지상", "I", { receivedHearts: 2, sentHearts: 2, profileViews: 6, heartsRemaining: remainingHearts(1) }, 7, baseTime),
+    participantSeed("m_04", MALE_NAMES[3], "M", "브랜드/마케팅", "콘텐츠 에디터", 2, 27, 176, "고양이상", "I", { receivedHearts: 0, sentHearts: 1, profileViews: 2, heartsRemaining: remainingHearts(1) }, 8, baseTime),
+    participantSeed("f_05", FEMALE_NAMES[4], "F", "금융/전문직", "애널리스트", 2, 30, 168, "사슴상", "E", { receivedHearts: 7, sentHearts: 3, profileViews: 12, heartsRemaining: remainingHearts(3, 1), isHighValue: true }, 9, baseTime),
+    participantSeed("m_05", MALE_NAMES[4], "M", "IT/프로덕트", "프론트엔드", 2, 26, 179, "여우상", "E", { receivedHearts: 2, sentHearts: 3, profileViews: 6, heartsRemaining: remainingHearts(3) }, 10, baseTime),
+    participantSeed("f_06", FEMALE_NAMES[5], "F", "크리에이티브", "아트 디렉터", 3, 27, 164, "고양이상", "I", { receivedHearts: 3, sentHearts: 1, profileViews: 5, heartsRemaining: remainingHearts(1) }, 11, baseTime),
+    participantSeed("m_06", MALE_NAMES[5], "M", "사업개발/기획", "운영 기획", 3, 28, 180, "곰상", "I", { receivedHearts: 0, sentHearts: 0, profileViews: 1, heartsRemaining: remainingHearts(0) }, 12, baseTime),
+    participantSeed("f_07", FEMALE_NAMES[6], "F", "브랜드/마케팅", "PR", 3, 25, 162, "강아지상", "E", { receivedHearts: 4, sentHearts: 4, profileViews: 8, heartsRemaining: remainingHearts(3) }, 13, baseTime),
+    participantSeed("m_07", MALE_NAMES[6], "M", "커뮤니티/교육", "HR", 3, 29, 177, "토끼상", "E", { receivedHearts: 1, sentHearts: 1, profileViews: 3, heartsRemaining: remainingHearts(1) }, 14, baseTime),
+    participantSeed("f_08", FEMALE_NAMES[7], "F", "IT/프로덕트", "데이터 분석가", 3, 28, 169, "사슴상", "E", { receivedHearts: 6, sentHearts: 2, profileViews: 11, heartsRemaining: remainingHearts(2), isVip: true, isHighValue: true }, 15, baseTime),
+    participantSeed("m_08", MALE_NAMES[7], "M", "금융/전문직", "변호사", 4, 32, 183, "강아지상", "I", { receivedHearts: 5, sentHearts: 3, profileViews: 9, heartsRemaining: remainingHearts(2), isHighValue: true }, 16, baseTime),
+    participantSeed("f_09", FEMALE_NAMES[8], "F", "사업개발/기획", "프로젝트 매니저", 4, 29, 166, "곰상", "E", { receivedHearts: 2, sentHearts: 3, profileViews: 7, heartsRemaining: remainingHearts(2) }, 17, baseTime),
+    participantSeed("m_09", MALE_NAMES[8], "M", "브랜드/마케팅", "퍼포먼스 마케터", 4, 28, 178, "여우상", "E", { receivedHearts: 1, sentHearts: 0, profileViews: 3, heartsRemaining: remainingHearts(0) }, 18, baseTime),
+    participantSeed("f_10", FEMALE_NAMES[9], "F", "크리에이티브", "사진가", 4, 27, 165, "토끼상", "I", { receivedHearts: 3, sentHearts: 2, profileViews: 6, heartsRemaining: remainingHearts(2) }, 19, baseTime),
+    participantSeed("m_10", MALE_NAMES[9], "M", "IT/프로덕트", "프론트엔드", 4, 30, 181, "고양이상", "E", { receivedHearts: 4, sentHearts: 2, profileViews: 7, heartsRemaining: remainingHearts(2) }, 20, baseTime),
+    participantSeed("f_11", FEMALE_NAMES[10], "F", "커뮤니티/교육", "교사", 5, 26, 161, "여우상", "E", { receivedHearts: 1, sentHearts: 1, profileViews: 4, heartsRemaining: remainingHearts(1) }, 21, baseTime),
+    participantSeed("m_11", MALE_NAMES[10], "M", "사업개발/기획", "사업개발", 5, 31, 184, "강아지상", "I", { receivedHearts: 6, sentHearts: 4, profileViews: 12, heartsRemaining: remainingHearts(3), isHighValue: true }, 22, baseTime),
+    participantSeed("f_12", FEMALE_NAMES[11], "F", "브랜드/마케팅", "콘텐츠 에디터", 5, 24, 163, "사슴상", "E", { receivedHearts: 2, sentHearts: 1, profileViews: 5, heartsRemaining: remainingHearts(1) }, 23, baseTime),
+    participantSeed("m_12", MALE_NAMES[11], "M", "금융/전문직", "회계사", 5, 29, 179, "곰상", "E", { receivedHearts: 2, sentHearts: 2, profileViews: 5, heartsRemaining: remainingHearts(2) }, 24, baseTime),
+    participantSeed("f_13", FEMALE_NAMES[12], "F", "크리에이티브", "영상 제작", 5, 28, 167, "고양이상", "I", { receivedHearts: 7, sentHearts: 4, profileViews: 14, heartsRemaining: remainingHearts(3, 2), isHighValue: true }, 25, baseTime)
   ];
 
   const groupedByTable = new Map<number, string[]>();
@@ -277,50 +418,71 @@ function buildSeedParticipants() {
   }
 
   for (const participant of participants) {
-    participant.metParticipantIds = (groupedByTable.get(participant.tableId) ?? []).filter(
+    const metParticipantIds = (groupedByTable.get(participant.tableId) ?? []).filter(
       (id) => id !== participant.id
     );
+    participant.metParticipantIds = metParticipantIds;
+    participant.encounterHistory = metParticipantIds.map((participantId) => ({
+      participantId,
+      count: 1,
+      lastRoundSeen: 0,
+      interactionStrength: 0
+    }));
   }
 
   return participants;
 }
 
 export function createSeedSnapshot(): SessionSnapshot {
-  const participants = buildSeedParticipants();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const sessionCode = generateSessionCode(now.getTime());
+  const participants = buildSeedParticipants(now);
+  const hearts: HeartRecord[] = [
+    { id: "heart_01", sessionId: "session_signature_20260412", senderId: "m_03", recipientId: "f_01", createdAt: nowIso },
+    { id: "heart_02", sessionId: "session_signature_20260412", senderId: "f_05", recipientId: "m_11", createdAt: nowIso },
+    { id: "heart_03", sessionId: "session_signature_20260412", senderId: "m_11", recipientId: "f_13", createdAt: nowIso }
+  ];
   const seatingAssignments = participants.map<SeatingAssignmentRecord>((participant) => ({
     id: `seat_${participant.id}_0`,
     sessionId: "session_signature_20260412",
     rotationRound: 0,
     participantId: participant.id,
     tableId: participant.tableId,
-    assignedAt: NOW,
+    assignedAt: nowIso,
     assignmentSource: "INITIAL"
   }));
 
   return {
-    version: 3,
+    version: 1,
     session: {
       id: "session_signature_20260412",
       name: MINGLE_CONSTANTS.sessionName,
+      hqId: MINGLE_CONSTANTS.hqId,
+      branchId: MINGLE_CONSTANTS.branchId,
       branchName: MINGLE_CONSTANTS.branchName,
-      code: MINGLE_CONSTANTS.defaultSessionCode,
-      phase: "ROUND_1",
+      eventId: MINGLE_CONSTANTS.eventId,
+      venueName: MINGLE_CONSTANTS.venueName,
+      venueAddress: MINGLE_CONSTANTS.venueAddress,
+      sessionDateLabel: MINGLE_CONSTANTS.sessionDateLabel,
+      sessionTimeLabel: MINGLE_CONSTANTS.sessionTimeLabel,
+      attendanceLabel: MINGLE_CONSTANTS.attendanceLabel,
+      attendanceHint: MINGLE_CONSTANTS.attendanceHint,
+      code: sessionCode,
+      phase: "CHECKIN",
       revealSenders: false,
       revealTriggeredAt: null,
-      startedAt: NOW,
-      updatedAt: NOW,
-      freeHeartLimit: MINGLE_CONSTANTS.freeHeartLimit,
-      paidHeartBundlePriceKrw: MINGLE_CONSTANTS.heartBundlePriceKrw,
+      startedAt: nowIso,
+      updatedAt: nowIso,
       tableCount: MINGLE_CONSTANTS.tableCount,
-      tableCapacity: MINGLE_CONSTANTS.tableCapacity
+      tableCapacity: MINGLE_CONSTANTS.tableCapacity,
+      customerSessionVersion: 1
     },
-    participants,
-    hearts: [
-      { id: "heart_01", sessionId: "session_signature_20260412", senderId: "m_03", recipientId: "f_01", source: "FREE", createdAt: NOW },
-      { id: "heart_02", sessionId: "session_signature_20260412", senderId: "f_05", recipientId: "m_11", source: "PAID", createdAt: NOW },
-      { id: "heart_03", sessionId: "session_signature_20260412", senderId: "m_11", recipientId: "f_13", source: "FREE", createdAt: NOW }
-    ],
+    participants: applyDerivedParticipantSignals(participants, hearts),
+    hearts,
     reports: [],
+    blacklist: [],
+    incidents: [],
     auditLogs: [
       {
         id: "audit_bootstrap",
@@ -329,12 +491,17 @@ export function createSeedSnapshot(): SessionSnapshot {
         actorId: "system",
         actorRole: "SYSTEM",
         message: "데모 운영 세션을 초기화했습니다.",
-        createdAt: NOW,
+        createdAt: nowIso,
         metadata: { tableCount: MINGLE_CONSTANTS.tableCount }
       }
     ],
     seatingAssignments,
-    activeContentIds: [...ACTIVE_CONTENT_IDS]
+    activeContentIds: [],
+    liveContent: null,
+    contentResponses: [],
+    anonymousMessages: [],
+    announcements: [],
+    rotationInstruction: null
   };
 }
 
@@ -353,35 +520,44 @@ export function createEmptyProfileDraft(): ProfileDraft {
 
 export function createEmptyCheckinDraft(): CheckinDraft {
   return {
-    mode: "qr",
     value: "",
-    staffNote: "",
+    flowState: "IDLE",
+    customerMessage: null,
+    customerSecondaryMessage: null,
+    isSubmitting: false,
     isVerified: false,
     error: null,
     resolution: null
   };
 }
 
-export function getViewerState() {
+// Cached for client convenience only. Session hydrate revalidates this against the current snapshot.
+export function getCachedViewerState() {
   if (typeof window === "undefined") {
-    return { viewerParticipantId: null };
+    return { cachedParticipantId: null };
   }
 
   const raw = window.localStorage.getItem(STORAGE_KEYS.viewer);
   if (!raw) {
-    return { viewerParticipantId: null };
+    return { cachedParticipantId: null };
   }
 
   try {
-    return JSON.parse(raw) as { viewerParticipantId: string | null };
+    const parsed = JSON.parse(raw) as {
+      cachedParticipantId?: string | null;
+      viewerParticipantId?: string | null;
+    };
+    return {
+      cachedParticipantId: parsed.cachedParticipantId ?? parsed.viewerParticipantId ?? null
+    };
   } catch {
-    return { viewerParticipantId: null };
+    return { cachedParticipantId: null };
   }
 }
 
-export function setViewerParticipantId(viewerParticipantId: string | null) {
+export function setCachedParticipantId(cachedParticipantId: string | null) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEYS.viewer, JSON.stringify({ viewerParticipantId }));
+  window.localStorage.setItem(STORAGE_KEYS.viewer, JSON.stringify({ cachedParticipantId }));
 }
 
 export function appendAuditLog(snapshot: SessionSnapshot, entry: AuditLogRecord): SessionSnapshot {
@@ -466,17 +642,25 @@ export function mapSessionToRow(snapshot: SessionSnapshot): SessionRow {
   return {
     id: snapshot.session.id,
     name: snapshot.session.name,
+    hq_id: snapshot.session.hqId,
+    branch_id: snapshot.session.branchId,
     branch_name: snapshot.session.branchName,
+    event_id: snapshot.session.eventId,
+    venue_name: snapshot.session.venueName,
+    venue_address: snapshot.session.venueAddress,
+    session_date_label: snapshot.session.sessionDateLabel,
+    session_time_label: snapshot.session.sessionTimeLabel,
+    attendance_label: snapshot.session.attendanceLabel,
+    attendance_hint: snapshot.session.attendanceHint,
     code: snapshot.session.code,
     phase: snapshot.session.phase,
     reveal_senders: snapshot.session.revealSenders,
     reveal_triggered_at: snapshot.session.revealTriggeredAt,
     started_at: snapshot.session.startedAt,
     updated_at: snapshot.session.updatedAt,
-    free_heart_limit: snapshot.session.freeHeartLimit,
-    paid_heart_bundle_price_krw: snapshot.session.paidHeartBundlePriceKrw,
     table_count: snapshot.session.tableCount,
     table_capacity: snapshot.session.tableCapacity,
+    customer_session_version: snapshot.session.customerSessionVersion,
     active_content_ids: snapshot.activeContentIds,
     snapshot_version: snapshot.version
   };
@@ -487,17 +671,25 @@ export function mapSessionRow(row: SessionRow) {
     session: {
       id: row.id,
       name: row.name,
+      hqId: row.hq_id,
+      branchId: row.branch_id,
       branchName: row.branch_name,
+      eventId: row.event_id,
+      venueName: row.venue_name,
+      venueAddress: row.venue_address,
+      sessionDateLabel: row.session_date_label,
+      sessionTimeLabel: row.session_time_label,
+      attendanceLabel: row.attendance_label,
+      attendanceHint: row.attendance_hint,
       code: row.code,
       phase: row.phase,
       revealSenders: row.reveal_senders,
       revealTriggeredAt: row.reveal_triggered_at,
       startedAt: row.started_at,
       updatedAt: row.updated_at,
-      freeHeartLimit: row.free_heart_limit,
-      paidHeartBundlePriceKrw: row.paid_heart_bundle_price_krw,
       tableCount: row.table_count,
-      tableCapacity: row.table_capacity
+      tableCapacity: row.table_capacity,
+      customerSessionVersion: row.customer_session_version
     } satisfies SessionRecord,
     activeContentIds: row.active_content_ids,
     version: row.snapshot_version
@@ -507,8 +699,11 @@ export function mapSessionRow(row: SessionRow) {
 export function mapParticipantToRow(sessionId: string, participant: ParticipantRecord): ParticipantRow {
   return {
     id: participant.id,
-    session_id: sessionId,
+    session_id: participant.sessionId || sessionId,
+    branch_id: participant.branchId,
     reservation_id: participant.reservationId,
+    reservation_external_id: participant.reservationExternalId ?? null,
+    phone: normalizePhoneNumber(participant.phone),
     nickname: participant.nickname,
     gender: participant.gender,
     age: participant.age,
@@ -520,13 +715,21 @@ export function mapParticipantToRow(sessionId: string, participant: ParticipantR
     energy_type: participant.energyType,
     checkin_mode: participant.checkinMode,
     table_id: participant.tableId,
+    round2_attendance: participant.round2Attendance,
     received_hearts: participant.receivedHearts,
     sent_hearts: participant.sentHearts,
     profile_views: participant.profileViews,
-    used_free_hearts: participant.usedFreeHearts,
-    paid_heart_balance: participant.paidHeartBalance,
-    purchased_bundles: participant.purchasedBundles,
+    hearts_remaining: participant.heartsRemaining,
     met_participant_ids: participant.metParticipantIds,
+    encounter_history: participant.encounterHistory.map((encounter) => ({
+      participant_id: encounter.participantId,
+      count: encounter.count,
+      last_round_seen: encounter.lastRoundSeen,
+      interaction_strength: encounter.interactionStrength
+    })),
+    liked_participant_ids: participant.likedParticipantIds,
+    liked_by_participant_ids: participant.likedByParticipantIds,
+    popularity_score: participant.popularityScore,
     tier: participant.tier,
     sub_tier: participant.subTier,
     score: participant.score,
@@ -534,14 +737,23 @@ export function mapParticipantToRow(sessionId: string, participant: ParticipantR
     engagement_score: participant.engagementScore,
     is_vip: participant.isVip,
     is_high_value: participant.isHighValue,
-    joined_at: participant.joinedAt
+    joined_at: participant.joinedAt,
+    last_active_at: participant.lastActiveAt
   };
 }
 
 export function mapParticipantRow(row: ParticipantRow): ParticipantRecord {
+  const legacyRow = row as ParticipantRow & Record<string, unknown>;
+  const legacySpentHearts = Number(legacyRow["used_" + "free_hearts"] ?? 0);
+  const legacyGrantedHearts = Number(legacyRow["paid_" + "heart_balance"] ?? 0);
+
   return {
     id: row.id,
+    sessionId: row.session_id,
+    branchId: row.branch_id,
     reservationId: row.reservation_id,
+    reservationExternalId: row.reservation_external_id,
+    phone: normalizePhoneNumber(row.phone),
     nickname: row.nickname,
     gender: row.gender,
     age: row.age,
@@ -553,13 +765,28 @@ export function mapParticipantRow(row: ParticipantRow): ParticipantRecord {
     energyType: row.energy_type,
     checkinMode: row.checkin_mode,
     tableId: row.table_id,
+    round2Attendance: row.round2_attendance ?? "UNDECIDED",
     receivedHearts: row.received_hearts,
     sentHearts: row.sent_hearts,
     profileViews: row.profile_views,
-    usedFreeHearts: row.used_free_hearts,
-    paidHeartBalance: row.paid_heart_balance,
-    purchasedBundles: row.purchased_bundles,
+    heartsRemaining: deriveHeartsRemaining({
+      heartsRemaining: row.hearts_remaining,
+      legacySpentHearts,
+      legacyGrantedHearts
+    }),
     metParticipantIds: row.met_participant_ids,
+    encounterHistory: normalizeEncounterHistory(
+      row.encounter_history?.map((encounter) => ({
+        participantId: encounter.participant_id,
+        count: encounter.count,
+        lastRoundSeen: encounter.last_round_seen,
+        interactionStrength: encounter.interaction_strength
+      })),
+      row.met_participant_ids
+    ),
+    likedParticipantIds: row.liked_participant_ids ?? [],
+    likedByParticipantIds: row.liked_by_participant_ids ?? [],
+    popularityScore: row.popularity_score ?? 0,
     tier: row.tier,
     subTier: row.sub_tier,
     score: row.score,
@@ -567,7 +794,8 @@ export function mapParticipantRow(row: ParticipantRow): ParticipantRecord {
     engagementScore: row.engagement_score,
     isVip: row.is_vip,
     isHighValue: row.is_high_value,
-    joinedAt: row.joined_at
+    joinedAt: row.joined_at,
+    lastActiveAt: row.last_active_at ?? row.joined_at
   };
 }
 
@@ -577,7 +805,6 @@ export function mapHeartToRow(heart: HeartRecord): HeartRow {
     session_id: heart.sessionId,
     sender_id: heart.senderId,
     recipient_id: heart.recipientId,
-    source: heart.source,
     created_at: heart.createdAt
   };
 }
@@ -588,7 +815,6 @@ export function mapHeartRow(row: HeartRow): HeartRecord {
     sessionId: row.session_id,
     senderId: row.sender_id,
     recipientId: row.recipient_id,
-    source: row.source,
     createdAt: row.created_at
   };
 }
@@ -618,6 +844,54 @@ export function mapReportRow(row: ReportRow): ReportRecord {
     createdAt: row.created_at,
     resolvedAt: row.resolved_at,
     status: row.status
+  };
+}
+
+export function mapBlacklistToRow(entry: BlacklistRecord): BlacklistRow {
+  return {
+    id: entry.id,
+    session_id: entry.sessionId,
+    branch_id: entry.branchId,
+    participant_id: entry.participantId,
+    reason: entry.reason,
+    created_at: entry.createdAt
+  };
+}
+
+export function mapBlacklistRow(row: BlacklistRow): BlacklistRecord {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    branchId: row.branch_id,
+    participantId: row.participant_id,
+    reason: row.reason,
+    createdAt: row.created_at
+  };
+}
+
+export function mapIncidentToRow(entry: IncidentRecord): IncidentRow {
+  return {
+    id: entry.id,
+    session_id: entry.sessionId,
+    branch_id: entry.branchId,
+    reporter_id: entry.reporterId,
+    target_id: entry.targetId,
+    type: entry.type,
+    message: entry.message,
+    timestamp: entry.timestamp
+  };
+}
+
+export function mapIncidentRow(row: IncidentRow): IncidentRecord {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    branchId: row.branch_id,
+    reporterId: row.reporter_id,
+    targetId: row.target_id,
+    type: row.type,
+    message: row.message,
+    timestamp: row.timestamp
   };
 }
 

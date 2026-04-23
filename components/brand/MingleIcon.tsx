@@ -1,10 +1,9 @@
 /**
  * 밍글 / Mingle — Brand Icon / Symbol
- * Direction: Midnight Connection
+ * Direction: Midnight Connection (Corrected)
  *
- * Concept: "The Intersection of Two Ethereal Energies"
- * Two abstract organic forms overlapping — refined monogram
- * with smoked-glass + subtle interior glow materiality.
+ * Concept: "Two flows meeting at the most exciting point of the night"
+ * 너무 차갑지 않게, 파티의 온기와 긴장감을 함께 담은 심볼.
  *
  * Usage states: app icon, splash icon, compact UI mark, monochrome
  */
@@ -88,13 +87,14 @@ export function MingleIcon({
       >
         <defs>
           <radialGradient id="compactGlow" cx="50%" cy="45%" r="50%">
-            <stop offset="0%" stopColor="#D48197" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#1A0B2E" stopOpacity="0" />
+            <stop offset="0%" stopColor="#D48197" stopOpacity="0.28" />
+            <stop offset="55%" stopColor="#D4B36A" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#1E1232" stopOpacity="0" />
           </radialGradient>
         </defs>
         <circle cx="256" cy="256" r="200" fill="url(#compactGlow)" />
         <ellipse cx="224" cy="256" rx="88" ry="108" fill="none" stroke="#D48197" strokeWidth="2.5" opacity="0.65" />
-        <ellipse cx="288" cy="256" rx="88" ry="108" fill="none" stroke="#D48197" strokeWidth="2.5" opacity="0.65" />
+        <ellipse cx="288" cy="256" rx="88" ry="108" fill="none" stroke="#D4B36A" strokeWidth="2.5" opacity="0.48" />
         <path
           d="M256 170c-22 24-35 54-35 86s13 62 35 86c22-24 35-54 35-86s-13-62-35-86z"
           fill="url(#compactInner)"
@@ -103,6 +103,7 @@ export function MingleIcon({
         <defs>
           <linearGradient id="compactInner" x1="221" y1="170" x2="291" y2="342">
             <stop offset="0%" stopColor="#D48197" />
+            <stop offset="70%" stopColor="#B8637A" />
             <stop offset="100%" stopColor="#7A55D4" />
           </linearGradient>
         </defs>
@@ -110,7 +111,7 @@ export function MingleIcon({
     );
   }
 
-  // Full variant — premium app icon with smoked-glass depth
+  // Full variant — premium party icon with warmth and depth
   return (
     <svg
       width={size}
@@ -124,54 +125,56 @@ export function MingleIcon({
       aria-label="밍글 앱 아이콘"
     >
       <defs>
-        {/* Background gradient — velvet midnight */}
+        {/* Background gradient — midnight with softer warmth */}
         <radialGradient id="iconBg" cx="50%" cy="35%" r="70%">
-          <stop offset="0%" stopColor="#221340" />
+          <stop offset="0%" stopColor="#2A1944" />
           <stop offset="100%" stopColor="#0D0618" />
         </radialGradient>
 
-        {/* Atmospheric haze */}
+        {/* Ambient party light */}
         <radialGradient id="iconHaze" cx="50%" cy="40%" r="55%">
-          <stop offset="0%" stopColor="#7A55D4" stopOpacity="0.14" />
-          <stop offset="60%" stopColor="#D48197" stopOpacity="0.06" />
+          <stop offset="0%" stopColor="#7A55D4" stopOpacity="0.12" />
+          <stop offset="40%" stopColor="#D48197" stopOpacity="0.08" />
+          <stop offset="68%" stopColor="#D4B36A" stopOpacity="0.08" />
           <stop offset="100%" stopColor="#0D0618" stopOpacity="0" />
         </radialGradient>
 
-        {/* Interior glow for intersection */}
+        {/* Interior energy around the meeting point */}
         <radialGradient id="iconInnerGlow" cx="50%" cy="45%" r="35%">
-          <stop offset="0%" stopColor="#D48197" stopOpacity="0.4" />
-          <stop offset="50%" stopColor="#7A55D4" stopOpacity="0.15" />
+          <stop offset="0%" stopColor="#D48197" stopOpacity="0.34" />
+          <stop offset="50%" stopColor="#D4B36A" stopOpacity="0.14" />
           <stop offset="100%" stopColor="#0D0618" stopOpacity="0" />
         </radialGradient>
 
         {/* Left form gradient */}
         <linearGradient id="formLeft" x1="130" y1="140" x2="260" y2="380">
-          <stop offset="0%" stopColor="#D48197" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#7A55D4" stopOpacity="0.25" />
+          <stop offset="0%" stopColor="#E1A3B5" stopOpacity="0.56" />
+          <stop offset="100%" stopColor="#8A5DC8" stopOpacity="0.24" />
         </linearGradient>
 
         {/* Right form gradient */}
         <linearGradient id="formRight" x1="252" y1="140" x2="382" y2="380">
-          <stop offset="0%" stopColor="#7A55D4" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#D48197" stopOpacity="0.55" />
+          <stop offset="0%" stopColor="#D4B36A" stopOpacity="0.22" />
+          <stop offset="25%" stopColor="#7A55D4" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#D48197" stopOpacity="0.54" />
         </linearGradient>
 
         {/* Intersection fill */}
         <linearGradient id="intersection" x1="220" y1="160" x2="292" y2="360">
-          <stop offset="0%" stopColor="#D48197" stopOpacity="0.6" />
-          <stop offset="50%" stopColor="#B8637A" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#7A55D4" stopOpacity="0.35" />
+          <stop offset="0%" stopColor="#F0B9C7" stopOpacity="0.54" />
+          <stop offset="55%" stopColor="#C96D83" stopOpacity="0.48" />
+          <stop offset="100%" stopColor="#7A55D4" stopOpacity="0.28" />
         </linearGradient>
 
         {/* Gold micro-accent */}
         <radialGradient id="goldAccent" cx="62%" cy="28%" r="12%">
-          <stop offset="0%" stopColor="#C5A059" stopOpacity="0.35" />
+          <stop offset="0%" stopColor="#D4B36A" stopOpacity="0.35" />
           <stop offset="100%" stopColor="#C5A059" stopOpacity="0" />
         </radialGradient>
 
         {/* Soft outer glow */}
         <filter id="softGlow">
-          <feGaussianBlur stdDeviation="8" result="blur" />
+          <feGaussianBlur stdDeviation="7" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
@@ -186,7 +189,7 @@ export function MingleIcon({
       {/* Background */}
       <rect width="512" height="512" rx="128" fill="url(#iconBg)" />
 
-      {/* Atmospheric haze layer */}
+      {/* Ambient light layer */}
       <rect width="512" height="512" rx="128" fill="url(#iconHaze)" />
 
       {/* Soft inner glow */}

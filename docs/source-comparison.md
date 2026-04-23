@@ -1,62 +1,62 @@
-# Mingle Source Comparison
+﻿# Mingle Source Comparison
 
-이 문서는 두 번의 병합 기준을 함께 기록한다.
+??臾몄꽌????踰덉쓽 蹂묓빀 湲곗????④퍡 湲곕줉?쒕떎.
 
-- 1차 기준:
+- 1李?湲곗?:
   - `A`: `mingle-prod_20260412_1650.tar.gz`
   - `B`: `Mingle_Refactor_260412_0658.zip`
   - `C`: `package.zip`
-- 2차 기준:
-  - `A`: 현재 merged codebase
-  - `B`: [deep-research-report_260413_1.00pm.md](</C:/Users/hyunh/Desktop/사업개발/deep-research-report_260413_1.00pm.md>)
+- 2李?湲곗?:
+  - `A`: ?꾩옱 merged codebase
+  - `B`: [deep-research-report_260413_1.00pm.md](</C:/Users/hyunh/Desktop/?ъ뾽媛쒕컻/deep-research-report_260413_1.00pm.md>)
 
-## 2차 비교: 현재 코드 vs 리서치 문서
+## 2李?鍮꾧탳: ?꾩옱 肄붾뱶 vs 由ъ꽌移?臾몄꽌
 
-| 카테고리 | 판단 | 이유 | 최종 반영 |
+| 移댄뀒怨좊━ | ?먮떒 | ?댁쑀 | 理쒖쥌 諛섏쁺 |
 | --- | --- | --- | --- |
-| Architecture | `A 우세, B가 기준 강화` | 현재 구조는 이미 App Router, Zustand slice, repository boundary를 갖췄다. 다만 리서치 문서는 이 구조를 premium spec과 performance budget까지 연결하도록 요구했다. | 구조는 유지하고 `WebVitalsReporter`, performance budget, docs 기준을 추가 |
-| State management | `A 우세` | Zustand slice와 파생 selector 정리는 이미 되어 있었다. 리서치 문서는 source of truth와 desync 방지를 강조했다. | 기존 구조 유지, 리서치 문서와 일치함을 문서화 |
-| Rotation realism | `A 우세` | 현재 엔진은 preview/apply, audit, 보호 로직을 포함한다. 리서치 문서는 이를 “fake가 아닌 deterministic engine”으로 계속 검증하라고 요구한다. | 구조 유지, 운영 신호층을 강화해 실제 판단 맥락을 더 두껍게 함 |
-| Reveal correctness | `A 우세` | 현재 구현이 이미 `ROUND_2 + admin toggle + usedFreeHearts >= 3`를 단일 규칙으로 사용한다. | 유지 |
-| Customer UX | `상호 보완` | 현재 앱은 table-based explore를 지키고 있다. 리서치 문서는 여기서 더 나아가 입력 품질, 단계 전달, 감정 밀도, 절제된 wow를 요구한다. | 체크인/신고 폼 품질, 라운드 상태 전달, hero signal 강화 |
-| Admin UX | `상호 보완` | 현재 어드민은 기능은 충분하지만 리서치 문서는 “몇 초 안에 우선순위를 읽는 화면”을 더 강하게 요구한다. | KPI 위에 `ops signal` 계층을 추가해 미해결 신고, 공개 게이트, 보호 대상 리스크, 회전 상태를 즉시 읽게 개선 |
-| Visual design quality | `상호 보완` | 현재 다크 럭셔리 방향은 맞지만, 리서치 문서는 primitive → semantic → component 토큰과 더 분명한 hierarchy를 요구한다. | 색/모션/포커스/gradient/focus ring 토큰을 확장 |
-| Motion / animation quality | `B 우세` | 기존 모션은 있었지만 이름과 역할이 다소 얕았다. 리서치 문서는 tab switch, reveal, apply feedback, reduced motion까지 체계화하라고 요구한다. | `tabPanel`, `roundShift`, `opsCommit`, reduced-motion 대응 추가 |
-| Backend readiness | `A 우세` | 현재 repository boundary가 이미 Supabase 정렬을 마쳤다. | 유지 |
-| Testing quality | `상호 보완` | 기존 테스트는 기능 커버가 충분하다. 리서치 문서는 performance budget 같은 새 품질 축도 테스트에 포함시키라고 요구한다. | web vitals budget unit test 추가 |
-| Production safety | `상호 보완` | 현재 안정성은 높지만 폼 submit type, focus handling, reduced motion, 입력 속성은 더 다듬을 여지가 있었다. | `Button type="button"` 기본화, input autocomplete/pattern/maxLength, reduced motion 대응 추가 |
-| Maintainability | `A 우세` | 현재 코드가 이미 도메인 경계를 갖췄다. 리서치 문서는 이를 design system/observability 기준까지 연결하라고 요구한다. | 문서와 성능 관측 경계를 보강 |
-| Business / monetization fit | `A 우세` | 하트 가격과 reveal gate가 이미 제품 진실과 일치한다. | 유지 |
-| Consumer psychology | `B 우세` | 리서치 문서는 “설렘은 색 하나가 아니라 위계, 피드백, 레이어, 반응성의 시스템”임을 더 잘 설명했다. | hero signal, round narrative, input polish, restrained motion으로 반영 |
-| Korean market fit | `상호 보완` | 현재 한국어 우선 UI는 충족하지만, 리서치 문서는 Korean-first utility copy와 premium tone의 균형을 더 정교하게 제안했다. | 카피와 설명을 더 절제된 한국어 중심으로 정리 |
-| Live operations practicality | `B 우세` | 현재도 usable하지만, 리서치 문서가 운영 우선순위와 압박 상황에서의 스캔성을 더 명확히 제시했다. | ops signal strip, pending report awareness, protected cold table count 추가 |
+| Architecture | `A ?곗꽭, B媛 湲곗? 媛뺥솕` | ?꾩옱 援ъ“???대? App Router, Zustand slice, repository boundary瑜?媛뽰톬?? ?ㅻ쭔 由ъ꽌移?臾몄꽌????援ъ“瑜?premium spec怨?performance budget源뚯? ?곌껐?섎룄濡??붽뎄?덈떎. | 援ъ“???좎??섍퀬 `WebVitalsReporter`, performance budget, docs 湲곗???異붽? |
+| State management | `A ?곗꽭` | Zustand slice? ?뚯깮 selector ?뺣━???대? ?섏뼱 ?덉뿀?? 由ъ꽌移?臾몄꽌??source of truth? desync 諛⑹?瑜?媛뺤“?덈떎. | 湲곗〈 援ъ“ ?좎?, 由ъ꽌移?臾몄꽌? ?쇱튂?⑥쓣 臾몄꽌??|
+| Rotation realism | `A ?곗꽭` | ?꾩옱 ?붿쭊? preview/apply, audit, 蹂댄샇 濡쒖쭅???ы븿?쒕떎. 由ъ꽌移?臾몄꽌???대? ?쐄ake媛 ?꾨땶 deterministic engine?앹쑝濡?怨꾩냽 寃利앺븯?쇨퀬 ?붽뎄?쒕떎. | 援ъ“ ?좎?, ?댁쁺 ?좏샇痢듭쓣 媛뺥솕???ㅼ젣 ?먮떒 留λ씫?????먭퍖寃???|
+| Reveal correctness | `A ?곗꽭` | ?꾩옱 援ы쁽???대? `ROUND_2 + admin toggle`瑜??⑥씪 洹쒖튃?쇰줈 ?ъ슜?쒕떎. | ?좎? |
+| Customer UX | `?곹샇 蹂댁셿` | ?꾩옱 ?깆? table-based explore瑜?吏?ㅺ퀬 ?덈떎. 由ъ꽌移?臾몄꽌???ш린?????섏븘媛 ?낅젰 ?덉쭏, ?④퀎 ?꾨떖, 媛먯젙 諛?? ?덉젣??wow瑜??붽뎄?쒕떎. | 泥댄겕???좉퀬 ???덉쭏, ?쇱슫???곹깭 ?꾨떖, hero signal 媛뺥솕 |
+| Admin UX | `?곹샇 蹂댁셿` | ?꾩옱 ?대뱶誘쇱? 湲곕뒫? 異⑸텇?섏?留?由ъ꽌移?臾몄꽌???쒕챺 珥??덉뿉 ?곗꽑?쒖쐞瑜??쎈뒗 ?붾㈃?앹쓣 ??媛뺥븯寃??붽뎄?쒕떎. | KPI ?꾩뿉 `ops signal` 怨꾩링??異붽???誘명빐寃??좉퀬, 怨듦컻 寃뚯씠?? 蹂댄샇 ???由ъ뒪?? ?뚯쟾 ?곹깭瑜?利됱떆 ?쎄쾶 媛쒖꽑 |
+| Visual design quality | `?곹샇 蹂댁셿` | ?꾩옱 ?ㅽ겕 ??뀛由?諛⑺뼢? 留욎?留? 由ъ꽌移?臾몄꽌??primitive ??semantic ??component ?좏겙怨???遺꾨챸??hierarchy瑜??붽뎄?쒕떎. | ??紐⑥뀡/?ъ빱??gradient/focus ring ?좏겙???뺤옣 |
+| Motion / animation quality | `B ?곗꽭` | 湲곗〈 紐⑥뀡? ?덉뿀吏留??대쫫怨???븷???ㅼ냼 ?뺤븯?? 由ъ꽌移?臾몄꽌??tab switch, reveal, apply feedback, reduced motion源뚯? 泥닿퀎?뷀븯?쇨퀬 ?붽뎄?쒕떎. | `tabPanel`, `roundShift`, `opsCommit`, reduced-motion ???異붽? |
+| Backend readiness | `A ?곗꽭` | ?꾩옱 repository boundary媛 ?대? Supabase ?뺣젹??留덉낀?? | ?좎? |
+| Testing quality | `?곹샇 蹂댁셿` | 湲곗〈 ?뚯뒪?몃뒗 湲곕뒫 而ㅻ쾭媛 異⑸텇?섎떎. 由ъ꽌移?臾몄꽌??performance budget 媛숈? ???덉쭏 異뺣룄 ?뚯뒪?몄뿉 ?ы븿?쒗궎?쇨퀬 ?붽뎄?쒕떎. | web vitals budget unit test 異붽? |
+| Production safety | `?곹샇 蹂댁셿` | ?꾩옱 ?덉젙?깆? ?믪?留???submit type, focus handling, reduced motion, ?낅젰 ?띿꽦? ???ㅻ벉???ъ?媛 ?덉뿀?? | `Button type="button"` 湲곕낯?? input autocomplete/pattern/maxLength, reduced motion ???異붽? |
+| Maintainability | `A ?곗꽭` | ?꾩옱 肄붾뱶媛 ?대? ?꾨찓??寃쎄퀎瑜?媛뽰톬?? 由ъ꽌移?臾몄꽌???대? design system/observability 湲곗?源뚯? ?곌껐?섎씪怨??붽뎄?쒕떎. | 臾몄꽌? ?깅뒫 愿痢?寃쎄퀎瑜?蹂닿컯 |
+| Consumer psychology | `B ?곗꽭` | 由ъ꽌移?臾몄꽌???쒖꽕?섏? ???섎굹媛 ?꾨땲???꾧퀎, ?쇰뱶諛? ?덉씠?? 諛섏쓳?깆쓽 ?쒖뒪?쒋앹엫???????ㅻ챸?덈떎. | hero signal, round narrative, input polish, restrained motion?쇰줈 諛섏쁺 |
+| Korean market fit | `?곹샇 蹂댁셿` | ?꾩옱 ?쒓뎅???곗꽑 UI??異⑹”?섏?留? 由ъ꽌移?臾몄꽌??Korean-first utility copy? premium tone??洹좏삎?????뺢탳?섍쾶 ?쒖븞?덈떎. | 移댄뵾? ?ㅻ챸?????덉젣???쒓뎅??以묒떖?쇰줈 ?뺣━ |
+| Live operations practicality | `B ?곗꽭` | ?꾩옱??usable?섏?留? 由ъ꽌移?臾몄꽌媛 ?댁쁺 ?곗꽑?쒖쐞? ?뺣컯 ?곹솴?먯꽌???ㅼ틪?깆쓣 ??紐낇솗???쒖떆?덈떎. | ops signal strip, pending report awareness, protected cold table count 異붽? |
 
-## 1차 비교: donor archives
+## 1李?鍮꾧탳: donor archives
 
-공식 비교 축은 `A vs B`로 유지했고, `C`는 두 결과보다 명확히 나은 부분만 donor로 채택했다.
+怨듭떇 鍮꾧탳 異뺤? `A vs B`濡??좎??덇퀬, `C`????寃곌낵蹂대떎 紐낇솗???섏? 遺遺꾨쭔 donor濡?梨꾪깮?덈떎.
 
-| 카테고리 | 판단 | 이유 | 최종 반영 |
+| 移댄뀒怨좊━ | ?먮떒 | ?댁쑀 | 理쒖쥌 諛섏쁺 |
 | --- | --- | --- | --- |
-| Architecture | `A 우세, C 보완` | `A`가 App Router와 도메인 분리에 더 가까웠고, `C`는 리포지토리 경계가 더 현실적이었다. | Next App Router + `features/engine/stores/lib/types/tests/docs` 구조로 재편 |
-| State management | `C 우세` | `C`의 Zustand 타입 기반 액션/셀렉터가 더 명확했다. | slice 기반 store로 통합하고 레거시 JS store 삭제 |
-| Rotation realism | `B + C 보완, 둘 다 재작성 필요` | `B`는 미리보기 의도, `C`는 preview/apply 골격은 있었지만 둘 다 운영 품질이 낮았다. | deterministic scoring, tier 보호, 반복 회피, heat/quality diff, audit 적용 |
-| Reveal correctness | `C 우세` | `C`가 4-state UX에 더 가까웠고 `A`는 예외 규칙이 섞여 있었다. | `ROUND_2 + admin toggle + usedFreeHearts >= 3` 단일 규칙으로 통일 |
-| Customer UX | `B + C 보완` | `B`는 테이블 중심 감각이 좋았고 `C`는 온보딩 프레이밍이 나았다. | 테이블 기반 탐색, 얕은 리스트 UX 제거, 신고/설정/콘텐츠 동선 정리 |
-| Admin UX | `C 우세` | KPI, reveal-ready, intervention 감각이 더 실제 운영에 가까웠다. | 한 화면 운영 대시보드, heat/risk/history/rotation preview/apply 정리 |
-| Visual design | `C 우세` | 토큰화된 다크 서피스와 계층이 가장 낫지만 premium 마감은 부족했다. | 고객은 dark luxury, 운영은 crisp light ops로 재아트 |
-| Motion quality | `C 우세` | Framer Motion 토큰 접근은 유효했지만 적용이 산발적이었다. | page enter, hover lift, reveal unlock, toast motion을 named primitive로 고정 |
-| Backend readiness | `A + C 보완` | `A`는 순수 엔진 사고가 좋았고 `C`는 Supabase row mapping이 더 나았다. | repository boundary, seed repository, Supabase adapter, polling transport 정리 |
-| Testing quality | `C 우세` | Vitest/Playwright scaffold가 가장 현실적이었다. | unit/integration/e2e를 실제 merged app 기준으로 재작성 |
-| Production safety | `둘 다 약함` | mock truth, local state 분산, unstable runtime 설정이 남아 있었다. | `_sources` 제외, dev origin 허용, Next 16 webpack 명시, stale selector 제거 |
-| Maintainability | `A 우세, C 보완` | `A`는 경계 의식이 있었고 `C`는 타입 자산이 있었다. | 중복 JS tree 제거, typed domain 모델 고정 |
-| Business / monetization fit | `C 우세` | 5,000원 하트 정책과 무료/유료 구분이 명확했다. | 결제는 adapter boundary로 남기고 fake purchase success 제거 |
-| Consumer psychology | `B + C 보완` | 과장되지 않은 분위기 설계와 테이블 프레이밍이 둘을 합쳤을 때 가장 좋았다. | 고객 카피를 과소음 없이 premium tone으로 재작성 |
-| Korean market fit | `B + C 보완` | 한국어 중심 레이블과 운영 문구는 두 소스의 조합이 가장 적합했다. | Korean-first UI copy 전면 재작성 |
-| Live ops practicality | `C 우세` | reveal-ready, intervention, audit 중심 사고가 더 실제 현장형이었다. | 미리보기 생성 시 회전 패널 자동 이동, 운영 판단 속도 최적화 |
+| Architecture | `A ?곗꽭, C 蹂댁셿` | `A`媛 App Router? ?꾨찓??遺꾨━????媛源뚯썱怨? `C`??由ы룷吏?좊━ 寃쎄퀎媛 ???꾩떎?곸씠?덈떎. | Next App Router + `features/engine/stores/lib/types/tests/docs` 援ъ“濡??ы렪 |
+| State management | `C ?곗꽭` | `C`??Zustand ???湲곕컲 ?≪뀡/??됲꽣媛 ??紐낇솗?덈떎. | slice 湲곕컲 store濡??듯빀?섍퀬 ?덇굅??JS store ??젣 |
+| Rotation realism | `B + C 蹂댁셿, ?????ъ옉???꾩슂` | `B`??誘몃━蹂닿린 ?섎룄, `C`??preview/apply 怨④꺽? ?덉뿀吏留??????댁쁺 ?덉쭏????븯?? | deterministic scoring, tier 蹂댄샇, 諛섎났 ?뚰뵾, heat/quality diff, audit ?곸슜 |
+| Reveal correctness | `C ?곗꽭` | `C`媛 4-state UX????媛源뚯썱怨?`A`???덉쇅 洹쒖튃???욎뿬 ?덉뿀?? | `ROUND_2 + admin toggle` ?⑥씪 洹쒖튃?쇰줈 ?듭씪 |
+| Customer UX | `B + C 蹂댁셿` | `B`???뚯씠釉?以묒떖 媛먭컖??醫뗭븯怨?`C`???⑤낫???꾨젅?대컢???섏븯?? | ?뚯씠釉?湲곕컲 ?먯깋, ?뺤? 由ъ뒪??UX ?쒓굅, ?좉퀬/?ㅼ젙/肄섑뀗痢??숈꽑 ?뺣━ |
+| Admin UX | `C ?곗꽭` | KPI, reveal-ready, intervention 媛먭컖?????ㅼ젣 ?댁쁺??媛源뚯썱?? | ???붾㈃ ?댁쁺 ??쒕낫?? heat/risk/history/rotation preview/apply ?뺣━ |
+| Visual design | `C ?곗꽭` | ?좏겙?붾맂 ?ㅽ겕 ?쒗뵾?ㅼ? 怨꾩링??媛???レ?留?premium 留덇컧? 遺議깊뻽?? | 怨좉컼? dark luxury, ?댁쁺? crisp light ops濡??ъ븘??|
+| Motion quality | `C ?곗꽭` | Framer Motion ?좏겙 ?묎렐? ?좏슚?덉?留??곸슜???곕컻?곸씠?덈떎. | page enter, hover lift, reveal unlock, toast motion??named primitive濡?怨좎젙 |
+| Backend readiness | `A + C 蹂댁셿` | `A`???쒖닔 ?붿쭊 ?ш퀬媛 醫뗭븯怨?`C`??Supabase row mapping?????섏븯?? | repository boundary, seed repository, Supabase adapter, polling transport ?뺣━ |
+| Testing quality | `C ?곗꽭` | Vitest/Playwright scaffold媛 媛???꾩떎?곸씠?덈떎. | unit/integration/e2e瑜??ㅼ젣 merged app 湲곗??쇰줈 ?ъ옉??|
+| Production safety | `?????쏀븿` | mock truth, local state 遺꾩궛, unstable runtime ?ㅼ젙???⑥븘 ?덉뿀?? | `_sources` ?쒖쇅, dev origin ?덉슜, Next 16 webpack 紐낆떆, stale selector ?쒓굅 |
+| Maintainability | `A ?곗꽭, C 蹂댁셿` | `A`??寃쎄퀎 ?섏떇???덉뿀怨?`C`??????먯궛???덉뿀?? | 以묐났 JS tree ?쒓굅, typed domain 紐⑤뜽 怨좎젙 |
+| Consumer psychology | `B + C 蹂댁셿` | 怨쇱옣?섏? ?딆? 遺꾩쐞湲??ㅺ퀎? ?뚯씠釉??꾨젅?대컢???섏쓣 ?⑹낀????媛??醫뗭븯?? | 怨좉컼 移댄뵾瑜?怨쇱냼???놁씠 premium tone?쇰줈 ?ъ옉??|
+| Korean market fit | `B + C 蹂댁셿` | ?쒓뎅??以묒떖 ?덉씠釉붽낵 ?댁쁺 臾멸뎄?????뚯뒪??議고빀??媛???곹빀?덈떎. | Korean-first UI copy ?꾨㈃ ?ъ옉??|
+| Live ops practicality | `C ?곗꽭` | reveal-ready, intervention, audit 以묒떖 ?ш퀬媛 ???ㅼ젣 ?꾩옣?뺤씠?덈떎. | 誘몃━蹂닿린 ?앹꽦 ???뚯쟾 ?⑤꼸 ?먮룞 ?대룞, ?댁쁺 ?먮떒 ?띾룄 理쒖쟻??|
 
-최종 결론:
+理쒖쥌 寃곕줎:
 
-- `A`는 구조 감각이 좋았지만 실제 제품 완성도는 낮았다.
-- `B`는 테이블 기반 UX 방향성은 맞았지만 코드베이스가 너무 prototype 중심이었다.
-- `C`는 가장 가까운 출발점이었지만 상태, 카피, runtime safety, UX polish가 부족했다.
-- 최종 merged codebase는 `C`를 donor base로 삼되, `A`의 구조 원칙과 `B`의 테이블 중심 UX를 흡수한 greenfield 재구성이다.
+- `A`??援ъ“ 媛먭컖??醫뗭븯吏留??ㅼ젣 ?쒗뭹 ?꾩꽦?꾨뒗 ??븯??
+- `B`???뚯씠釉?湲곕컲 UX 諛⑺뼢?깆? 留욎븯吏留?肄붾뱶踰좎씠?ㅺ? ?덈Т prototype 以묒떖?댁뿀??
+- `C`??媛??媛源뚯슫 異쒕컻?먯씠?덉?留??곹깭, 移댄뵾, runtime safety, UX polish媛 遺議깊뻽??
+- 理쒖쥌 merged codebase??`C`瑜?donor base濡??쇰릺, `A`??援ъ“ ?먯튃怨?`B`???뚯씠釉?以묒떖 UX瑜??≪닔??greenfield ?ш뎄?깆씠??
+
+

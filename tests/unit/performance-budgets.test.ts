@@ -6,7 +6,7 @@ import {
 } from "@/lib/performance/budgets";
 
 describe("performance budgets", () => {
-  it("classifies INP against premium interaction thresholds", () => {
+  it("classifies INP against interaction thresholds", () => {
     expect(classifyWebVital("INP", 180)).toBe("good");
     expect(classifyWebVital("INP", 320)).toBe("needs-improvement");
     expect(classifyWebVital("INP", 640)).toBe("poor");

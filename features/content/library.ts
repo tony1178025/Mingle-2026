@@ -1,59 +1,70 @@
-import type { SessionPhase } from "@/types/mingle";
+import type { ContentTemplateRecord, SessionPhase } from "@/types/mingle";
 
-export type ContentPrimitive = "prompt" | "poll" | "card" | "vote";
-export type ContentActivation = "all" | "round1-only" | "post-rotation" | "round2-only";
-
-export type ContentItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  detail: string;
-  primitive: ContentPrimitive;
-  activation: ContentActivation;
-};
-
-export const CONTENT_LIBRARY: readonly ContentItem[] = [
+export const CONTENT_LIBRARY: readonly ContentTemplateRecord[] = [
   {
-    id: "question-cards",
-    title: "질문 카드",
-    subtitle: "첫 10분의 공기를 자연스럽게 여는 테이블 전용 카드",
-    detail: "게임보다 가볍고, 자기소개보다 덜 부담스럽게 테이블의 첫 리듬을 올려 줍니다.",
-    primitive: "card",
-    activation: "round1-only"
+    id: "warmup-prompt",
+    kind: "prompt",
+    title: "테이블 워밍업 질문",
+    description: "지금 테이블에서 가장 가볍게 꺼낼 수 있는 질문 하나를 던져 보세요.",
+    ctaLabel: "질문 시작했어요",
+    phasePolicy: "ROUND_1",
+    scope: "TABLE",
+    durationSec: 180
   },
   {
-    id: "table-pairing",
-    title: "테이블 페어링",
-    subtitle: "과하지 않게 시선을 맞추게 하는 운영형 미션",
-    detail: "짧은 질문과 선택형 미션으로 테이블 간 분위기를 부드럽게 이어 줍니다.",
-    primitive: "prompt",
-    activation: "post-rotation"
+    id: "reconnect-vote",
+    kind: "vote",
+    title: "다시 이야기하고 싶은 사람 투표",
+    description: "오늘 다시 이어보고 싶은 타입을 하나 선택해 주세요.",
+    ctaLabel: "투표 완료",
+    phasePolicy: "ROUND_2",
+    scope: "ALL",
+    durationSec: 180,
+    options: ["대화가 편했던 사람", "웃음이 잘 통했던 사람", "더 궁금한 사람"]
   },
   {
-    id: "balance-pick",
-    title: "밸런스 픽",
-    subtitle: "취향이 달라도 분위기가 깨지지 않는 미니 콘텐츠",
-    detail: "짧은 선택만으로도 서로의 방향감과 리듬을 자연스럽게 확인할 수 있습니다.",
-    primitive: "poll",
-    activation: "round2-only"
+    id: "anonymous-note",
+    kind: "anonymous",
+    title: "익명 한마디",
+    description: "최근 만난 사람에게 짧은 응원이나 인상을 익명으로 보낼 수 있습니다.",
+    ctaLabel: "익명으로 보내기",
+    phasePolicy: "ROUND_2",
+    scope: "ALL",
+    durationSec: 240,
+    allowMessage: true,
+    allowTargetSelection: true
+  },
+  {
+    id: "operator-announcement",
+    kind: "announcement",
+    title: "운영 공지",
+    description: "현장 운영 메시지를 바로 확인하세요.",
+    ctaLabel: "확인했어요",
+    phasePolicy: "ALL",
+    scope: "ALL",
+    durationSec: 300,
+    allowMessage: true
+  },
+  {
+    id: "engagement-nudge",
+    kind: "nudge",
+    title: "분위기 끌어올리기",
+    description: "지금 테이블에서 가장 먼저 말을 걸 사람을 떠올려 보세요.",
+    ctaLabel: "바로 해볼게요",
+    phasePolicy: "ALL",
+    scope: "TABLE",
+    durationSec: 120
   }
 ] as const;
 
-export function isContentEligibleForPhase(
-  activation: ContentActivation,
-  phase: SessionPhase
-) {
-  if (activation === "all") return phase !== "CHECKIN" && phase !== "MATCH_END";
-  if (activation === "round1-only") return phase === "ROUND_1";
-  if (activation === "post-rotation") return phase === "ROUND_2";
-  return phase === "ROUND_2";
+export function isTemplateAllowedInPhase(phasePolicy: ContentTemplateRecord["phasePolicy"], phase: SessionPhase) {
+  if (phasePolicy === "ALL") {
+    return phase === "ROUND_1" || phase === "ROUND_2";
+  }
+
+  return phase === phasePolicy;
 }
 
-export function buildActiveContentView(contentIds: string[], phase: SessionPhase) {
-  const activeSet = new Set(contentIds);
-  return CONTENT_LIBRARY.map((item) => ({
-    ...item,
-    isAdminActivated: activeSet.has(item.id),
-    isPhaseEligible: isContentEligibleForPhase(item.activation, phase)
-  }));
+export function getContentTemplate(templateId: string) {
+  return CONTENT_LIBRARY.find((item) => item.id === templateId) ?? null;
 }

@@ -4,12 +4,12 @@ import { cn } from "@/lib/mingle";
 import type { ParticipantGender } from "@/types/mingle";
 
 /**
- * Avatar palette aligned with Midnight Connection brand direction.
- * M: deep violet-blue tones, F: muted rose-plum tones
+ * Neutral default avatar palette (similar to common SNS defaults).
+ * M: cool gray, F: soft neutral rose.
  */
 const AVATAR_COLORS: Record<ParticipantGender, { bg: string; fg: string; ring: string }> = {
-  M: { bg: "#16103A", fg: "#9B7AE8", ring: "rgba(155,122,232,0.22)" },
-  F: { bg: "#2A1228", fg: "#D48197", ring: "rgba(212,129,151,0.22)" }
+  M: { bg: "#E2E5EA", fg: "#9AA3AD", ring: "rgba(148,163,184,0.4)" },
+  F: { bg: "#F0E2E8", fg: "#B59AA8", ring: "rgba(181,154,168,0.38)" }
 };
 
 export function Avatar({
@@ -31,7 +31,7 @@ export function Avatar({
         height: size,
         borderRadius: Math.round(size * 0.32),
         background: palette.bg,
-        boxShadow: `0 0 0 1px ${palette.ring} inset, 0 0 12px ${palette.ring}`
+        boxShadow: `0 0 0 1px ${palette.ring} inset`
       }}
     >
       <svg viewBox="0 0 40 40" width={size * 0.6} height={size * 0.6} aria-hidden="true">

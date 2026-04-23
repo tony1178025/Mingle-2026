@@ -27,7 +27,5 @@
 ## Remaining notable risks
 
 - Seed-based repository is still demo-safe architecture, not live-event production infra.
-- Payment flow is still integration-dependent (`NEXT_PUBLIC_HEART_CHECKOUT_URL`).
 - Real-time multi-device sync still depends on external backend transport behavior.
 - Fraud/abuse hardening (rate limits, stronger identity checks) still needs backend layer.
-

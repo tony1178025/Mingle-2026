@@ -1,96 +1,172 @@
+import { createEmptyCheckinDraft, createEmptyProfileDraft, createToast } from "@/lib/mingle";
 import {
-  createAuditLog,
-  createEmptyCheckinDraft,
-  createEmptyProfileDraft,
-  createId,
-  createToast,
-  PROFILE_RULES,
-  selectLeastCrowdedTable,
-  setViewerParticipantId
-} from "@/lib/mingle";
+  CHECKIN_BLOCKED_MESSAGE,
+  CHECKIN_FAILURE_MESSAGE,
+  CHECKIN_REENTRY_MESSAGE,
+  CHECKIN_SUCCESS_MESSAGE,
+  parseCheckinQrValue,
+  validateCheckinDraft
+} from "@/features/checkin/model";
 import { getMingleRepository } from "@/lib/repositories";
-import { validateCheckinDraft } from "@/features/checkin/model";
-import { normalizeSnapshot } from "@/stores/helpers";
+import { applyCommandResult } from "@/stores/helpers";
 import type { CheckinSlice, StoreSlice } from "@/stores/types";
+
+const CHECKIN_RETRY_ATTEMPTS = 2;
+
+function resetOperationalState() {
+  const draft = createEmptyCheckinDraft();
+  return {
+    flowState: draft.flowState,
+    customerMessage: draft.customerMessage,
+    customerSecondaryMessage: draft.customerSecondaryMessage,
+    isSubmitting: draft.isSubmitting,
+    isVerified: draft.isVerified,
+    error: draft.error,
+    resolution: draft.resolution
+  };
+}
 
 export const createCheckinSlice: StoreSlice<CheckinSlice> = (set, get) => ({
   checkinDraft: createEmptyCheckinDraft(),
   profileDraft: createEmptyProfileDraft(),
-
-  updateCheckinMode(mode) {
-    set({
-      checkinDraft: {
-        mode,
-        value: "",
-        staffNote: "",
-        isVerified: false,
-        error: null,
-        resolution: null
-      }
-    });
-  },
 
   updateCheckinValue(value) {
     set((state) => ({
       checkinDraft: {
         ...state.checkinDraft,
         value,
-        isVerified: false,
-        error: null,
-        resolution: null
-      }
-    }));
-  },
-
-  updateStaffNote(value) {
-    set((state) => ({
-      checkinDraft: {
-        ...state.checkinDraft,
-        staffNote: value,
-        isVerified: false,
-        error: null,
-        resolution: null
+        ...resetOperationalState()
       }
     }));
   },
 
   async verifyCheckin() {
-    const nextDraft = validateCheckinDraft(get().checkinDraft);
-    set({ checkinDraft: nextDraft });
-
-    if (!nextDraft.isVerified) {
+    const snapshot = get().snapshot;
+    if (!snapshot || get().checkinDraft.isSubmitting) {
       return false;
     }
 
-    const snapshot = get().snapshot;
-    if (!snapshot) return false;
+    const validatedDraft = validateCheckinDraft(get().checkinDraft, snapshot.session);
+    if (validatedDraft.error || validatedDraft.flowState === "BLOCKED") {
+      set({
+        checkinDraft: validatedDraft,
+        toast:
+          validatedDraft.flowState === "BLOCKED"
+            ? createToast("warning", validatedDraft.customerMessage ?? CHECKIN_BLOCKED_MESSAGE)
+            : null
+      });
+      return false;
+    }
 
-    const audit = createAuditLog(
-      "CHECKIN_VERIFIED",
-      "viewer_pending",
-      "CUSTOMER",
-      `${nextDraft.mode.toUpperCase()} 체크인이 검증되었습니다.`,
-      {
-        mode: nextDraft.mode,
-        reservationId: nextDraft.resolution?.reservationId
-      },
-      snapshot.session.id
-    );
-
-    const nextSnapshot = normalizeSnapshot({
-      ...snapshot,
-      auditLogs: [audit, ...snapshot.auditLogs],
-      session: { ...snapshot.session, updatedAt: audit.createdAt }
-    });
-
-    await getMingleRepository().saveSessionSnapshot(nextSnapshot);
+    const parsedQr = parseCheckinQrValue(validatedDraft.value);
+    if (!parsedQr) {
+      set({
+        checkinDraft: {
+          ...validatedDraft,
+          isSubmitting: false,
+          isVerified: false,
+          error: "QR 형식이 올바르지 않습니다. 다시 확인해주세요."
+        }
+      });
+      return false;
+    }
 
     set({
-      snapshot: nextSnapshot,
-      toast: createToast("success", "체크인이 확인됐습니다. 프로필만 마치면 바로 입장할 수 있어요.")
+      checkinDraft: {
+        ...validatedDraft,
+        flowState: "LOADING",
+        isSubmitting: true,
+        error: null,
+        customerMessage: null,
+        customerSecondaryMessage: null
+      }
     });
 
-    return true;
+    for (let attempt = 0; attempt < CHECKIN_RETRY_ATTEMPTS; attempt += 1) {
+      try {
+        const result = await getMingleRepository().getReservationSessionContext({
+          sessionId: parsedQr.sessionId,
+          checkinCode: parsedQr.checkinCode,
+          participantId: get().currentParticipantId
+        });
+        const resolution = result.checkinResolution;
+
+        if (!resolution) {
+          throw new Error("체크인 응답을 확인할 수 없습니다.");
+        }
+
+        if (resolution.flowState === "RE_ENTRY" && result.participantId) {
+          const participantTableId =
+            result.snapshot.participants.find((participant) => participant.id === result.participantId)
+              ?.tableId ?? 1;
+          applyCommandResult(set, result, {
+            customerTab: "table",
+            selectedTableId: participantTableId,
+            checkinDraft: createEmptyCheckinDraft(),
+            toast: createToast("info", CHECKIN_REENTRY_MESSAGE)
+          });
+          return true;
+        }
+
+        if (resolution.flowState === "BLOCKED") {
+          applyCommandResult(set, result, {
+            checkinDraft: {
+              ...validatedDraft,
+              flowState: "BLOCKED",
+              customerMessage: resolution.customerMessage,
+              customerSecondaryMessage: resolution.customerSecondaryMessage,
+              isSubmitting: false,
+              isVerified: false,
+              error: resolution.customerMessage ?? CHECKIN_BLOCKED_MESSAGE,
+              resolution
+            },
+            toast: createToast("warning", resolution.customerMessage ?? CHECKIN_BLOCKED_MESSAGE)
+          });
+          return false;
+        }
+
+        applyCommandResult(set, result, {
+          checkinDraft: {
+            ...validatedDraft,
+            flowState: resolution.flowState,
+            customerMessage: resolution.customerMessage,
+            customerSecondaryMessage: resolution.customerSecondaryMessage,
+            isSubmitting: false,
+            isVerified: resolution.flowState === "SUCCESS",
+            error: null,
+            resolution
+          },
+          toast: createToast(
+            "success",
+            resolution.flowState === "SUCCESS" ? CHECKIN_SUCCESS_MESSAGE : CHECKIN_REENTRY_MESSAGE
+          )
+        });
+        return true;
+      } catch (error) {
+        if (attempt < CHECKIN_RETRY_ATTEMPTS - 1) {
+          continue;
+        }
+
+        set((state) => ({
+          checkinDraft: {
+            ...state.checkinDraft,
+            flowState: "FAILURE",
+            customerMessage: CHECKIN_FAILURE_MESSAGE,
+            customerSecondaryMessage: "잠시 후 다시 시도해 주세요.",
+            isSubmitting: false,
+            isVerified: false,
+            error: error instanceof Error ? error.message : CHECKIN_FAILURE_MESSAGE
+          },
+          toast: createToast(
+            "warning",
+            error instanceof Error ? error.message : CHECKIN_FAILURE_MESSAGE
+          )
+        }));
+        return false;
+      }
+    }
+
+    return false;
   },
 
   updateProfileDraft(field, value) {
@@ -103,118 +179,39 @@ export const createCheckinSlice: StoreSlice<CheckinSlice> = (set, get) => ({
   },
 
   async completeProfile() {
-    const snapshot = get().snapshot;
     const { checkinDraft, profileDraft } = get();
-    if (!snapshot || !checkinDraft.isVerified || !checkinDraft.resolution) {
+
+    if (checkinDraft.flowState !== "SUCCESS" || !checkinDraft.resolution) {
+      set({ toast: createToast("warning", "입장 확인을 먼저 완료해 주세요.") });
       return false;
     }
 
-    const numericAge = Number(profileDraft.age);
-    const numericHeight = Number(profileDraft.heightCm);
-    if (
-      !profileDraft.nickname.trim() ||
-      !profileDraft.age ||
-      !profileDraft.jobCategory ||
-      !profileDraft.job ||
-      !profileDraft.heightCm ||
-      !profileDraft.animalType ||
-      !profileDraft.energyType
-    ) {
-      set({ toast: createToast("warning", "필수 프로필 항목을 모두 입력해 주세요.") });
-      return false;
-    }
-    if (numericAge < PROFILE_RULES.minAge || numericAge > PROFILE_RULES.maxAge) {
-      set({ toast: createToast("warning", `나이는 ${PROFILE_RULES.minAge}~${PROFILE_RULES.maxAge}세만 가능합니다.`) });
-      return false;
-    }
-    if (numericHeight < PROFILE_RULES.minHeightCm || numericHeight > PROFILE_RULES.maxHeightCm) {
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "customer.completeProfile",
+        resolution: checkinDraft.resolution,
+        checkinMode: "qr",
+        draft: profileDraft
+      });
+
+      applyCommandResult(set, result, {
+        customerTab: "table",
+        selectedTableId: result.participantId
+          ? result.snapshot.participants.find((item) => item.id === result.participantId)?.tableId ?? 1
+          : 1,
+        checkinDraft: createEmptyCheckinDraft(),
+        profileDraft: createEmptyProfileDraft(),
+        toast: createToast("success", "입장이 완료되었습니다.")
+      });
+      return true;
+    } catch (error) {
       set({
         toast: createToast(
           "warning",
-          `키는 ${PROFILE_RULES.minHeightCm}~${PROFILE_RULES.maxHeightCm}cm 범위에서 입력해 주세요.`
+          error instanceof Error ? error.message : "프로필 저장에 실패했습니다."
         )
       });
       return false;
     }
-
-    const viewerParticipantId = createId("viewer");
-    const assignedTableId = selectLeastCrowdedTable(snapshot.participants);
-    const createdAt = new Date().toISOString();
-
-    const participant = {
-      id: viewerParticipantId,
-      reservationId: checkinDraft.resolution.reservationId,
-      nickname: profileDraft.nickname.trim(),
-      gender: checkinDraft.resolution.gender,
-      age: numericAge,
-      jobCategory: profileDraft.jobCategory,
-      job: profileDraft.job,
-      photoUrl: profileDraft.photoUrl || null,
-      heightCm: numericHeight,
-      animalType: profileDraft.animalType,
-      energyType: profileDraft.energyType,
-      checkinMode: checkinDraft.mode,
-      tableId: assignedTableId,
-      receivedHearts: 0,
-      sentHearts: 0,
-      profileViews: 0,
-      usedFreeHearts: 0,
-      paidHeartBalance: 0,
-      purchasedBundles: 0,
-      metParticipantIds: [],
-      tier: "C" as const,
-      subTier: "LOW" as const,
-      score: 0,
-      attractionScore: 0,
-      engagementScore: 0,
-      isVip: false,
-      isHighValue: false,
-      joinedAt: createdAt
-    };
-
-    const seatingAssignment = {
-      id: createId("seat"),
-      sessionId: snapshot.session.id,
-      rotationRound: 0,
-      participantId: participant.id,
-      tableId: assignedTableId,
-      assignedAt: createdAt,
-      assignmentSource: "INITIAL" as const
-    };
-
-    const audit = createAuditLog(
-      "PROFILE_COMPLETED",
-      participant.id,
-      "CUSTOMER",
-      `${participant.nickname} 님이 세션에 입장했습니다.`,
-      {
-        tableId: assignedTableId,
-        reservationId: participant.reservationId
-      },
-      snapshot.session.id
-    );
-
-    const nextSnapshot = normalizeSnapshot({
-      ...snapshot,
-      participants: [...snapshot.participants, participant],
-      seatingAssignments: [seatingAssignment, ...snapshot.seatingAssignments],
-      auditLogs: [audit, ...snapshot.auditLogs],
-      session: { ...snapshot.session, updatedAt: createdAt }
-    });
-
-    setViewerParticipantId(participant.id);
-    await getMingleRepository().saveSessionSnapshot(nextSnapshot);
-
-    set({
-      snapshot: nextSnapshot,
-      viewerParticipantId: participant.id,
-      selectedTableId: assignedTableId,
-      customerTab: "explore",
-      checkinDraft: createEmptyCheckinDraft(),
-      profileDraft: createEmptyProfileDraft(),
-      toast: createToast("success", "세션 입장이 완료되었습니다.")
-    });
-
-    return true;
   }
 });

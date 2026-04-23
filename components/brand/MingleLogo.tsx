@@ -1,13 +1,8 @@
 /**
- * 밍글 / Mingle — Brand Logo System
- * Direction: Midnight Connection
+ * 밍글 / Mingle — Brand Logo System (Corrected)
  *
- * Lockup variants:
- *   - full:    밍글 + Mingle stacked
- *   - compact: 밍글 only (horizontal)
- *   - splash:  Large centered with icon
- *   - english: Mingle only (supporting)
- *   - mono:    Single-color version
+ * 로고 스페이싱: 리드미컬하고 에너지 있게 (과도한 확장 제거)
+ * 한국어 우선, 따뜻하고 약간 무겁게
  */
 
 import type { CSSProperties } from "react";
@@ -24,20 +19,20 @@ interface MingleLogoProps {
 }
 
 const SIZES = {
-  sm: { kr: "1.3rem", en: "0.58rem", gap: "0.3rem", tracking: "0.14em" },
-  md: { kr: "1.8rem", en: "0.72rem", gap: "0.45rem", tracking: "0.16em" },
-  lg: { kr: "2.4rem", en: "0.88rem", gap: "0.6rem", tracking: "0.18em" },
-  xl: { kr: "3.6rem", en: "1.1rem", gap: "0.8rem", tracking: "0.20em" },
+  sm: { kr: "1.3rem", en: "0.58rem", gap: "0.25rem", tracking: "0.06em" },
+  md: { kr: "1.8rem", en: "0.72rem", gap: "0.35rem", tracking: "0.08em" },
+  lg: { kr: "2.4rem", en: "0.88rem", gap: "0.45rem", tracking: "0.10em" },
+  xl: { kr: "3.2rem", en: "1rem", gap: "0.55rem", tracking: "0.10em" },
 } as const;
 
 function getColors(theme: LogoTheme) {
   switch (theme) {
     case "dark":
-      return { primary: "#F2ECF8", secondary: "#7E6B9A" };
+      return { primary: "#F5F0FA", secondary: "#8E7CAA" };
     case "light":
-      return { primary: "#110D1A", secondary: "#7E6B9A" };
+      return { primary: "#110D1A", secondary: "#8E7CAA" };
     case "mono-dark":
-      return { primary: "#F2ECF8", secondary: "#F2ECF8" };
+      return { primary: "#F5F0FA", secondary: "#F5F0FA" };
     case "mono-light":
       return { primary: "#110D1A", secondary: "#110D1A" };
   }
@@ -59,7 +54,7 @@ export function MingleLogo({
     fontWeight: 700,
     letterSpacing: s.tracking,
     color: c.primary,
-    lineHeight: 1.1,
+    lineHeight: 1.15,
     margin: 0,
   };
 
@@ -67,7 +62,7 @@ export function MingleLogo({
     fontFamily: '"Noto Sans KR", "Pretendard", system-ui, sans-serif',
     fontSize: s.en,
     fontWeight: 400,
-    letterSpacing: "0.32em",
+    letterSpacing: "0.14em",
     textTransform: "uppercase" as const,
     color: c.secondary,
     lineHeight: 1,
@@ -76,7 +71,7 @@ export function MingleLogo({
 
   if (variant === "english") {
     return (
-      <span className={className} style={{ ...enStyle, fontSize: s.kr, letterSpacing: "0.22em", ...style }}>
+      <span className={className} style={{ ...enStyle, fontSize: s.kr, letterSpacing: "0.12em", ...style }}>
         Mingle
       </span>
     );

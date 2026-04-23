@@ -1,29 +1,21 @@
 "use client";
 
 /**
- * 밍글 / Mingle — Splash Screen
- * Direction: Midnight Connection
+ * 밍글 / Mingle — Splash Screen (Corrected)
  *
- * Premium midnight reveal:
- * - Centered logo lockup
- * - Premium icon presence
- * - Soft atmospheric diffusion
- * - Velvet-dark background
- * - Quiet pulse emphasis
- * - No noisy animation
+ * 빠르고 에너지 있는 진입. 과한 연출 없이.
+ * 파티 전 기대감. 향수 광고 아님.
  */
 
 import { useEffect, useState } from "react";
 import { MingleIcon } from "./MingleIcon";
 
 interface SplashScreenProps {
-  /** Minimum display time in ms */
   minDisplayMs?: number;
-  /** Called when splash finishes */
   onComplete?: () => void;
 }
 
-export function SplashScreen({ minDisplayMs = 1800, onComplete }: SplashScreenProps) {
+export function SplashScreen({ minDisplayMs = 1200, onComplete }: SplashScreenProps) {
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
 
@@ -33,7 +25,7 @@ export function SplashScreen({ minDisplayMs = 1800, onComplete }: SplashScreenPr
       const fadeTimer = setTimeout(() => {
         setVisible(false);
         onComplete?.();
-      }, 500);
+      }, 300);
       return () => clearTimeout(fadeTimer);
     }, minDisplayMs);
     return () => clearTimeout(timer);
@@ -46,20 +38,14 @@ export function SplashScreen({ minDisplayMs = 1800, onComplete }: SplashScreenPr
       className="splash-screen"
       style={{
         opacity: fading ? 0 : 1,
-        transition: "opacity 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+        transition: "opacity 300ms cubic-bezier(0.2, 0.9, 0.3, 1)",
       }}
       role="status"
       aria-label="밍글 로딩 중"
     >
-      {/* Quiet atmospheric pulse */}
-      <div className="splash-pulse" />
-
-      {/* Premium icon */}
       <div className="splash-icon">
-        <MingleIcon variant="full" size={96} />
+        <MingleIcon variant="full" size={80} />
       </div>
-
-      {/* Brand lockup */}
       <div className="splash-lockup">
         <span className="splash-brand-kr">밍글</span>
         <span className="splash-brand-en">Mingle</span>

@@ -1,4 +1,4 @@
-# Alignment Audit Report
+﻿# Alignment Audit Report
 
 ## Source-of-Truth baseline checked
 
@@ -16,7 +16,7 @@
 - Reveal gate is implemented exactly as required:
   - `phase === ROUND_2`
   - `admin reveal toggle === ON`
-  - `usedFreeHearts >= freeHeartLimit (3)`
+  - `admin reveal toggle in ROUND_2`
 - Heat remains admin-facing signal; customer does not get Heat exposure.
 - Customer explore remains table-first.
 - Rotation workflow remains preview -> apply with audit log.
@@ -38,7 +38,7 @@
   - height 140-210 cm
 - Upgraded content modeling:
   - added content primitives + activation metadata (`round1-only`, `post-rotation`, `round2-only`)
-  - added phase eligibility resolver and customer rendering that distinguishes `LIVE / 대기 / 준비`.
+  - added phase eligibility resolver and customer rendering that distinguishes `LIVE / ?湲?/ 以鍮?.
 - Added deterministic revisit-likelihood estimator and integrated it into intervention recommendations.
 
 ## Directional check
@@ -47,4 +47,5 @@
 - No reveal-rule drift was introduced.
 - Table-based customer exploration remains intact.
 - Admin remains operational cockpit, not report-only page.
+
 

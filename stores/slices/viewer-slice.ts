@@ -1,204 +1,119 @@
-import { createAuditLog, createId, createToast } from "@/lib/mingle";
+import { createToast } from "@/lib/mingle";
 import { getMingleRepository } from "@/lib/repositories";
-import { normalizeSnapshot } from "@/stores/helpers";
-import type { PaymentCheckoutState } from "@/types/mingle";
+import { applyCommandResult } from "@/stores/helpers";
 import type { StoreSlice, ViewerSlice } from "@/stores/types";
 
-function createPaymentState(): PaymentCheckoutState {
-  const checkoutUrl = process.env.NEXT_PUBLIC_HEART_CHECKOUT_URL;
-  if (checkoutUrl) {
-    return {
-      state: "ready",
-      message: "결제창으로 이동해 유료 하트를 충전할 수 있습니다.",
-      checkoutUrl
-    };
-  }
-
-  return {
-    state: "unavailable",
-    message: "결제 연동 전이라 유료 하트는 실제로 충전되지 않습니다."
-  };
-}
-
 export const createViewerSlice: StoreSlice<ViewerSlice> = (set, get) => ({
-  viewerParticipantId: null,
-
-  async viewParticipantProfile(participantId) {
-    const snapshot = get().snapshot;
-    const viewerParticipantId = get().viewerParticipantId;
-    if (!snapshot || !viewerParticipantId || participantId === viewerParticipantId) return;
-
-    const participant = snapshot.participants.find((candidate) => candidate.id === participantId);
-    if (!participant) return;
-
-    const createdAt = new Date().toISOString();
-    const nextSnapshot = normalizeSnapshot({
-      ...snapshot,
-      participants: snapshot.participants.map((candidate) =>
-        candidate.id === participantId
-          ? { ...candidate, profileViews: candidate.profileViews + 1 }
-          : candidate
-      ),
-      auditLogs: [
-        createAuditLog(
-          "PROFILE_VIEWED",
-          viewerParticipantId,
-          "CUSTOMER",
-          `${participant.nickname} 님 프로필을 열람했습니다.`,
-          { participantId },
-          snapshot.session.id
-        ),
-        ...snapshot.auditLogs
-      ],
-      session: { ...snapshot.session, updatedAt: createdAt }
-    });
-
-    await getMingleRepository().saveSessionSnapshot(nextSnapshot);
-    set({ snapshot: nextSnapshot });
-  },
+  currentParticipantId: null,
 
   async sendHeart(recipientId) {
-    const snapshot = get().snapshot;
-    const viewerParticipantId = get().viewerParticipantId;
-    if (!snapshot || !viewerParticipantId) return false;
+    const participantId = get().currentParticipantId;
+    if (!participantId) return false;
 
-    const sender = snapshot.participants.find((participant) => participant.id === viewerParticipantId);
-    const recipient = snapshot.participants.find((participant) => participant.id === recipientId);
-    if (!sender || !recipient || sender.id === recipient.id) return false;
-
-    const alreadySent = snapshot.hearts.some(
-      (heart) =>
-        heart.sessionId === snapshot.session.id &&
-        heart.senderId === sender.id &&
-        heart.recipientId === recipient.id
-    );
-
-    if (alreadySent) {
-      set({ toast: createToast("info", "같은 참가자에게는 하트를 한 번만 보낼 수 있습니다.") });
-      return false;
-    }
-
-    const source: "FREE" | "PAID" | null =
-      sender.usedFreeHearts < snapshot.session.freeHeartLimit
-        ? "FREE"
-        : sender.paidHeartBalance > 0
-          ? "PAID"
-          : null;
-
-    if (!source) {
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "customer.sendHeart",
+        participantId,
+        recipientId
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("success", "하트를 보냈습니다.")
+      });
+      return true;
+    } catch (error) {
       set({
-        toast: createToast(
-          "warning",
-          "무료 하트를 모두 사용했어요. 유료 하트 연동이 필요합니다."
-        )
+        toast: createToast("warning", error instanceof Error ? error.message : "하트 전송에 실패했습니다.")
       });
       return false;
     }
-
-    const heart = {
-      id: createId("heart"),
-      sessionId: snapshot.session.id,
-      senderId: sender.id,
-      recipientId: recipient.id,
-      source,
-      createdAt: new Date().toISOString()
-    };
-
-    const audit = createAuditLog(
-      "HEART_SENT",
-      sender.id,
-      "CUSTOMER",
-      `${recipient.nickname} 님에게 ${source === "FREE" ? "무료" : "유료"} 하트를 보냈습니다.`,
-      { recipientId: recipient.id, source },
-      snapshot.session.id
-    );
-
-    const nextSnapshot = normalizeSnapshot({
-      ...snapshot,
-      hearts: [heart, ...snapshot.hearts],
-      participants: snapshot.participants.map((participant) => {
-        if (participant.id === sender.id) {
-          return {
-            ...participant,
-            sentHearts: participant.sentHearts + 1,
-            usedFreeHearts:
-              source === "FREE" ? participant.usedFreeHearts + 1 : participant.usedFreeHearts,
-            paidHeartBalance:
-              source === "PAID"
-                ? Math.max(0, participant.paidHeartBalance - 1)
-                : participant.paidHeartBalance
-          };
-        }
-
-        if (participant.id === recipient.id) {
-          return {
-            ...participant,
-            receivedHearts: participant.receivedHearts + 1
-          };
-        }
-
-        return participant;
-      }),
-      auditLogs: [audit, ...snapshot.auditLogs],
-      session: { ...snapshot.session, updatedAt: audit.createdAt }
-    });
-
-    await getMingleRepository().saveSessionSnapshot(nextSnapshot);
-    set({
-      snapshot: nextSnapshot,
-      toast: createToast("success", `${recipient.nickname} 님에게 하트를 보냈습니다.`)
-    });
-
-    return true;
-  },
-
-  async purchaseHeartBundle() {
-    const paymentState = createPaymentState();
-    set({
-      toast: createToast(paymentState.state === "ready" ? "info" : "warning", paymentState.message)
-    });
-    return paymentState;
   },
 
   async submitReport(targetId, reason, details) {
-    const snapshot = get().snapshot;
-    const viewerParticipantId = get().viewerParticipantId;
-    if (!snapshot || !viewerParticipantId || !details.trim()) return false;
+    const participantId = get().currentParticipantId;
+    if (!participantId) return false;
 
-    const report = {
-      id: createId("report"),
-      sessionId: snapshot.session.id,
-      reporterId: viewerParticipantId,
-      targetId,
-      reason,
-      details: details.trim(),
-      createdAt: new Date().toISOString(),
-      resolvedAt: null,
-      status: "PENDING" as const
-    };
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "customer.submitReport",
+        participantId,
+        targetId,
+        reason,
+        details
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("success", "운영 신고가 접수되었습니다.")
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "신고 접수에 실패했습니다.")
+      });
+      return false;
+    }
+  },
 
-    const audit = createAuditLog(
-      "REPORT_SUBMITTED",
-      viewerParticipantId,
-      "CUSTOMER",
-      "운영팀에 신고를 전달했습니다.",
-      { targetId, reason },
-      snapshot.session.id
-    );
+  async updateParticipantProfile(nextProfile) {
+    const participantId = get().currentParticipantId;
+    if (!participantId) return false;
 
-    const nextSnapshot = normalizeSnapshot({
-      ...snapshot,
-      reports: [report, ...snapshot.reports],
-      auditLogs: [audit, ...snapshot.auditLogs],
-      session: { ...snapshot.session, updatedAt: audit.createdAt }
-    });
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "customer.updateProfile",
+        participantId,
+        profile: nextProfile
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("success", "프로필을 저장했습니다.")
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "프로필 저장에 실패했습니다.")
+      });
+      return false;
+    }
+  },
 
-    await getMingleRepository().saveSessionSnapshot(nextSnapshot);
-    set({
-      snapshot: nextSnapshot,
-      toast: createToast("success", "운영팀에 신고가 전달되었습니다.")
-    });
+  async updateRound2Attendance(attendance) {
+    const participantId = get().currentParticipantId;
+    if (!participantId) return false;
 
-    return true;
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "customer.setRound2Attendance",
+        participantId,
+        attendance
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("success", "2차 참석 여부를 저장했습니다.")
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "참석 여부 저장에 실패했습니다.")
+      });
+      return false;
+    }
+  },
+
+  async acknowledgeRotation() {
+    const participantId = get().currentParticipantId;
+    if (!participantId) return false;
+
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "customer.ackRotation",
+        participantId
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("info", "이동 지시를 확인했습니다.")
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "이동 확인에 실패했습니다.")
+      });
+      return false;
+    }
   }
 });

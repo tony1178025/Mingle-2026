@@ -6,7 +6,7 @@ import "@/app/globals.css";
 
 export const metadata: Metadata = {
   title: "밍글 Mingle",
-  description: "프리미엄 소셜 디스커버리 플랫폼",
+  description: "한국 타깃 프리미엄 오프라인 소셜 디스커버리 파티 플랫폼",
   applicationName: "밍글 Mingle",
   icons: {
     icon: [

@@ -1,4 +1,4 @@
-# Remaining External Integrations List
+﻿# Remaining External Integrations List
 
 ## Backend / data
 
@@ -11,11 +11,10 @@
 - Operator authentication and role gating (admin-only functions)
 - Session-level authorization checks for customer and admin actions
 
-## Payment / monetization
+## Heart operations
 
-- Real payment provider checkout + webhook settlement
-- Paid-heart balance reconciliation and failure recovery
-- Transaction audit and chargeback handling
+- Offline admin heart grant workflow and operator checklist
+- Heart grant audit visibility in live operations
 
 ## Media / storage
 
@@ -32,4 +31,5 @@
 
 - Data retention and deletion workflow
 - Abuse escalation workflow for repeated reports
+
 

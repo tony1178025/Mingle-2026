@@ -15,8 +15,9 @@ export function SessionQrCard({
 
   useEffect(() => {
     let alive = true;
+    const qrPayload = `mingle://session/${sessionId}?code=${sessionCode}`;
 
-    void generateQrDataUrl(`mingle://session/${sessionId}`).then((nextUrl) => {
+    void generateQrDataUrl(qrPayload).then((nextUrl) => {
       if (alive) {
         setQrDataUrl(nextUrl);
       }
@@ -25,7 +26,7 @@ export function SessionQrCard({
     return () => {
       alive = false;
     };
-  }, [sessionId]);
+  }, [sessionCode, sessionId]);
 
   return (
     <Surface className="qr-card">
@@ -42,7 +43,7 @@ export function SessionQrCard({
         <div className="qr-skeleton" />
       )}
       <p className="inner-description">
-        QR, 4자리 코드, 스태프 확인까지 세 가지 체크인 경로를 모두 지원합니다.
+        체크인 QR은 단일 규격만 사용합니다. 세션 QR을 스캔하면 동일한 계약으로 고객 체크인 입력에 바로 붙여 넣을 수 있습니다.
       </p>
     </Surface>
   );

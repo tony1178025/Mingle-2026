@@ -57,7 +57,7 @@ export function buildInterventionRecommendations(snapshot: SessionSnapshot): Int
   }
 
   const revealReadyCount = snapshot.participants.filter(
-    (participant) => participant.usedFreeHearts >= snapshot.session.freeHeartLimit
+    (participant) => participant.receivedHearts > 0
   ).length;
 
   if (snapshot.session.phase === "ROUND_2" && !snapshot.session.revealSenders && revealReadyCount >= 4) {

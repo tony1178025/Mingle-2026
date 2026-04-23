@@ -1,5 +1,9 @@
-import { calculateParticipantScore } from "@/engine/scoring";
-import type { ParticipantRecord, ParticipantSubTier, ParticipantTier } from "@/types/mingle";
+import { calculateParticipantScore } from "../scoring/index.ts";
+import type {
+  ParticipantRecord,
+  ParticipantSubTier,
+  ParticipantTier
+} from "../../types/mingle.ts";
 
 const TIER_RATIOS = {
   A: 0.2,
