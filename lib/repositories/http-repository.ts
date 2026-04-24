@@ -15,7 +15,7 @@ async function parseJson<T>(response: Response): Promise<T> {
     try {
       parsed = JSON.parse(raw) as { code?: string; message?: string; error?: string };
     } catch {}
-    const message = parsed?.message ?? parsed?.error ?? raw || "요청에 실패했습니다.";
+    const message = parsed?.message ?? parsed?.error ?? (raw || "요청에 실패했습니다.");
     throw new Error(parsed?.code ? `[${parsed.code}] ${message}` : message);
   }
 
