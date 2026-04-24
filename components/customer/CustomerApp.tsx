@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { ProfileFormFields } from "@/components/customer/ProfileFormFields";
-import { PushNotificationCard } from "@/components/customer/PushNotificationCard";
 import { RevealProgressCard } from "@/components/customer/RevealProgressCard";
 import { RotationInstructionModal } from "@/components/customer/RotationInstructionModal";
 import { TableStageCard } from "@/components/customer/TableStageCard";
@@ -11,6 +10,7 @@ import { Badge, Button, EmptyState, SectionHeader, Surface } from "@/components/
 import {
   buildMutualMatches,
   buildStageContent,
+  getContactExchangeBetween,
   getEncounterParticipants,
   getRotationInstructionForParticipant,
   isRotationInstructionActive
@@ -19,13 +19,32 @@ import { buildRevealState } from "@/engine/reveal";
 import { createCheckinCopy } from "@/features/checkin/model";
 import { cn, formatTableName, REPORT_REASONS } from "@/lib/mingle";
 import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStore";
-import type { CustomerTab, ParticipantRecord } from "@/types/mingle";
+import type { ContactExchangeMethod, CustomerTab, ParticipantRecord } from "@/types/mingle";
 
 const TAB_LABELS: Record<CustomerTab, string> = {
   table: "테이블",
   hearts: "하트",
   settings: "설정"
 };
+
+const PHASE_LABELS: Record<string, string> = {
+  CHECKIN: "체크인",
+  ROUND_1: "1라운드",
+  BREAK: "휴식",
+  ROUND_2: "2라운드",
+  MATCH_END: "매치 결과",
+  CLOSED: "종료"
+};
+
+function formatPhaseLabel(phase: string) {
+  return PHASE_LABELS[phase] ?? phase;
+}
+
+function formatContactExchangeStatus(status: "PENDING" | "COMPLETED" | "BLOCKED") {
+  if (status === "COMPLETED") return "완료";
+  if (status === "BLOCKED") return "운영 제한";
+  return "대기";
+}
 
 function LoadingView() {
   return (
@@ -60,7 +79,7 @@ function OnboardingView() {
       <div className="customer-stage onboarding-stage">
         <Surface className="customer-hero">
           <div className="hero-copy-stack">
-            <p className="eyebrow">CHECK-IN</p>
+            <p className="eyebrow">입장 확인</p>
             <h1 className="hero-title">입장 확인을 먼저 완료한 뒤 현장 프로필을 시작합니다.</h1>
             <p className="hero-description">
               체크인은 예약과 기존 참가자 연결 기준으로 확인됩니다. 닉네임은 입장 권한이 아니라
@@ -72,7 +91,7 @@ function OnboardingView() {
         <div className="customer-grid">
           <div className="customer-main-column">
             <Surface>
-              <SectionHeader eyebrow="CHECK-IN" title={copy.title} description={copy.description} />
+              <SectionHeader eyebrow="입장 확인" title={copy.title} description={copy.description} />
 
               <label className="field">
                 <span>체크인 QR</span>
@@ -144,7 +163,7 @@ function OnboardingView() {
           <div className="customer-side-column">
             <Surface>
               <SectionHeader
-                eyebrow="PROFILE"
+                eyebrow="프로필"
                 title="입장 확인 후 프로필을 입력합니다"
                 description="닉네임은 프로필 정보로 저장되며, 중복되면 다른 닉네임을 입력해야 합니다."
               />
@@ -178,7 +197,7 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
       <div className="customer-stage">
         <Surface className="customer-hero match-hero">
           <div className="hero-copy-stack">
-            <p className="eyebrow">MATCH END</p>
+            <p className="eyebrow">매치 결과</p>
             <h1 className="hero-title">최종 연결 결과가 열렸습니다.</h1>
             <p className="hero-description">
               서로 하트를 보낸 참가자만 마지막 단계에서 확인할 수 있습니다.
@@ -190,7 +209,7 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
           <div className="customer-main-column">
             <Surface>
               <SectionHeader
-                eyebrow="RESULT"
+                eyebrow="결과"
                 title={matches.length ? `${matches.length}개의 상호 연결` : "이번 라운드의 연결 결과"}
                 description="최종 공개가 끝난 뒤 서로 연결된 참가자만 이 화면에 표시됩니다."
               />
@@ -207,7 +226,9 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
                           </p>
                         </div>
                       </div>
-                      <Button block>다시 이야기 나누기</Button>
+                      <Button block disabled>
+                        다시 이야기 나누기 (준비중)
+                      </Button>
                     </article>
                   ))}
                 </div>
@@ -236,6 +257,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   const updateParticipantProfile = useMingleStore((state) => state.updateParticipantProfile);
   const updateRound2Attendance = useMingleStore((state) => state.updateRound2Attendance);
   const acknowledgeRotation = useMingleStore((state) => state.acknowledgeRotation);
+  const submitContactExchangeConsent = useMingleStore((state) => state.submitContactExchangeConsent);
   const respondToContent = useMingleStore((state) => state.respondToContent);
 
   const [stagedRevealOpen, setStagedRevealOpen] = useState(false);
@@ -251,6 +273,13 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     heightCm: String(participant.heightCm),
     animalType: participant.animalType,
     energyType: participant.energyType
+  });
+  const [contactTargetId, setContactTargetId] = useState("");
+  const [contactDraft, setContactDraft] = useState<ContactExchangeMethod>({
+    realName: "",
+    phone: "",
+    kakaoId: "",
+    instagramId: ""
   });
 
   const currentTableMembers = useMemo(
@@ -271,6 +300,22 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     [encounterParticipants, participant.id]
   );
   const latestAnnouncement = useMemo(() => snapshot.announcements[0] ?? null, [snapshot.announcements]);
+  const mutualMatches = useMemo(
+    () => buildMutualMatches(snapshot, participant.id),
+    [participant.id, snapshot]
+  );
+  const revealConditionMessage = useMemo(() => {
+    if (snapshot.session.phase !== "ROUND_2") {
+      return "2라운드에서 운영자가 공개를 열면 결과를 확인할 수 있어요.";
+    }
+    if (!snapshot.session.revealSenders) {
+      return "운영자가 하트 공개를 열기 전입니다.";
+    }
+    if (participant.heartsRemaining > 0) {
+      return `남은 하트 ${participant.heartsRemaining}개를 모두 사용하면 결과가 공개됩니다.`;
+    }
+    return "공개 조건을 충족했습니다. 보낸 사람 보기를 눌러 확인하세요.";
+  }, [participant.heartsRemaining, snapshot.session.phase, snapshot.session.revealSenders]);
   const rotationInstruction = getRotationInstructionForParticipant(snapshot, participant.id);
   const showRotationModal = isRotationInstructionActive(rotationInstruction);
 
@@ -292,7 +337,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
       <div className="customer-stage">
         <Surface className="customer-hero">
           <div className="hero-copy-stack">
-            <p className="eyebrow">TABLE FIRST</p>
+            <p className="eyebrow">테이블 중심 진행</p>
             <h1 className="hero-title">
               {participant.nickname}님, 지금은 {formatTableName(participant.tableId)} 라운드입니다.
             </h1>
@@ -303,7 +348,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           <div className="hero-signal-grid">
             <div className="hero-signal-card">
               <span className="hero-side-kicker">현재 단계</span>
-              <strong>{snapshot.session.phase}</strong>
+              <strong>{formatPhaseLabel(snapshot.session.phase)}</strong>
               <p>운영 단계가 바뀌면 이 화면도 바로 갱신됩니다.</p>
             </div>
             <div className="hero-signal-card">
@@ -332,6 +377,12 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               </button>
             ))}
           </div>
+          <div className="compact-row" style={{ marginTop: "0.5rem" }}>
+            <strong>남은 하트 {participant.heartsRemaining}개</strong>
+            <Button variant="secondary" onClick={() => setCustomerTab("hearts")}>
+              하트 보기
+            </Button>
+          </div>
         </Surface>
 
         {customerTab === "table" ? (
@@ -349,7 +400,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
 
               <Surface>
                 <SectionHeader
-                  eyebrow="CURRENT TABLE"
+                  eyebrow="현재 테이블"
                   title={`${formatTableName(participant.tableId)} 참가자`}
                   description="지금 같은 테이블에 있는 참가자를 바로 확인할 수 있습니다."
                 />
@@ -367,7 +418,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                       </div>
                       <div className="badge-row">
                         <Badge tone="neutral">{member.animalType}</Badge>
-                        {member.id === participant.id ? <Badge tone="accent">ME</Badge> : null}
+                        {member.id === participant.id ? <Badge tone="accent">나</Badge> : null}
                       </div>
                     </article>
                   ))}
@@ -376,7 +427,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
 
               <Surface>
                 <SectionHeader
-                  eyebrow="RECENT ENCOUNTERS"
+                  eyebrow="최근 만남"
                   title="최근 만난 참가자"
                   description="이전 테이블이나 최근 라운드에서 만난 참가자만 다시 보여줍니다."
                 />
@@ -414,7 +465,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               {latestAnnouncement ? (
                 <Surface>
                   <SectionHeader
-                    eyebrow="ANNOUNCEMENT"
+                    eyebrow="공지"
                     title="운영 안내"
                     description={latestAnnouncement.message}
                   />
@@ -431,7 +482,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
 
               <Surface>
                 <SectionHeader
-                  eyebrow="INBOX"
+                  eyebrow="받은 하트"
                   title={`받은 하트 ${heartInbox.receivedCount}개`}
                   description={heartInbox.status}
                 />
@@ -440,7 +491,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               {heartInbox.canReveal && !stagedRevealOpen ? (
                 <Surface>
                   <SectionHeader
-                    eyebrow="REVEAL"
+                    eyebrow="공개"
                     title="공개를 열 준비가 되었습니다"
                     description={heartInbox.status}
                     actions={<Button onClick={() => setStagedRevealOpen(true)}>보낸 사람 보기</Button>}
@@ -452,7 +503,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                 stagedRevealOpen ? (
                   <Surface>
                     <SectionHeader
-                      eyebrow="REVEALED"
+                      eyebrow="공개 완료"
                       title="보낸 사람이 공개되었습니다"
                       description={heartInbox.status}
                     />
@@ -477,12 +528,127 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               ) : (
                 <Surface>
                   <SectionHeader
-                    eyebrow="LOCKED"
-                    title="아직 공개 단계가 아닙니다"
-                    description={heartInbox.status}
+                    eyebrow="잠김"
+                    title="하트 결과 확인 조건이 아직 충족되지 않았습니다"
+                    description={revealConditionMessage}
                   />
                 </Surface>
               )}
+
+              {heartInbox.canReveal && stagedRevealOpen ? (
+                <Surface>
+                  <SectionHeader
+                    eyebrow="연락처 교환"
+                    title="연락처 교환"
+                    description="서로 하트를 보낸 참가자와만, 쌍방 동의 후 연락처가 공개됩니다."
+                  />
+
+                  {mutualMatches.length ? (
+                    <>
+                      <label className="field">
+                        <span>대상 선택</span>
+                        <select
+                          value={contactTargetId}
+                          onChange={(event) => setContactTargetId(event.target.value)}
+                        >
+                          <option value="">선택</option>
+                          {mutualMatches.map((candidate) => (
+                            <option key={candidate.id} value={candidate.id}>
+                              {candidate.nickname}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <div className="form-grid">
+                        <label className="field">
+                          <span>본명 (선택)</span>
+                          <input
+                            value={contactDraft.realName ?? ""}
+                            onChange={(event) =>
+                              setContactDraft((current) => ({ ...current, realName: event.target.value }))
+                            }
+                          />
+                        </label>
+                        <label className="field">
+                          <span>전화번호</span>
+                          <input
+                            value={contactDraft.phone ?? ""}
+                            onChange={(event) =>
+                              setContactDraft((current) => ({ ...current, phone: event.target.value }))
+                            }
+                          />
+                        </label>
+                        <label className="field">
+                          <span>카카오톡 ID</span>
+                          <input
+                            value={contactDraft.kakaoId ?? ""}
+                            onChange={(event) =>
+                              setContactDraft((current) => ({ ...current, kakaoId: event.target.value }))
+                            }
+                          />
+                        </label>
+                        <label className="field">
+                          <span>인스타그램 ID</span>
+                          <input
+                            value={contactDraft.instagramId ?? ""}
+                            onChange={(event) =>
+                              setContactDraft((current) => ({ ...current, instagramId: event.target.value }))
+                            }
+                          />
+                        </label>
+                      </div>
+
+                      <Button
+                        block
+                        disabled={
+                          !contactTargetId ||
+                          !(
+                            contactDraft.phone?.trim() ||
+                            contactDraft.kakaoId?.trim() ||
+                            contactDraft.instagramId?.trim()
+                          )
+                        }
+                        onClick={async () => {
+                          const ok = await submitContactExchangeConsent(contactTargetId, contactDraft, true);
+                          if (ok) {
+                            setContactDraft({ realName: "", phone: "", kakaoId: "", instagramId: "" });
+                          }
+                        }}
+                      >
+                        연락처 교환 요청/동의 제출
+                      </Button>
+                      {!contactTargetId ||
+                      !(
+                        contactDraft.phone?.trim() ||
+                        contactDraft.kakaoId?.trim() ||
+                        contactDraft.instagramId?.trim()
+                      ) ? (
+                        <p className="field-help">대상 선택 + 연락수단 1개 이상 입력 후 제출할 수 있어요.</p>
+                      ) : null}
+
+                      <div className="compact-stack" style={{ marginTop: "0.75rem" }}>
+                        {mutualMatches.map((candidate) => {
+                          const exchange = getContactExchangeBetween(snapshot, participant.id, candidate.id);
+                          return (
+                            <div key={candidate.id} className="compact-row">
+                              <strong>{candidate.nickname}</strong>
+                              <span>
+                                {exchange ? formatContactExchangeStatus(exchange.status) : "요청 전"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <EmptyState
+                      title="연락처 교환 대상이 없습니다."
+                      description="서로 하트를 보낸 상대가 있을 때만 요청할 수 있습니다."
+                    />
+                  )}
+                </Surface>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -492,7 +658,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
             <div className="customer-main-column">
               <Surface>
                 <SectionHeader
-                  eyebrow="PROFILE"
+                  eyebrow="프로필"
                   title="내 프로필 수정"
                   description="운영 중에도 기본 프로필 정보를 정리할 수 있습니다."
                 />
@@ -510,7 +676,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
 
               <Surface>
                 <SectionHeader
-                  eyebrow="ROUND 2"
+                  eyebrow="2차 라운드"
                   title="2차 참석 여부"
                   description="운영자는 이 응답을 기준으로 다음 라운드 참여를 확인합니다."
                 />
@@ -533,7 +699,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
 
               <Surface>
                 <SectionHeader
-                  eyebrow="SAFETY"
+                  eyebrow="안전 신고"
                   title="운영 신고"
                   description="현장에서 불편하거나 위험한 상황이 있으면 바로 신고할 수 있습니다."
                 />
@@ -596,9 +762,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               </Surface>
             </div>
 
-            <div className="customer-side-column">
-              <PushNotificationCard />
-            </div>
+            <div className="customer-side-column" />
           </div>
         ) : null}
 

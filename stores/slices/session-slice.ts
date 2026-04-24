@@ -15,12 +15,18 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
     const snapshot = normalizeSnapshot(response.data);
     const viewerState = getInitialViewerState(snapshot, response.currentParticipantId);
 
-    set({
-      snapshot,
-      hydrated: true,
-      currentParticipantId: viewerState.currentParticipantId,
-      selectedTableId: viewerState.selectedTableId,
-      toast: null
+    set((state) => {
+      const currentVersion = state.snapshot?.version ?? -1;
+      if (snapshot.version < currentVersion) {
+        return { hydrated: true };
+      }
+      return {
+        snapshot,
+        hydrated: true,
+        currentParticipantId: viewerState.currentParticipantId,
+        selectedTableId: viewerState.selectedTableId,
+        toast: null
+      };
     });
   },
 
@@ -28,10 +34,16 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
     const response = await getMingleRepository().getSessionSnapshot();
     const snapshot = normalizeSnapshot(response.data);
     const resolved = syncCachedParticipantState(snapshot, response.currentParticipantId);
-    set({
-      snapshot,
-      currentParticipantId: resolved.currentParticipantId,
-      selectedTableId: resolved.selectedTableId
+    set((state) => {
+      const currentVersion = state.snapshot?.version ?? -1;
+      if (snapshot.version < currentVersion) {
+        return {};
+      }
+      return {
+        snapshot,
+        currentParticipantId: resolved.currentParticipantId,
+        selectedTableId: resolved.selectedTableId
+      };
     });
   }
 });

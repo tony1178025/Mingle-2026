@@ -1,10 +1,14 @@
 import { average, clamp } from "@/lib/mingle";
 import type {
   ParticipantRecord,
+  ParticipantStatus,
+  TableState,
   TableSummary,
   TableVibeMetrics
 } from "@/types/mingle";
 
+// Table heat scoring windows — independent of presence thresholds.
+// 8 min = "recently interacted enough to count as an active signal for table heat".
 const ACTIVE_WINDOW_MS = 8 * 60 * 1000;
 const IDLE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -146,9 +150,26 @@ export function buildTableSummaries(
   participants: ParticipantRecord[],
   tableCount: number,
   tableCapacity = 0,
-  referenceTime = new Date().toISOString()
+  referenceTime = new Date().toISOString(),
+  participantStatusMap: Record<string, ParticipantStatus> = {}
 ) {
   const tables: TableSummary[] = [];
+
+  const classifyTableState = (
+    statusCounts: { ACTIVE: number; GONE: number },
+    occupancy: number
+  ): TableState => {
+    if (occupancy === 0) {
+      return "NORMAL";
+    }
+    if (statusCounts.GONE >= 2) {
+      return "COLLAPSING";
+    }
+    if (statusCounts.ACTIVE < 4) {
+      return "LOW_ACTIVITY";
+    }
+    return "NORMAL";
+  };
 
   for (let tableId = 1; tableId <= tableCount; tableId += 1) {
     const tableParticipants = participants.filter((participant) => participant.tableId === tableId);
@@ -157,6 +178,12 @@ export function buildTableSummaries(
     const extrovertCount = tableParticipants.filter((participant) => participant.energyType === "E").length;
     const introvertCount = tableParticipants.length - extrovertCount;
     const vibe = calculateTableVibe(tableParticipants, referenceTime);
+
+    const statusCounts = { ACTIVE: 0, IDLE: 0, GONE: 0, BLOCKED: 0 };
+    for (const participant of tableParticipants) {
+      const status = participantStatusMap[participant.id] ?? "IDLE";
+      statusCounts[status] += 1;
+    }
 
     tables.push({
       tableId,
@@ -171,7 +198,9 @@ export function buildTableSummaries(
       energyBalance: Math.abs(extrovertCount - introvertCount),
       repeatMeetings: calculateRepeatMeetings(tableParticipants),
       protectedCount: tableParticipants.filter(isProtectedParticipant).length,
-      popularityLoad: calculatePopularityLoad(tableParticipants)
+      popularityLoad: calculatePopularityLoad(tableParticipants),
+      statusCounts,
+      tableState: classifyTableState(statusCounts, tableParticipants.length)
     });
   }
 

@@ -1,4 +1,5 @@
-export type SessionPhase = "CHECKIN" | "ROUND_1" | "ROUND_2" | "MATCH_END";
+export type SessionPhase = "CHECKIN" | "ROUND_1" | "BREAK" | "ROUND_2" | "CLOSED" | "MATCH_END";
+export type SessionOperationalState = "ROUND_1" | "BREAK" | "ROUND_2" | "CLOSED";
 export type CheckinMode = "qr" | "code" | "staff";
 export type CheckinFlowState =
   | "IDLE"
@@ -7,7 +8,8 @@ export type CheckinFlowState =
   | "RE_ENTRY"
   | "BLOCKED"
   | "FAILURE";
-export type ParticipantStatus = "ACTIVE" | "BLOCKED";
+export type ParticipantStatus = "ACTIVE" | "IDLE" | "GONE" | "BLOCKED";
+export type TableState = "NORMAL" | "LOW_ACTIVITY" | "COLLAPSING";
 export type ParticipantGender = "M" | "F";
 export type EnergyType = "E" | "I";
 export type ParticipantTier = "A" | "B" | "C";
@@ -55,6 +57,7 @@ export type AuditAction =
   | "PROFILE_VIEWED"
   | "HEART_SENT"
   | "PHASE_CHANGED"
+  | "SESSION_STATE_CHANGED"
   | "REVEAL_TOGGLED"
   | "ROTATION_PREVIEWED"
   | "ROTATION_APPLIED"
@@ -65,7 +68,10 @@ export type AuditAction =
   | "CONTENT_ACTIVATED"
   | "CONTENT_RESPONDED"
   | "ANNOUNCEMENT_PUBLISHED"
-  | "POLL_SYNC";
+  | "POLL_SYNC"
+  | "PARTICIPANT_MOVED"
+  | "MANUAL_PARTICIPANT_CREATED"
+  | "CONTACT_EXCHANGE_UPDATED";
 
 export interface SessionRecord {
   id: string;
@@ -89,6 +95,7 @@ export interface SessionRecord {
   tableCount: number;
   tableCapacity: number;
   customerSessionVersion: number;
+  lifecycleStatus?: SessionLifecycleStatus;
 }
 
 export interface ParticipantEncounterRecord {
@@ -152,7 +159,7 @@ export interface SeatingAssignmentRecord {
   participantId: string;
   tableId: number;
   assignedAt: string;
-  assignmentSource: "INITIAL" | "ROTATION_APPLY";
+  assignmentSource: "INITIAL" | "ROTATION_APPLY" | "ADMIN_MOVE";
 }
 
 export interface ReportRecord {
@@ -247,6 +254,34 @@ export interface AnonymousMessageRecord {
   createdAt: string;
 }
 
+export interface ContactExchangeMethod {
+  realName?: string;
+  phone?: string;
+  kakaoId?: string;
+  instagramId?: string;
+}
+
+export interface ContactExchangeRecord {
+  id: string;
+  sessionId: string;
+  participantAId: string;
+  participantBId: string;
+  participantAConsented: boolean;
+  participantBConsented: boolean;
+  participantAMethods: ContactExchangeMethod | null;
+  participantBMethods: ContactExchangeMethod | null;
+  status: "PENDING" | "COMPLETED" | "BLOCKED";
+  requestedAt: string;
+  completedAt: string | null;
+}
+
+export interface ContactExchangeStats {
+  totalRequests: number;
+  pendingCount: number;
+  completedCount: number;
+  blockedCount: number;
+}
+
 export interface AnnouncementRecord {
   id: string;
   message: string;
@@ -283,19 +318,25 @@ export interface SessionSnapshot {
   liveContent: LiveContentRecord | null;
   contentResponses: ContentResponseRecord[];
   anonymousMessages: AnonymousMessageRecord[];
+  contactExchanges?: ContactExchangeRecord[];
+  contactExchangeStats?: ContactExchangeStats;
+  outboxEvents?: OutboxEventRecord[];
   announcements: AnnouncementRecord[];
   rotationInstruction: RotationInstructionState | null;
   version: number;
+  participantStatusMap?: Record<string, ParticipantStatus>;
 }
 
 export interface ParsedCheckinQr {
-  sessionId: string;
+  branchId: string;
+  tableId: number;
   checkinCode: string;
 }
 
 export interface CheckinResolution {
   sessionId: string;
   branchId: string;
+  tableId: number | null;
   reservationId: string;
   reservationExternalId?: string | null;
   participantId: string | null;
@@ -330,6 +371,166 @@ export interface ExternalReservationSessionContext {
   gender: ParticipantGender;
   eligible: boolean;
   status: "ACTIVE" | "BLOCKED";
+}
+
+export interface ReservationAdapterInput {
+  sessionId: string;
+  checkinCode: string;
+  reservationExternalId?: string | null;
+}
+
+export type ReservationStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "BLOCKED"
+  | "CHECKED_IN";
+
+export interface ReservationBridgeRecord {
+  sessionId: string;
+  branchId: string;
+  eventId: string;
+  eventDate: string;
+  reservationId: string;
+  reservationExternalId: string | null;
+  phone: string | null;
+  status: ReservationStatus;
+  eligible: boolean;
+}
+
+export interface ReservationLookupRule {
+  mode: "EXTERNAL_ID_FIRST_PHONE_FALLBACK";
+  phonePolicy: "NORMALIZED_EXACT_MATCH";
+  notes: string;
+}
+
+export interface ReservationAdapter {
+  getSessionContext(input: ReservationAdapterInput): Promise<ExternalReservationSessionContext | null>;
+}
+
+export interface WebsiteEntryPayload {
+  branchId: string;
+  eventId: string;
+  eventDate: string;
+  reservationExternalId?: string | null;
+  phone?: string | null;
+}
+
+export interface WebsiteEntryContext {
+  sessionId: string;
+  branchId: string;
+  eventId: string;
+  eventDate: string;
+  tableId: number | null;
+  reservationId?: string | null;
+  reservationExternalId?: string | null;
+  checkinCode?: string | null;
+  participantId?: string | null;
+}
+
+export interface WebsiteEntryAdapter {
+  resolveEntryContext(input: WebsiteEntryContext): Promise<WebsiteEntryContext>;
+}
+
+export type MessagingExportChannel = "SMS" | "CSV" | "XLSX" | "AUTOMATION";
+
+export interface MessagingExportAdapterInput {
+  channel: MessagingExportChannel;
+  sessionId: string;
+  eventType: string;
+  payload: Record<string, unknown>;
+}
+
+export interface MessagingExportAdapter {
+  enqueue(input: MessagingExportAdapterInput): Promise<void>;
+}
+
+export interface ReservationImportRow {
+  reservationExternalId: string;
+  reservationId: string;
+  branchId: string;
+  eventId: string;
+  eventDate: string;
+  phone?: string | null;
+  status: ReservationStatus;
+  reservationLabel?: string;
+  checkinCode?: string;
+}
+
+export interface ReservationExportRow extends ReservationImportRow {
+  sessionId: string;
+  eligible: boolean;
+  participantId?: string | null;
+}
+
+export interface ReservationImportResult {
+  accepted: number;
+  rejected: number;
+  errors: Array<{ row: number; message: string }>;
+}
+
+export interface ParticipantExportRow {
+  participantId: string;
+  nickname: string;
+  phone: string | null;
+  tableId: number;
+  matchStatus: "MATCHED" | "UNMATCHED";
+}
+
+export interface MatchExportRow {
+  participantAId: string;
+  participantANickname: string;
+  participantAPhone: string | null;
+  participantBId: string;
+  participantBNickname: string;
+  participantBPhone: string | null;
+  status: "MATCHED";
+}
+
+export interface ContactExchangeExportRow {
+  participantAId: string;
+  participantANickname: string;
+  participantAPhone: string | null;
+  participantBId: string;
+  participantBNickname: string;
+  participantBPhone: string | null;
+  contactExchangeStatus: "PENDING" | "COMPLETED" | "BLOCKED";
+}
+
+export interface ReservationImportExportAdapter {
+  importRows(rows: ReservationImportRow[]): Promise<ReservationImportResult>;
+  exportRows(input: {
+    sessionId: string;
+    format: "csv" | "xlsx";
+    rows: ReservationExportRow[];
+  }): Promise<{ fileName: string; mimeType: string; body: string }>;
+  exportParticipants(input: {
+    sessionId: string;
+    includePhone: boolean;
+    rows: ParticipantExportRow[];
+  }): Promise<{ fileName: string; mimeType: string; body: string }>;
+  exportMatches(input: {
+    sessionId: string;
+    includePhone: boolean;
+    rows: MatchExportRow[];
+  }): Promise<{ fileName: string; mimeType: string; body: string }>;
+  exportContactExchanges(input: {
+    sessionId: string;
+    includePhone: boolean;
+    rows: ContactExchangeExportRow[];
+  }): Promise<{ fileName: string; mimeType: string; body: string }>;
+}
+
+export interface OutboxEventRecord {
+  id: string;
+  sessionId: string;
+  eventType: string;
+  channel: MessagingExportChannel;
+  status: "PENDING" | "SENT" | "FAILED";
+  payload: Record<string, unknown>;
+  createdAt: string;
+  processedAt: string | null;
+  error: string | null;
 }
 
 export interface ProfileDraft {
@@ -419,6 +620,13 @@ export interface InterventionRecommendation {
   targetParticipantId?: string;
 }
 
+export interface TableStatusCounts {
+  ACTIVE: number;
+  IDLE: number;
+  GONE: number;
+  BLOCKED: number;
+}
+
 export interface TableSummary {
   tableId: number;
   participants: ParticipantRecord[];
@@ -433,6 +641,8 @@ export interface TableSummary {
   repeatMeetings: number;
   protectedCount: number;
   popularityLoad: number;
+  statusCounts: TableStatusCounts;
+  tableState: TableState;
 }
 
 export interface RevealState {
@@ -607,7 +817,8 @@ export interface GrantHeartsResponse {
 }
 
 export interface ReservationSessionContextRequest {
-  sessionId: string;
+  branchId: string;
+  tableId: number;
   checkinCode: string;
   participantId?: string | null;
 }
@@ -667,42 +878,75 @@ export type MingleCommand =
       participantId: string;
     }
   | {
-      type: "admin.setPhase";
-      phase: SessionPhase;
+      type: "customer.submitContactExchangeConsent";
+      participantId: string;
+      targetParticipantId: string;
+      consent: boolean;
+      methods?: ContactExchangeMethod;
+    }
+  | {
+      type: "admin.setSessionState";
+      state: SessionOperationalState;
+      expectedVersion?: number;
     }
   | {
       type: "admin.toggleReveal";
       value: boolean;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.triggerReveal";
+      expectedVersion?: number;
     }
   | {
       type: "admin.generateRotationPreview";
+      expectedVersion?: number;
     }
   | {
       type: "admin.applyRotation";
       preview: RotationPreview;
+      expectedVersion?: number;
     }
   | {
       type: "admin.activateContent";
       templateId: string;
       targetTableId: number | null;
       message?: string;
+      expectedVersion?: number;
     }
   | {
       type: "admin.clearContent";
+      expectedVersion?: number;
     }
   | {
       type: "admin.publishAnnouncement";
       message: string;
+      expectedVersion?: number;
     }
   | {
       type: "admin.resolveReport";
       reportId: string;
+      expectedVersion?: number;
     }
   | {
       type: "admin.setBlacklistStatus";
       participantId: string;
       blocked: boolean;
       reason?: string;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.moveParticipant";
+      participantId: string;
+      toTableId: number;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.createManualParticipant";
+      nickname: string;
+      tableId: number;
+      gender: ParticipantGender;
+      expectedVersion?: number;
     };
 
 export interface SessionRow {
@@ -784,7 +1028,7 @@ export interface SeatingAssignmentRow {
   participant_id: string;
   table_id: number;
   assigned_at: string;
-  assignment_source: "INITIAL" | "ROTATION_APPLY";
+  assignment_source: "INITIAL" | "ROTATION_APPLY" | "ADMIN_MOVE";
 }
 
 export interface HeartRow {

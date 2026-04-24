@@ -85,7 +85,8 @@ export const createCheckinSlice: StoreSlice<CheckinSlice> = (set, get) => ({
     for (let attempt = 0; attempt < CHECKIN_RETRY_ATTEMPTS; attempt += 1) {
       try {
         const result = await getMingleRepository().getReservationSessionContext({
-          sessionId: parsedQr.sessionId,
+          branchId: parsedQr.branchId,
+          tableId: parsedQr.tableId,
           checkinCode: parsedQr.checkinCode,
           participantId: get().currentParticipantId
         });

@@ -89,6 +89,19 @@ export function buildMutualMatches(snapshot: SessionSnapshot, participantId: str
   return snapshot.participants.filter((participant) => matchedIds.includes(participant.id));
 }
 
+export function getContactExchangeBetween(
+  snapshot: SessionSnapshot,
+  participantId: string,
+  targetParticipantId: string
+) {
+  return (snapshot.contactExchanges ?? []).find((exchange) => {
+    return (
+      (exchange.participantAId === participantId && exchange.participantBId === targetParticipantId) ||
+      (exchange.participantAId === targetParticipantId && exchange.participantBId === participantId)
+    );
+  }) ?? null;
+}
+
 export function getLatestAnnouncement(snapshot: SessionSnapshot) {
   return snapshot.announcements[0] ?? null;
 }

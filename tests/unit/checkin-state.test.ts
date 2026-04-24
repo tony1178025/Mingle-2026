@@ -83,8 +83,8 @@ function createSnapshot(participants: ParticipantRecord[]): SessionSnapshot {
       phase: "CHECKIN",
       revealSenders: false,
       revealTriggeredAt: null,
-      startedAt: "2026-04-22T10:00:00.000Z",
-      updatedAt: "2026-04-22T10:00:00.000Z",
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       tableCount: 1,
       tableCapacity: 6,
       customerSessionVersion: 1
@@ -138,7 +138,7 @@ function createProfileDraft(nickname: string): ProfileDraft {
 function createQrDraft(code: string) {
   return {
     ...createEmptyCheckinDraft(),
-    value: `mingle://session/${SESSION_ID}?code=${code}`
+    value: `mingle://table/${BRANCH_ID}/1?code=${code}`
   };
 }
 

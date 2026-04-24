@@ -273,7 +273,7 @@ describe("reveal rules", () => {
     expect(canRevealHeartSenders({ ...seed.session, phase: "ROUND_2", revealSenders: true })).toBe(true);
   });
 
-  it("surfaces round and admin waiting states without heart unlock requirements", () => {
+  it("locks sender reveal until all hearts are used", () => {
     const hearts: HeartRecord[] = [
       {
         id: "heart_1",
@@ -304,6 +304,16 @@ describe("reveal rules", () => {
       buildRevealState(
         { ...seed.session, phase: "ROUND_2", revealSenders: true },
         current,
+        seed.hearts,
+        seed.participants
+      ).key
+    ).toBe("round2-waiting-admin");
+
+    const unlockedCurrent = { ...current, heartsRemaining: 0 };
+    expect(
+      buildRevealState(
+        { ...seed.session, phase: "ROUND_2", revealSenders: true },
+        unlockedCurrent,
         seed.hearts,
         seed.participants
       ).key

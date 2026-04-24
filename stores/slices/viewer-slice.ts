@@ -115,5 +115,32 @@ export const createViewerSlice: StoreSlice<ViewerSlice> = (set, get) => ({
       });
       return false;
     }
+  },
+
+  async submitContactExchangeConsent(targetParticipantId, methods, consent = true) {
+    const participantId = get().currentParticipantId;
+    if (!participantId) return false;
+
+    try {
+      const result = await getMingleRepository().executeCommand({
+        type: "customer.submitContactExchangeConsent",
+        participantId,
+        targetParticipantId,
+        consent,
+        methods
+      });
+      applyCommandResult(set, result, {
+        toast: createToast("success", consent ? "연락처 교환 요청을 보냈습니다." : "교환 동의를 취소했습니다.")
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast(
+          "warning",
+          error instanceof Error ? error.message : "연락처 교환 처리에 실패했습니다."
+        )
+      });
+      return false;
+    }
   }
 });

@@ -7,14 +7,36 @@ import type { ContentSlice, StoreSlice } from "@/stores/types";
 export const createContentSlice: StoreSlice<ContentSlice> = (set, get) => ({
   contentLibrary: CONTENT_LIBRARY,
 
+  async executeAdminContentCommandWithRetry(commandFactory) {
+    const execute = async () => {
+      const expectedVersion = get().snapshot?.version;
+      if (typeof expectedVersion !== "number") {
+        throw new Error("세션 버전을 확인할 수 없습니다.");
+      }
+      return getMingleRepository().executeCommand(commandFactory(expectedVersion));
+    };
+
+    try {
+      return await execute();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!message.includes("세션이 갱신되었습니다")) {
+        throw error;
+      }
+      await get().syncFromRepository();
+      return execute();
+    }
+  },
+
   async activateContent(templateId, targetTableId = null, message) {
     try {
-      const result = await getMingleRepository().executeCommand({
+      const result = await get().executeAdminContentCommandWithRetry((expectedVersion) => ({
         type: "admin.activateContent",
         templateId,
         targetTableId,
-        message
-      });
+        message,
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
         toast: createToast("success", "라이브 콘텐츠를 시작했습니다.")
       });
@@ -27,9 +49,10 @@ export const createContentSlice: StoreSlice<ContentSlice> = (set, get) => ({
 
   async clearContent() {
     try {
-      const result = await getMingleRepository().executeCommand({
-        type: "admin.clearContent"
-      });
+      const result = await get().executeAdminContentCommandWithRetry((expectedVersion) => ({
+        type: "admin.clearContent",
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
         toast: createToast("info", "진행 중인 콘텐츠를 종료했습니다.")
       });
@@ -42,10 +65,11 @@ export const createContentSlice: StoreSlice<ContentSlice> = (set, get) => ({
 
   async publishAnnouncement(message) {
     try {
-      const result = await getMingleRepository().executeCommand({
+      const result = await get().executeAdminContentCommandWithRetry((expectedVersion) => ({
         type: "admin.publishAnnouncement",
-        message
-      });
+        message,
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
         toast: createToast("success", "운영 공지를 발행했습니다.")
       });

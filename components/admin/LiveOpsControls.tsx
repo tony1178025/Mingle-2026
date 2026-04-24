@@ -2,21 +2,26 @@
 
 import { useState } from "react";
 import { Button, MetricCard, SectionHeader, Surface } from "@/components/shared/ui";
-import type { SessionPhase, SessionSnapshot } from "@/types/mingle";
+import type { SessionOperationalState, SessionSnapshot } from "@/types/mingle";
 
-const PHASES: SessionPhase[] = ["CHECKIN", "ROUND_1", "ROUND_2", "MATCH_END"];
+const SESSION_STATE_ACTIONS: Array<{ state: SessionOperationalState; label: string; requiresConfirm?: boolean }> = [
+  { state: "ROUND_1", label: "1라운드 시작" },
+  { state: "BREAK", label: "휴식" },
+  { state: "ROUND_2", label: "2라운드 시작", requiresConfirm: true },
+  { state: "CLOSED", label: "세션 종료", requiresConfirm: true }
+];
 
 export function LiveOpsControls({
   snapshot,
   revealReadyCount,
-  onSetPhase,
-  onToggleReveal,
+  onSetSessionState,
+  onTriggerReveal,
   onPublishAnnouncement
 }: {
   snapshot: SessionSnapshot;
   revealReadyCount: number;
-  onSetPhase: (phase: SessionPhase) => Promise<void>;
-  onToggleReveal: (value: boolean) => Promise<void>;
+  onSetSessionState: (state: SessionOperationalState) => Promise<void>;
+  onTriggerReveal: () => Promise<void>;
   onPublishAnnouncement: (message: string) => Promise<void>;
 }) {
   const [announcement, setAnnouncement] = useState("");
@@ -25,30 +30,54 @@ export function LiveOpsControls({
     <div className="admin-main-column">
       <Surface>
         <SectionHeader
-          eyebrow="LIVE OPS"
+          eyebrow="라이브 운영"
           title="운영 제어"
           description="단계 전환, 공개, 공지 발행만 빠르게 처리합니다."
-          actions={
-            <Button
-              variant={snapshot.session.revealSenders ? "danger" : "secondary"}
-              onClick={() => void onToggleReveal(!snapshot.session.revealSenders)}
-              data-testid="admin-reveal-toggle"
-            >
-              {snapshot.session.revealSenders ? "공개 닫기" : "공개 열기"}
-            </Button>
-          }
+          actions={null}
         />
+        <div className="compact-row">
+          <strong>상태 변경</strong>
+          <span>1라운드 / 휴식 / 2라운드 / 종료</span>
+        </div>
         <div className="button-row wrap-row">
-          {PHASES.map((phase) => (
+          {SESSION_STATE_ACTIONS.map((action) => (
             <Button
-              key={phase}
-              variant={snapshot.session.phase === phase ? "primary" : "ghost"}
-              onClick={() => void onSetPhase(phase)}
-              data-testid={`admin-phase-${phase.toLowerCase()}`}
+              key={action.state}
+              variant={snapshot.session.phase === action.state ? "primary" : "ghost"}
+              onClick={() => {
+                if (action.requiresConfirm) {
+                  const confirmed = window.confirm(
+                    action.state === "CLOSED"
+                      ? "세션을 종료하면 다시 열 수 없습니다. 진행할까요?"
+                      : "2라운드를 시작할까요?"
+                  );
+                  if (!confirmed) {
+                    return;
+                  }
+                }
+                void onSetSessionState(action.state);
+              }}
+              data-testid={`admin-state-${action.state.toLowerCase()}`}
             >
-              {phase}
+              {action.label}
             </Button>
           ))}
+          {snapshot.session.phase === "ROUND_2" ? (
+            <Button
+              variant={snapshot.session.revealSenders ? "secondary" : "primary"}
+              disabled={snapshot.session.revealSenders}
+              onClick={() => {
+                const confirmed = window.confirm("하트를 공개할까요?");
+                if (!confirmed) {
+                  return;
+                }
+                void onTriggerReveal();
+              }}
+              data-testid="admin-trigger-reveal"
+            >
+              {snapshot.session.revealSenders ? "하트 공개 완료" : "하트 공개"}
+            </Button>
+          ) : null}
         </div>
       </Surface>
 
@@ -64,10 +93,14 @@ export function LiveOpsControls({
 
       <Surface>
         <SectionHeader
-          eyebrow="ANNOUNCEMENT"
+          eyebrow="공지"
           title="현장 공지 발행"
           description="고객은 테이블 카드에서 공지를 바로 확인합니다."
         />
+        <div className="compact-row">
+          <strong>콘텐츠</strong>
+          <span>운영 공지 발행</span>
+        </div>
         <label className="field">
           <span>공지 메시지</span>
           <textarea rows={3} value={announcement} onChange={(event) => setAnnouncement(event.target.value)} />

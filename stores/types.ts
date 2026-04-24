@@ -3,11 +3,13 @@ import type {
   AdminPanel,
   CheckinDraft,
   ContentTemplateRecord,
+  ContactExchangeMethod,
   CustomerTab,
+  MingleCommand,
   ProfileDraft,
   RotationPreview,
   Round2Attendance,
-  SessionPhase,
+  SessionOperationalState,
   SessionSnapshot,
   ToastState
 } from "@/types/mingle";
@@ -55,11 +57,19 @@ export type ViewerSlice = {
   }) => Promise<boolean>;
   updateRound2Attendance: (attendance: Round2Attendance) => Promise<boolean>;
   acknowledgeRotation: () => Promise<boolean>;
+  submitContactExchangeConsent: (
+    targetParticipantId: string,
+    methods: ContactExchangeMethod,
+    consent?: boolean
+  ) => Promise<boolean>;
 };
 
 export type AdminSlice = {
   rotationPreview: RotationPreview | null;
-  setPhase: (phase: SessionPhase) => Promise<void>;
+  getExpectedVersion: () => number;
+  executeAdminCommandWithRetry: <T>(commandFactory: (expectedVersion: number) => MingleCommand) => Promise<T>;
+  setSessionState: (state: SessionOperationalState) => Promise<void>;
+  triggerReveal: () => Promise<void>;
   toggleRevealSenders: (value: boolean) => Promise<void>;
   generateRotationPreview: () => Promise<void>;
   applyRotationPreview: () => Promise<void>;
@@ -70,10 +80,19 @@ export type AdminSlice = {
     reason?: string
   ) => Promise<boolean>;
   grantHearts: (participantId: string, heartsToAdd: number) => Promise<boolean>;
+  moveParticipant: (participantId: string, toTableId: number) => Promise<boolean>;
+  createManualParticipant: (
+    nickname: string,
+    tableId: number,
+    gender: "M" | "F"
+  ) => Promise<boolean>;
 };
 
 export type ContentSlice = {
   contentLibrary: readonly ContentTemplateRecord[];
+  executeAdminContentCommandWithRetry: <T>(
+    commandFactory: (expectedVersion: number) => MingleCommand
+  ) => Promise<T>;
   activateContent: (templateId: string, targetTableId?: number | null, message?: string) => Promise<void>;
   clearContent: () => Promise<void>;
   publishAnnouncement: (message: string) => Promise<void>;

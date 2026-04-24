@@ -4,7 +4,7 @@ import {
   clearCustomerSession,
   issueCustomerSession
 } from "@/lib/customer-session";
-import { getReservationSessionContext } from "@/lib/repositories/server-repository";
+import { getReservationSessionContext, sanitizeSnapshotForClient } from "@/lib/repositories/server-repository";
 import type { ReservationSessionContextRequest } from "@/types/mingle";
 
 export const runtime = "nodejs";
@@ -13,7 +13,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as ReservationSessionContextRequest;
     const result = await getReservationSessionContext(body);
-    const response = NextResponse.json(result);
+    const response = NextResponse.json({
+      ...result,
+      snapshot: sanitizeSnapshotForClient(result.snapshot)
+    });
     const resolution = result.checkinResolution;
 
     if (

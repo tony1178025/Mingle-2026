@@ -15,7 +15,8 @@ import {
 import { logInvalidSessionAttempt } from "@/lib/authority-monitoring";
 import {
   executeServerCommand,
-  getServerSessionSnapshot
+  getServerSessionSnapshot,
+  sanitizeSnapshotForClient
 } from "@/lib/repositories/server-repository";
 import type { CommandResult, MingleCommand } from "@/types/mingle";
 
@@ -29,7 +30,8 @@ function getRequiredAdminRoles(command: MingleCommand) {
   switch (command.type) {
     case "admin.resolveReport":
       return ["STAFF"] as const;
-    case "admin.setPhase":
+    case "admin.setSessionState":
+    case "admin.triggerReveal":
     case "admin.toggleReveal":
     case "admin.generateRotationPreview":
     case "admin.applyRotation":
@@ -62,6 +64,7 @@ function validateCustomerCommandRequest(
     case "customer.submitReport":
     case "customer.respondContent":
     case "customer.ackRotation":
+    case "customer.submitContactExchangeConsent":
       return validateCustomerSession(request, {
         participantId: command.participantId,
         sessionId: snapshot.session.id,
@@ -179,7 +182,10 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await executeServerCommand(command);
-    const response = NextResponse.json(result);
+    const response = NextResponse.json({
+      ...result,
+      snapshot: sanitizeSnapshotForClient(result.snapshot)
+    });
     attachCustomerSession(response, command, result);
     return response;
   } catch (error) {

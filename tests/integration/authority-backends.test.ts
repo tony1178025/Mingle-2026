@@ -143,8 +143,8 @@ describe("db authority integration", () => {
           })}`
         },
         body: JSON.stringify({
-          type: "admin.setPhase",
-          phase: "ROUND_1"
+          type: "admin.setSessionState",
+          state: "ROUND_1"
         })
       })
     );

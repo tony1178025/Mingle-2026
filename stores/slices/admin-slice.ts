@@ -6,28 +6,51 @@ import type { AdminSlice, StoreSlice } from "@/stores/types";
 export const createAdminSlice: StoreSlice<AdminSlice> = (set, get) => ({
   rotationPreview: null,
 
-  async setPhase(phase) {
+  getExpectedVersion() {
+    const version = get().snapshot?.version;
+    if (typeof version !== "number") {
+      throw new Error("세션 버전을 확인할 수 없습니다.");
+    }
+    return version;
+  },
+
+  async executeAdminCommandWithRetry(commandFactory) {
     try {
-      const result = await getMingleRepository().executeCommand({
-        type: "admin.setPhase",
-        phase
-      });
+      return await getMingleRepository().executeCommand(commandFactory(get().getExpectedVersion()));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!message.includes("세션이 갱신되었습니다")) {
+        throw error;
+      }
+      await get().syncFromRepository();
+      return getMingleRepository().executeCommand(commandFactory(get().getExpectedVersion()));
+    }
+  },
+
+  async setSessionState(state) {
+    try {
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
+        type: "admin.setSessionState",
+        state,
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
-        toast: createToast("success", "세션 단계를 변경했습니다.")
+        toast: createToast("success", "세션 상태를 변경했습니다.")
       });
     } catch (error) {
       set({
-        toast: createToast("warning", error instanceof Error ? error.message : "단계 변경에 실패했습니다.")
+        toast: createToast("warning", error instanceof Error ? error.message : "상태 변경에 실패했습니다.")
       });
     }
   },
 
   async toggleRevealSenders(value) {
     try {
-      const result = await getMingleRepository().executeCommand({
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
         type: "admin.toggleReveal",
-        value
-      });
+        value,
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
         toast: createToast("success", value ? "공개를 시작했습니다." : "공개를 중지했습니다.")
       });
@@ -38,11 +61,28 @@ export const createAdminSlice: StoreSlice<AdminSlice> = (set, get) => ({
     }
   },
 
+  async triggerReveal() {
+    try {
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
+        type: "admin.triggerReveal",
+        expectedVersion
+      }));
+      applyCommandResult(set, result, {
+        toast: createToast("success", "하트를 공개했습니다.")
+      });
+    } catch (error) {
+      set({
+        toast: createToast("warning", error instanceof Error ? error.message : "하트 공개에 실패했습니다.")
+      });
+    }
+  },
+
   async generateRotationPreview() {
     try {
-      const result = await getMingleRepository().executeCommand({
-        type: "admin.generateRotationPreview"
-      });
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
+        type: "admin.generateRotationPreview",
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
         adminPanel: "rotation",
         toast: createToast("info", "테이블 이동 미리보기를 생성했습니다.")
@@ -64,10 +104,11 @@ export const createAdminSlice: StoreSlice<AdminSlice> = (set, get) => ({
     }
 
     try {
-      const result = await getMingleRepository().executeCommand({
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
         type: "admin.applyRotation",
-        preview: rotationPreview
-      });
+        preview: rotationPreview,
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
         rotationPreview: null,
         toast: createToast("success", "테이블 이동을 적용했습니다.")
@@ -81,10 +122,11 @@ export const createAdminSlice: StoreSlice<AdminSlice> = (set, get) => ({
 
   async resolveReport(reportId) {
     try {
-      const result = await getMingleRepository().executeCommand({
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
         type: "admin.resolveReport",
-        reportId
-      });
+        reportId,
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
         toast: createToast("success", "신고 처리를 완료했습니다.")
       });
@@ -97,12 +139,13 @@ export const createAdminSlice: StoreSlice<AdminSlice> = (set, get) => ({
 
   async setBlacklistStatus(participantId, blocked, reason) {
     try {
-      const result = await getMingleRepository().executeCommand({
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
         type: "admin.setBlacklistStatus",
         participantId,
         blocked,
-        reason
-      });
+        reason,
+        expectedVersion
+      }));
       applyCommandResult(set, result, {
         toast: createToast(
           "success",
@@ -115,6 +158,53 @@ export const createAdminSlice: StoreSlice<AdminSlice> = (set, get) => ({
         toast: createToast(
           "warning",
           error instanceof Error ? error.message : "참가자 차단 상태 변경에 실패했습니다."
+        )
+      });
+      return false;
+    }
+  },
+
+  async moveParticipant(participantId, toTableId) {
+    try {
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
+        type: "admin.moveParticipant",
+        participantId,
+        toTableId,
+        expectedVersion
+      }));
+      applyCommandResult(set, result, {
+        toast: createToast("success", `테이블 ${toTableId}으로 이동했습니다.`)
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast(
+          "warning",
+          error instanceof Error ? error.message : "참가자 이동에 실패했습니다."
+        )
+      });
+      return false;
+    }
+  },
+
+  async createManualParticipant(nickname, tableId, gender) {
+    try {
+      const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
+        type: "admin.createManualParticipant",
+        nickname,
+        tableId,
+        gender,
+        expectedVersion
+      }));
+      applyCommandResult(set, result, {
+        toast: createToast("success", `${nickname} 참가자를 수동 등록했습니다.`)
+      });
+      return true;
+    } catch (error) {
+      set({
+        toast: createToast(
+          "warning",
+          error instanceof Error ? error.message : "수동 참가자 등록에 실패했습니다."
         )
       });
       return false;

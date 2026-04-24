@@ -7,6 +7,7 @@ import {
 import type { CommandResult, SessionSnapshot } from "@/types/mingle";
 
 export function normalizeSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
+  const contactExchanges = snapshot.contactExchanges ?? [];
   return {
     ...snapshot,
     participants: classifyParticipants(
@@ -19,8 +20,17 @@ export function normalizeSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
     liveContent: snapshot.liveContent ?? null,
     contentResponses: snapshot.contentResponses ?? [],
     anonymousMessages: snapshot.anonymousMessages ?? [],
+    contactExchanges,
+    contactExchangeStats: snapshot.contactExchangeStats ?? {
+      totalRequests: contactExchanges.length,
+      pendingCount: contactExchanges.filter((item) => item.status === "PENDING").length,
+      completedCount: contactExchanges.filter((item) => item.status === "COMPLETED").length,
+      blockedCount: contactExchanges.filter((item) => item.status === "BLOCKED").length
+    },
     announcements: snapshot.announcements ?? [],
+    outboxEvents: snapshot.outboxEvents ?? [],
     rotationInstruction: snapshot.rotationInstruction ?? null,
+    participantStatusMap: snapshot.participantStatusMap ?? {},
     session: {
       ...snapshot.session,
       tableCount: snapshot.session.tableCount || MINGLE_CONSTANTS.tableCount,
@@ -30,31 +40,38 @@ export function normalizeSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
 }
 
 export function applyCommandResult(
-  set: (partial: Record<string, unknown>) => void,
+  set: (partial: Record<string, unknown> | ((state: { snapshot?: SessionSnapshot | null }) => Record<string, unknown>)) => void,
   result: CommandResult,
   extra: Record<string, unknown> = {}
 ) {
   const snapshot = normalizeSnapshot(result.snapshot);
-  const nextState: Record<string, unknown> = {
-    snapshot,
-    ...extra
-  };
-
-  if (result.rotationPreview !== undefined) {
-    nextState.rotationPreview = result.rotationPreview;
-  }
-
-  if (result.participantId !== undefined) {
-    if (result.participantId === null) {
-      setCachedParticipantId(null);
-      nextState.currentParticipantId = null;
-    } else if (findParticipant(snapshot.participants, result.participantId)) {
-      setCachedParticipantId(result.participantId);
-      nextState.currentParticipantId = result.participantId;
+  set((state) => {
+    const currentVersion = state.snapshot?.version ?? -1;
+    if (snapshot.version < currentVersion) {
+      return {};
     }
-  }
 
-  set(nextState);
+    const nextState: Record<string, unknown> = {
+      snapshot,
+      ...extra
+    };
+
+    if (result.rotationPreview !== undefined) {
+      nextState.rotationPreview = result.rotationPreview;
+    }
+
+    if (result.participantId !== undefined) {
+      if (result.participantId === null) {
+        setCachedParticipantId(null);
+        nextState.currentParticipantId = null;
+      } else if (findParticipant(snapshot.participants, result.participantId)) {
+        setCachedParticipantId(result.participantId);
+        nextState.currentParticipantId = result.participantId;
+      }
+    }
+
+    return nextState;
+  });
 }
 
 export function resolveRuntimeParticipantState(

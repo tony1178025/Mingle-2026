@@ -13,9 +13,11 @@ import type {
   ParticipantGender,
   ParticipantRecord,
   ParticipantRow,
+  ParticipantStatus,
   ProfileDraft,
   ReportRecord,
   ReportRow,
+  ContactExchangeRecord,
   SeatingAssignmentRecord,
   SeatingAssignmentRow,
   SessionRecord,
@@ -40,15 +42,50 @@ export const MINGLE_CONSTANTS = {
   venueAddress: "서울 성동구 성수이로 97, 3F",
   sessionDateLabel: "4월 12일 토요일",
   sessionTimeLabel: "19:30 입장 · 20:00 시작",
-  attendanceLabel: "남녀 25명 · 거의 만석",
-  attendanceHint: "처음 온 사람도 금방 섞일 만큼 리듬이 좋은 주말 세션",
+  attendanceLabel: "남녀 36명 · 시범 베타 세션",
+  attendanceHint: "파일럿 운영 기준으로 테이블 밸런스와 흐름을 검증하는 베타 세션",
   defaultSessionCode: "2026",
-  sessionExpiryHours: 24,
+  sessionExpiryHours: 12,
   pollingIntervalMs: 2000,
-  tableCount: 5,
+  rotationInstructionDeadlineMs: 3 * 60 * 1000,
+  announcementTemplateId: "operator-announcement",
+  tableCount: 6,
   tableCapacity: 6,
   initialHearts: 3
 } as const;
+
+// Presence threshold: if lastActiveAt is older than this, participant is considered physically gone.
+// Offline events run 2–3 hours; 60 min without any app interaction is a reliable gone signal.
+// IDLE is reserved for participants whose lastActiveAt is null (never used the app — display-only,
+// no operational weight). The 8–30 min "IDLE band" was wrong for offline presence.
+export const PARTICIPANT_GONE_THRESHOLD_MS = 60 * 60 * 1000;
+
+export function computeParticipantStatusMap(
+  snapshot: SessionSnapshot,
+  referenceMs = Date.now()
+): Record<string, ParticipantStatus> {
+  const blockedIds = new Set((snapshot.blacklist ?? []).map((entry) => entry.participantId));
+  const result: Record<string, ParticipantStatus> = {};
+
+  for (const participant of snapshot.participants) {
+    if (blockedIds.has(participant.id)) {
+      result[participant.id] = "BLOCKED";
+      continue;
+    }
+    const lastActiveMs = participant.lastActiveAt
+      ? new Date(participant.lastActiveAt).getTime()
+      : null;
+    // null = participant has never opened the app (manual check-in, just arrived).
+    // Display as IDLE — not operationally gone, just no app signal yet.
+    if (lastActiveMs === null) {
+      result[participant.id] = "IDLE";
+      continue;
+    }
+    const elapsed = referenceMs - lastActiveMs;
+    result[participant.id] = elapsed < PARTICIPANT_GONE_THRESHOLD_MS ? "ACTIVE" : "GONE";
+  }
+  return result;
+}
 
 export const JOB_OPTIONS: Record<string, string[]> = {
   "사업개발/기획": ["사업개발", "서비스 기획", "프로젝트 매니저", "운영 기획"],
@@ -88,7 +125,12 @@ const FEMALE_NAMES = [
   "하린",
   "가은",
   "예진",
-  "나연"
+  "나연",
+  "다은",
+  "혜린",
+  "소연",
+  "아영",
+  "유나"
 ];
 
 const MALE_NAMES = [
@@ -103,7 +145,12 @@ const MALE_NAMES = [
   "우진",
   "건우",
   "승현",
-  "동현"
+  "동현",
+  "재윤",
+  "시후",
+  "민혁",
+  "태윤",
+  "주원"
 ];
 
 const PHOTO_IDS = [
@@ -407,7 +454,18 @@ function buildSeedParticipants(baseTime: Date) {
     participantSeed("m_11", MALE_NAMES[10], "M", "사업개발/기획", "사업개발", 5, 31, 184, "강아지상", "I", { receivedHearts: 6, sentHearts: 4, profileViews: 12, heartsRemaining: remainingHearts(3), isHighValue: true }, 22, baseTime),
     participantSeed("f_12", FEMALE_NAMES[11], "F", "브랜드/마케팅", "콘텐츠 에디터", 5, 24, 163, "사슴상", "E", { receivedHearts: 2, sentHearts: 1, profileViews: 5, heartsRemaining: remainingHearts(1) }, 23, baseTime),
     participantSeed("m_12", MALE_NAMES[11], "M", "금융/전문직", "회계사", 5, 29, 179, "곰상", "E", { receivedHearts: 2, sentHearts: 2, profileViews: 5, heartsRemaining: remainingHearts(2) }, 24, baseTime),
-    participantSeed("f_13", FEMALE_NAMES[12], "F", "크리에이티브", "영상 제작", 5, 28, 167, "고양이상", "I", { receivedHearts: 7, sentHearts: 4, profileViews: 14, heartsRemaining: remainingHearts(3, 2), isHighValue: true }, 25, baseTime)
+    participantSeed("f_13", FEMALE_NAMES[12], "F", "크리에이티브", "영상 제작", 5, 28, 167, "고양이상", "I", { receivedHearts: 7, sentHearts: 4, profileViews: 14, heartsRemaining: remainingHearts(3, 2), isHighValue: true }, 25, baseTime),
+    participantSeed("m_13", MALE_NAMES[12], "M", "IT/프로덕트", "백엔드", 6, 29, 180, "강아지상", "E", { receivedHearts: 3, sentHearts: 2, profileViews: 6, heartsRemaining: remainingHearts(2) }, 26, baseTime),
+    participantSeed("f_14", FEMALE_NAMES[13], "F", "브랜드/마케팅", "브랜드 마케터", 6, 27, 165, "여우상", "I", { receivedHearts: 4, sentHearts: 3, profileViews: 8, heartsRemaining: remainingHearts(3) }, 27, baseTime),
+    participantSeed("m_14", MALE_NAMES[13], "M", "금융/전문직", "애널리스트", 6, 30, 182, "곰상", "I", { receivedHearts: 2, sentHearts: 1, profileViews: 5, heartsRemaining: remainingHearts(1) }, 28, baseTime),
+    participantSeed("f_15", FEMALE_NAMES[14], "F", "커뮤니티/교육", "커뮤니티 매니저", 6, 26, 162, "토끼상", "E", { receivedHearts: 1, sentHearts: 2, profileViews: 4, heartsRemaining: remainingHearts(2) }, 29, baseTime),
+    participantSeed("m_15", MALE_NAMES[14], "M", "사업개발/기획", "서비스 기획", 6, 28, 178, "사슴상", "E", { receivedHearts: 4, sentHearts: 4, profileViews: 9, heartsRemaining: remainingHearts(3) }, 30, baseTime),
+    participantSeed("f_16", FEMALE_NAMES[15], "F", "크리에이티브", "작가", 4, 29, 166, "고양이상", "I", { receivedHearts: 3, sentHearts: 2, profileViews: 7, heartsRemaining: remainingHearts(2) }, 31, baseTime),
+    participantSeed("m_16", MALE_NAMES[15], "M", "IT/프로덕트", "프론트엔드", 4, 27, 177, "강아지상", "E", { receivedHearts: 2, sentHearts: 3, profileViews: 6, heartsRemaining: remainingHearts(3) }, 32, baseTime),
+    participantSeed("f_17", FEMALE_NAMES[16], "F", "금융/전문직", "회계사", 3, 30, 168, "사슴상", "E", { receivedHearts: 5, sentHearts: 1, profileViews: 8, heartsRemaining: remainingHearts(1) }, 33, baseTime),
+    participantSeed("m_17", MALE_NAMES[16], "M", "브랜드/마케팅", "퍼포먼스 마케터", 3, 28, 179, "여우상", "I", { receivedHearts: 1, sentHearts: 2, profileViews: 4, heartsRemaining: remainingHearts(2) }, 34, baseTime),
+    participantSeed("f_18", FEMALE_NAMES[17], "F", "사업개발/기획", "프로젝트 매니저", 2, 27, 164, "토끼상", "E", { receivedHearts: 3, sentHearts: 3, profileViews: 7, heartsRemaining: remainingHearts(3) }, 35, baseTime),
+    participantSeed("m_18", MALE_NAMES[17], "M", "커뮤니티/교육", "HR", 2, 31, 183, "곰상", "E", { receivedHearts: 2, sentHearts: 1, profileViews: 5, heartsRemaining: remainingHearts(1) }, 36, baseTime)
   ];
 
   const groupedByTable = new Map<number, string[]>();
@@ -434,14 +492,47 @@ function buildSeedParticipants(baseTime: Date) {
 }
 
 export function createSeedSnapshot(): SessionSnapshot {
-  const now = new Date();
+  const now = new Date("2026-04-25T19:30:00.000Z");
   const nowIso = now.toISOString();
-  const sessionCode = generateSessionCode(now.getTime());
+  const sessionCode = MINGLE_CONSTANTS.defaultSessionCode;
   const participants = buildSeedParticipants(now);
   const hearts: HeartRecord[] = [
     { id: "heart_01", sessionId: "session_signature_20260412", senderId: "m_03", recipientId: "f_01", createdAt: nowIso },
-    { id: "heart_02", sessionId: "session_signature_20260412", senderId: "f_05", recipientId: "m_11", createdAt: nowIso },
-    { id: "heart_03", sessionId: "session_signature_20260412", senderId: "m_11", recipientId: "f_13", createdAt: nowIso }
+    { id: "heart_02", sessionId: "session_signature_20260412", senderId: "f_01", recipientId: "m_03", createdAt: nowIso },
+    { id: "heart_03", sessionId: "session_signature_20260412", senderId: "f_05", recipientId: "m_11", createdAt: nowIso },
+    { id: "heart_04", sessionId: "session_signature_20260412", senderId: "m_11", recipientId: "f_05", createdAt: nowIso },
+    { id: "heart_05", sessionId: "session_signature_20260412", senderId: "m_15", recipientId: "f_14", createdAt: nowIso },
+    { id: "heart_06", sessionId: "session_signature_20260412", senderId: "f_14", recipientId: "m_15", createdAt: nowIso },
+    { id: "heart_07", sessionId: "session_signature_20260412", senderId: "m_16", recipientId: "f_16", createdAt: nowIso },
+    { id: "heart_08", sessionId: "session_signature_20260412", senderId: "f_18", recipientId: "m_02", createdAt: nowIso }
+  ];
+  const contactExchanges: ContactExchangeRecord[] = [
+    {
+      id: "contact_exchange_pending_01",
+      sessionId: "session_signature_20260412",
+      participantAId: "f_01",
+      participantBId: "m_03",
+      participantAConsented: true,
+      participantBConsented: false,
+      participantAMethods: { realName: "김지민", phone: "01012345678" },
+      participantBMethods: null,
+      status: "PENDING",
+      requestedAt: nowIso,
+      completedAt: null
+    },
+    {
+      id: "contact_exchange_completed_01",
+      sessionId: "session_signature_20260412",
+      participantAId: "f_05",
+      participantBId: "m_11",
+      participantAConsented: true,
+      participantBConsented: true,
+      participantAMethods: { realName: "이은서", kakaoId: "eunseo_beta" },
+      participantBMethods: { realName: "박승현", phone: "01087654321" },
+      status: "COMPLETED",
+      requestedAt: nowIso,
+      completedAt: nowIso
+    }
   ];
   const seatingAssignments = participants.map<SeatingAssignmentRecord>((participant) => ({
     id: `seat_${participant.id}_0`,
@@ -469,7 +560,7 @@ export function createSeedSnapshot(): SessionSnapshot {
       attendanceLabel: MINGLE_CONSTANTS.attendanceLabel,
       attendanceHint: MINGLE_CONSTANTS.attendanceHint,
       code: sessionCode,
-      phase: "CHECKIN",
+      phase: "ROUND_1",
       revealSenders: false,
       revealTriggeredAt: null,
       startedAt: nowIso,
@@ -481,7 +572,16 @@ export function createSeedSnapshot(): SessionSnapshot {
     participants: applyDerivedParticipantSignals(participants, hearts),
     hearts,
     reports: [],
-    blacklist: [],
+    blacklist: [
+      {
+        id: "blacklist_seed_01",
+        sessionId: "session_signature_20260412",
+        branchId: MINGLE_CONSTANTS.branchId,
+        participantId: "m_06",
+        reason: "운영 제한 샘플",
+        createdAt: nowIso
+      }
+    ],
     incidents: [],
     auditLogs: [
       {
@@ -500,6 +600,8 @@ export function createSeedSnapshot(): SessionSnapshot {
     liveContent: null,
     contentResponses: [],
     anonymousMessages: [],
+    contactExchanges,
+    outboxEvents: [],
     announcements: [],
     rotationInstruction: null
   };
@@ -576,8 +678,8 @@ export function createAuditLog(
   actorId: string,
   actorRole: AuditActorRole,
   message: string,
-  metadata?: Record<string, unknown>,
-  sessionId = "session_signature_20260412"
+  metadata: Record<string, unknown> | undefined,
+  sessionId: string
 ): AuditLogRecord {
   return {
     id: createId("audit"),
@@ -595,9 +697,9 @@ export function createToast(tone: ToastState["tone"], message: string): ToastSta
   return { tone, message };
 }
 
-export function selectLeastCrowdedTable(participants: ParticipantRecord[]) {
+export function selectLeastCrowdedTable(participants: ParticipantRecord[], tableCount: number) {
   const occupancy = new Map<number, number>();
-  for (let tableId = 1; tableId <= MINGLE_CONSTANTS.tableCount; tableId += 1) {
+  for (let tableId = 1; tableId <= tableCount; tableId += 1) {
     occupancy.set(tableId, 0);
   }
 

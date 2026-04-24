@@ -6,6 +6,8 @@ import {
 import { createEmptyCheckinDraft } from "@/lib/mingle";
 import type { SessionRecord } from "@/types/mingle";
 
+const FRESH_SESSION_STARTED_AT = new Date().toISOString();
+
 const session: SessionRecord = {
   id: "session_test",
   name: "Checkin Test",
@@ -23,25 +25,53 @@ const session: SessionRecord = {
   phase: "CHECKIN",
   revealSenders: false,
   revealTriggeredAt: null,
-  startedAt: "2026-04-22T10:00:00.000Z",
-  updatedAt: "2026-04-22T10:00:00.000Z",
+  startedAt: FRESH_SESSION_STARTED_AT,
+  updatedAt: FRESH_SESSION_STARTED_AT,
   tableCount: 1,
   tableCapacity: 2,
   customerSessionVersion: 1
 };
 
 describe("checkin qr parsing", () => {
-  it("accepts only the unified qr contract", () => {
-    expect(parseCheckinQrValue("mingle://session/session_test?code=1234")).toEqual({
-      sessionId: "session_test",
-      checkinCode: "1234"
+  it("accepts the table-based qr contract", () => {
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3?code=2026")).toEqual({
+      branchId: "branch_seongsu",
+      tableId: 3,
+      checkinCode: "2026"
     });
   });
 
-  it("rejects legacy qr formats", () => {
-    expect(parseCheckinQrValue("mingle://session/session_test/1234")).toBeNull();
-    expect(parseCheckinQrValue("mingle://session/session_signature_20260412/1234")).toBeNull();
-    expect(parseCheckinQrValue("mingle://session/session_test")).toBeNull();
+  it("accepts any valid branch id and table number", () => {
+    expect(parseCheckinQrValue("mingle://table/branch-gangnam/1?code=0000")).toEqual({
+      branchId: "branch-gangnam",
+      tableId: 1,
+      checkinCode: "0000"
+    });
+  });
+
+  it("rejects old session-based qr format", () => {
+    expect(parseCheckinQrValue("mingle://session/session_test?code=1234")).toBeNull();
+  });
+
+  it("rejects missing code", () => {
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3")).toBeNull();
+  });
+
+  it("rejects non-4-digit code", () => {
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3?code=12")).toBeNull();
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3?code=12345")).toBeNull();
+  });
+
+  it("rejects tableId of zero or negative", () => {
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu/0?code=1234")).toBeNull();
+  });
+
+  it("rejects extra query parameters", () => {
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3?code=1234&extra=yes")).toBeNull();
+  });
+
+  it("rejects missing tableId path segment", () => {
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu?code=1234")).toBeNull();
   });
 });
 

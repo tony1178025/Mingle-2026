@@ -33,8 +33,8 @@ function createSnapshot(): SessionSnapshot {
       phase: "CHECKIN",
       revealSenders: false,
       revealTriggeredAt: null,
-      startedAt: "2026-04-22T10:00:00.000Z",
-      updatedAt: "2026-04-22T10:00:00.000Z",
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       tableCount: 1,
       tableCapacity: 6,
       customerSessionVersion: 1
@@ -75,7 +75,7 @@ describe("checkin slice failure handling", () => {
       snapshot: createSnapshot(),
       checkinDraft: {
         ...createEmptyCheckinDraft(),
-        value: "mingle://session/session_signature_20260412?code=2001"
+        value: "mingle://table/branch_seongsu/1?code=2026"
       },
       toast: null
     }));
@@ -116,7 +116,7 @@ describe("checkin slice failure handling", () => {
       currentParticipantId: "participant_1",
       checkinDraft: {
         ...createEmptyCheckinDraft(),
-        value: "mingle://session/session_signature_20260412?code=2001"
+        value: "mingle://table/branch_seongsu/1?code=2026"
       },
       toast: null
     }));
@@ -124,8 +124,9 @@ describe("checkin slice failure handling", () => {
     await useMingleStore.getState().verifyCheckin();
 
     expect(mockRepository.getReservationSessionContext).toHaveBeenCalledWith({
-      sessionId: "session_signature_20260412",
-      checkinCode: "2001",
+      branchId: "branch_seongsu",
+      tableId: 1,
+      checkinCode: "2026",
       participantId: "participant_1"
     });
   }, 45000);

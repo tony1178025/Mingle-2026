@@ -1,7 +1,7 @@
 import { isSessionExpired } from "@/lib/mingle";
 import type { CheckinDraft, ParsedCheckinQr, SessionRecord } from "@/types/mingle";
 
-const SESSION_ID_PATTERN = /^[a-z0-9_-]+$/i;
+const BRANCH_ID_PATTERN = /^[a-z0-9_-]+$/i;
 const CHECKIN_CODE_PATTERN = /^\d{4}$/;
 
 export const CHECKIN_SUCCESS_MESSAGE = "입장 확인 완료";
@@ -13,11 +13,15 @@ export function createCheckinCopy() {
   return {
     title: "QR로 입장 확인",
     description:
-      "운영자가 제공한 체크인 QR을 스캔하거나 그대로 붙여 넣어 예약/세션 컨텍스트를 확인합니다.",
-    placeholder: "mingle://session/session-id?code=1234"
+      "테이블에 부착된 QR을 스캔하거나 그대로 붙여 넣어 예약/세션 컨텍스트를 확인합니다.",
+    placeholder: "mingle://table/branch-id/1?code=1234"
   };
 }
 
+// QR contract: mingle://table/<branchId>/<tableId>?code=<4digit>
+// branchId + tableId identify the physical table (permanent, session-independent).
+// Session is resolved at runtime from branchId.
+// checkinCode links to the participant's reservation in the external system.
 export function parseCheckinQrValue(rawValue: string): ParsedCheckinQr | null {
   const trimmed = rawValue.trim();
   if (!trimmed) {
@@ -26,27 +30,45 @@ export function parseCheckinQrValue(rawValue: string): ParsedCheckinQr | null {
 
   try {
     const url = new URL(trimmed);
-    const sessionId = url.pathname.replace(/^\/+/, "");
-    const checkinCode = url.searchParams.get("code") ?? "";
+
+    if (url.protocol !== "mingle:" || url.hostname !== "table") {
+      return null;
+    }
+
+    if (url.hash) {
+      return null;
+    }
+
+    const pathParts = url.pathname.replace(/^\/+/, "").split("/");
+    if (pathParts.length !== 2) {
+      return null;
+    }
+
+    const [branchId, tableIdStr] = pathParts;
+    if (!branchId || !BRANCH_ID_PATTERN.test(branchId)) {
+      return null;
+    }
+
+    if (!tableIdStr || !/^\d+$/.test(tableIdStr)) {
+      return null;
+    }
+
+    const tableId = parseInt(tableIdStr, 10);
+    if (tableId < 1) {
+      return null;
+    }
+
     const queryKeys = [...url.searchParams.keys()];
-
-    if (url.protocol !== "mingle:" || url.hostname !== "session") {
-      return null;
-    }
-
-    if (url.hash || !SESSION_ID_PATTERN.test(sessionId) || sessionId.includes("/")) {
-      return null;
-    }
-
     if (queryKeys.length !== 1 || queryKeys[0] !== "code") {
       return null;
     }
 
+    const checkinCode = url.searchParams.get("code") ?? "";
     if (!CHECKIN_CODE_PATTERN.test(checkinCode)) {
       return null;
     }
 
-    return { sessionId, checkinCode };
+    return { branchId, tableId, checkinCode };
   } catch {
     return null;
   }

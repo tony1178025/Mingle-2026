@@ -48,6 +48,17 @@ export function buildRevealState(
     };
   }
 
+  if (participant.heartsRemaining > 0) {
+    return {
+      key: "round2-waiting-admin",
+      canReveal: false,
+      status: "남은 하트를 모두 사용하면 결과를 볼 수 있어요.",
+      receivedCount: inbox.length,
+      heartsRemaining: participant.heartsRemaining,
+      visibleSenders: []
+    };
+  }
+
   return {
     key: "round2-revealed",
     canReveal: true,

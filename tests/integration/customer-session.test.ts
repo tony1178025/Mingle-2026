@@ -38,8 +38,8 @@ function createSnapshot(participants: ParticipantRecord[] = []): SessionSnapshot
       phase: "CHECKIN",
       revealSenders: false,
       revealTriggeredAt: null,
-      startedAt: "2026-04-23T10:00:00.000Z",
-      updatedAt: "2026-04-23T10:00:00.000Z",
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       tableCount: 2,
       tableCapacity: 6,
       customerSessionVersion: 1
@@ -187,7 +187,7 @@ describe("customer signed session routes", () => {
     const response = await POST(
       new NextRequest("http://localhost/api/reservations/session-context", {
         method: "POST",
-        body: JSON.stringify({ sessionId: SESSION_ID, checkinCode: "2001" }),
+        body: JSON.stringify({ branchId: BRANCH_ID, tableId: 1, checkinCode: "2001" }),
         headers: { "content-type": "application/json" }
       })
     );
@@ -211,7 +211,7 @@ describe("customer signed session routes", () => {
     const response = await POST(
       new NextRequest("http://localhost/api/reservations/session-context", {
         method: "POST",
-        body: JSON.stringify({ sessionId: SESSION_ID, checkinCode: "2001" }),
+        body: JSON.stringify({ branchId: BRANCH_ID, tableId: 1, checkinCode: "2001" }),
         headers: { "content-type": "application/json" }
       })
     );
@@ -272,7 +272,7 @@ describe("customer signed session routes", () => {
     const checkinResponse = await sessionContextRoute.POST(
       new NextRequest("http://localhost/api/reservations/session-context", {
         method: "POST",
-        body: JSON.stringify({ sessionId: SESSION_ID, checkinCode: "2001" }),
+        body: JSON.stringify({ branchId: BRANCH_ID, tableId: 1, checkinCode: "2001" }),
         headers: { "content-type": "application/json" }
       })
     );
@@ -310,7 +310,7 @@ describe("customer signed session routes", () => {
     const checkinResponse = await sessionContextRoute.POST(
       new NextRequest("http://localhost/api/reservations/session-context", {
         method: "POST",
-        body: JSON.stringify({ sessionId: SESSION_ID, checkinCode: "2001" }),
+        body: JSON.stringify({ branchId: BRANCH_ID, tableId: 1, checkinCode: "2001" }),
         headers: { "content-type": "application/json" }
       })
     );

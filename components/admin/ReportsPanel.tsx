@@ -4,6 +4,22 @@ import { Badge, Button, EmptyState, SectionHeader, Surface } from "@/components/
 import { maskPhoneNumber } from "@/lib/mingle";
 import type { SessionSnapshot } from "@/types/mingle";
 
+function formatReportStatusLabel(status: string) {
+  if (status === "RESOLVED") return "처리 완료";
+  if (status === "OPEN" || status === "NEW") return "확인 필요";
+  if (status === "PENDING") return "대기";
+  return status;
+}
+
+function formatIncidentTypeLabel(type: string) {
+  if (type === "REPORT_SUBMITTED") return "신고 접수";
+  if (type === "PARTICIPANT_MOVED") return "참가자 이동";
+  if (type === "SESSION_STATE_CHANGED") return "세션 상태 변경";
+  if (type === "CONTACT_EXCHANGE_UPDATED") return "연락처 교환 변경";
+  if (type === "MANUAL_PARTICIPANT_CREATED") return "수동 참가자 등록";
+  return type;
+}
+
 export function ReportsPanel({
   snapshot,
   onResolve,
@@ -24,9 +40,9 @@ export function ReportsPanel({
     <div className="admin-main-column">
       <Surface>
         <SectionHeader
-          eyebrow="REPORTS"
-          title="?꾩옣 ?좉퀬 泥섎━"
-          description="?쇱씠釉??댁쁺?먭? 遊먯빞 ???좉퀬留??④린怨?諛붾줈 泥섎━?⑸땲??"
+          eyebrow="신고"
+          title="현장 신고 처리"
+          description="라이브 운영 중 접수된 신고를 확인하고 바로 처리합니다."
         />
         {snapshot.reports.length ? (
           <div className="compact-stack">
@@ -44,14 +60,14 @@ export function ReportsPanel({
                     </strong>
                     <span>{report.reason}</span>
                     <span>{report.details}</span>
-                    {target ? <span>Participant ID: {target.id}</span> : null}
-                    {target?.phone ? <span>Phone: {maskPhoneNumber(target.phone)}</span> : null}
-                    <span>Status: {blacklistEntry ? "BLOCKED" : "ACTIVE"}</span>
-                    {blacklistEntry ? <span>Block reason: {blacklistEntry.reason}</span> : null}
+                    {target ? <span>참가자 ID: {target.id}</span> : null}
+                    {target?.phone ? <span>전화번호: {maskPhoneNumber(target.phone)}</span> : null}
+                    <span>상태: {blacklistEntry ? "운영 제한" : "활성"}</span>
+                    {blacklistEntry ? <span>제한 사유: {blacklistEntry.reason}</span> : null}
                   </div>
                   <div className="badge-row">
                     <Badge tone={report.status === "RESOLVED" ? "success" : "warning"}>
-                      {report.status}
+                      {formatReportStatusLabel(report.status)}
                     </Badge>
                     {target ? (
                       <Button
@@ -69,7 +85,7 @@ export function ReportsPanel({
                     ) : null}
                     {report.status !== "RESOLVED" ? (
                       <Button variant="secondary" onClick={() => void onResolve(report.id)}>
-                        泥섎━ ?꾨즺
+                        처리 완료
                       </Button>
                     ) : null}
                   </div>
@@ -78,15 +94,15 @@ export function ReportsPanel({
             })}
           </div>
         ) : (
-          <EmptyState title="?좉퀬媛 ?놁뒿?덈떎." description="?꾩옱 泥섎━???덉쟾 ?댁뒋媛 ?놁뒿?덈떎." />
+          <EmptyState title="신고가 없습니다." description="현재 처리할 신고가 없습니다." />
         )}
       </Surface>
 
       <Surface>
         <SectionHeader
-          eyebrow="INCIDENTS"
-          title="由ъ뒪?ы겕 / ?ъ빱 ?대젰"
-          description="遺덉씠?곸쓣 ?깆떆????킃?덉젒 ?명뀥瑜?諛붾줈 ?뺤씤?⑸땲??"
+          eyebrow="이력"
+          title="리스크/사건 이력"
+          description="운영 중 발생한 안전 관련 이력을 빠르게 확인합니다."
           actions={<Badge tone="accent">{incidents.length}</Badge>}
         />
         {incidents.length ? (
@@ -105,17 +121,17 @@ export function ReportsPanel({
               return (
                 <div key={incident.id} className="compact-row report-row">
                   <div>
-                    <strong>{incident.type}</strong>
+                    <strong>{formatIncidentTypeLabel(incident.type)}</strong>
                     <span>{incident.message}</span>
-                    {reporter ? <span>Reporter: {reporter.nickname} ({reporter.id})</span> : null}
-                    {target ? <span>Target: {target.nickname} ({target.id})</span> : null}
-                    {target?.phone ? <span>Phone: {maskPhoneNumber(target.phone)}</span> : null}
-                    <span>Status: {blacklistEntry ? "BLOCKED" : "ACTIVE"}</span>
+                    {reporter ? <span>신고자: {reporter.nickname} ({reporter.id})</span> : null}
+                    {target ? <span>대상자: {target.nickname} ({target.id})</span> : null}
+                    {target?.phone ? <span>전화번호: {maskPhoneNumber(target.phone)}</span> : null}
+                    <span>상태: {blacklistEntry ? "운영 제한" : "활성"}</span>
                     <span>{incident.timestamp}</span>
                   </div>
                   <div className="badge-row">
                     <Badge tone={incident.type === "REPORT_SUBMITTED" ? "warning" : "accent"}>
-                      {incident.type}
+                      {formatIncidentTypeLabel(incident.type)}
                     </Badge>
                   </div>
                 </div>
@@ -124,8 +140,8 @@ export function ReportsPanel({
           </div>
         ) : (
           <EmptyState
-            title="湲곕줉???ъ빱???놁뒿?덈떎."
-            description="?꾩옱 ?꾩뿭?먯꽌 蹂닿? ?명븷 ?꾩쟾 / 由ъ뒪?ы겕 ?덈젰???놁뒿?덈떎."
+            title="기록된 사건이 없습니다."
+            description="현재 확인할 안전/리스크 이력이 없습니다."
           />
         )}
       </Surface>

@@ -30,6 +30,7 @@ export function normalizeAuthoritySnapshot(snapshot: SessionSnapshot): SessionSn
     snapshot.hearts ?? []
   );
 
+  const contactExchanges = snapshot.contactExchanges ?? [];
   return {
     ...snapshot,
     participants: normalizedParticipants,
@@ -39,8 +40,17 @@ export function normalizeAuthoritySnapshot(snapshot: SessionSnapshot): SessionSn
     liveContent: snapshot.liveContent ?? null,
     contentResponses: snapshot.contentResponses ?? [],
     anonymousMessages: snapshot.anonymousMessages ?? [],
+    contactExchanges,
+    contactExchangeStats: snapshot.contactExchangeStats ?? {
+      totalRequests: contactExchanges.length,
+      pendingCount: contactExchanges.filter((item) => item.status === "PENDING").length,
+      completedCount: contactExchanges.filter((item) => item.status === "COMPLETED").length,
+      blockedCount: contactExchanges.filter((item) => item.status === "BLOCKED").length
+    },
     announcements: snapshot.announcements ?? [],
+    outboxEvents: snapshot.outboxEvents ?? [],
     rotationInstruction: snapshot.rotationInstruction ?? null,
+    participantStatusMap: snapshot.participantStatusMap ?? {},
     session: {
       ...snapshot.session,
       hqId: snapshot.session.hqId || MINGLE_CONSTANTS.hqId,

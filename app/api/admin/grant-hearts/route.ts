@@ -4,7 +4,11 @@ import {
   hasRequiredAdminRole,
   readAdminSessionFromRequest
 } from "@/lib/admin-auth";
-import { getServerSessionSnapshot, grantHeartsByAdmin } from "@/lib/repositories/server-repository";
+import {
+  getServerSessionSnapshot,
+  grantHeartsByAdmin,
+  sanitizeSnapshotForClient
+} from "@/lib/repositories/server-repository";
 import type { GrantHeartsRequest } from "@/types/mingle";
 
 export const runtime = "nodejs";
@@ -29,7 +33,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as GrantHeartsRequest;
     const result = await grantHeartsByAdmin(body.participantId, body.heartsToAdd);
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      snapshot: sanitizeSnapshotForClient(result.snapshot)
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "하트 지급에 실패했습니다.";
     return new NextResponse(message, { status: 400 });

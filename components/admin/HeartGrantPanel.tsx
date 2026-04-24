@@ -49,7 +49,7 @@ export function HeartGrantPanel({
   return (
     <Surface>
       <SectionHeader
-        eyebrow="HEARTS"
+        eyebrow="하트"
         title="하트 수동 지급"
         description="닉네임 중복 상황에서도 participantId, reservationId, 상태를 함께 보고 운영자가 직접 지급합니다."
       />
@@ -77,14 +77,14 @@ export function HeartGrantPanel({
                   <p>
                     {formatTableName(participant.tableId)} · 남은 하트 {participant.heartsRemaining}
                   </p>
-                  <p>Participant ID: {participant.id}</p>
-                  <p>Reservation ID: {participant.reservationId ?? "미연결"}</p>
-                  {participant.phone ? <p>Phone: {maskPhoneNumber(participant.phone)}</p> : null}
-                  <p>Status: {blocked ? "BLOCKED" : "ACTIVE"}</p>
-                  {blacklistEntry ? <p>Block reason: {blacklistEntry.reason}</p> : null}
+                  <p>참가자 ID: {participant.id}</p>
+                  <p>예약 ID: {participant.reservationId ?? "미연결"}</p>
+                  {participant.phone ? <p>전화번호: {maskPhoneNumber(participant.phone)}</p> : null}
+                  <p>상태: {blocked ? "운영 제한" : "활성"}</p>
+                  {blacklistEntry ? <p>제한 사유: {blacklistEntry.reason}</p> : null}
                 </div>
                 <Badge tone={blocked ? "warning" : "success"}>
-                  {blocked ? "BLOCKED" : "ACTIVE"}
+                  {blocked ? "운영 제한" : "활성"}
                 </Badge>
               </div>
 

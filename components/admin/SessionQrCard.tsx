@@ -32,7 +32,7 @@ export function SessionQrCard({
     <Surface className="qr-card">
       <div className="qr-card-head">
         <div>
-          <p className="eyebrow">CHECK-IN QR</p>
+          <p className="eyebrow">체크인 QR</p>
           <h3 className="inner-title">현장 체크인</h3>
         </div>
         <Badge tone="accent">{sessionCode}</Badge>

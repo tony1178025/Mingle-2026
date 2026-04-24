@@ -404,44 +404,11 @@ class SupabaseDbAuthorityAdapter implements DbAuthorityAdapter {
   }
 
   async writeProjection(projection: DbAuthorityProjection) {
-    const { error: hqError } = await this.client.from("hqs").upsert(projection.hq);
-    if (hqError) throw new Error(`HQ projection ????ㅽ뙣: ${hqError.message}`);
-
-    const { error: branchError } = await this.client.from("branches").upsert(projection.branch);
-    if (branchError) throw new Error(`Branch projection ????ㅽ뙣: ${branchError.message}`);
-
-    const { error: eventError } = await this.client.from("events").upsert(projection.event);
-    if (eventError) throw new Error(`Event projection ????ㅽ뙣: ${eventError.message}`);
-
-    const { error: sessionError } = await this.client.from("sessions").upsert(projection.session);
-    if (sessionError) throw new Error(`Session projection ????ㅽ뙣: ${sessionError.message}`);
-
-    const deleteTargets = [
-      { table: "participants", rows: projection.participants, label: "Participant" },
-      { table: "reservations", rows: projection.reservations, label: "Reservation" },
-      { table: "blacklist", rows: projection.blacklist, label: "Blacklist" },
-      { table: "incidents", rows: projection.incidents, label: "Incident" }
-    ] as const;
-
-    for (const target of deleteTargets) {
-      const { error: deleteError } = await this.client
-        .from(target.table)
-        .delete()
-        .eq("session_id", projection.session.id);
-      if (deleteError) {
-        throw new Error(`${target.label} projection 珥덇린???ㅽ뙣: ${deleteError.message}`);
-      }
-
-      if (!target.rows.length) {
-        continue;
-      }
-
-      const { error: insertError } = await this.client
-        .from(target.table)
-        .insert(target.rows);
-      if (insertError) {
-        throw new Error(`${target.label} projection ????ㅽ뙣: ${insertError.message}`);
-      }
+    const { error } = await this.client.rpc("apply_db_authority_projection", {
+      projection
+    });
+    if (error) {
+      throw new Error(`DB authority atomic write failed: ${error.message}`);
     }
   }
 
@@ -760,6 +727,7 @@ export function createDbAuthorityRepository(
       liveContent: existingSnapshot?.liveContent ?? null,
       contentResponses: existingSnapshot?.contentResponses ?? [],
       anonymousMessages: existingSnapshot?.anonymousMessages ?? [],
+      contactExchanges: existingSnapshot?.contactExchanges ?? [],
       announcements: existingSnapshot?.announcements ?? [],
       rotationInstruction: existingSnapshot?.rotationInstruction ?? null,
       session: {
@@ -847,6 +815,15 @@ export function createDbAuthorityRepository(
   async function createManagedSession(
     input: ManagedSessionUpsertInput & { updatedBy: string | null }
   ) {
+    if (input.status === "OPEN") {
+      const rows = await adapter.listSessionRows();
+      const hasOpenSession = rows.some(
+        (row) => row.branch_id === input.branchId && row.status === "OPEN"
+      );
+      if (hasOpenSession) {
+        throw new Error("브랜치당 OPEN 세션은 1개만 허용됩니다.");
+      }
+    }
     const snapshot = await buildManagedSessionSnapshot(input);
     const persisted = await upsertExistingSessionSnapshot(snapshot);
     return syncManagedSessionRow(persisted, {
@@ -890,6 +867,19 @@ export function createDbAuthorityRepository(
       maxCapacity: input.maxCapacity ?? current.maxCapacity,
       status: input.status ?? current.status
     };
+
+    if (nextInput.status === "OPEN") {
+      const rows = await adapter.listSessionRows();
+      const hasOtherOpenSession = rows.some(
+        (row) =>
+          row.id !== sessionId &&
+          row.branch_id === nextInput.branchId &&
+          row.status === "OPEN"
+      );
+      if (hasOtherOpenSession) {
+        throw new Error("브랜치당 OPEN 세션은 1개만 허용됩니다.");
+      }
+    }
 
     const snapshot = await buildManagedSessionSnapshot(nextInput, projection.snapshot);
     const persisted = await upsertExistingSessionSnapshot(snapshot);

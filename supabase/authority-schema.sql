@@ -185,3 +185,162 @@ create index if not exists idx_blacklist_session_id on public.blacklist(session_
 create index if not exists idx_blacklist_participant_id on public.blacklist(participant_id);
 create index if not exists idx_incidents_session_id on public.incidents(session_id);
 create index if not exists idx_incidents_target_id on public.incidents(target_id);
+
+create or replace function public.apply_db_authority_projection(projection jsonb)
+returns void
+language plpgsql
+as $$
+declare
+  session_id_text text := projection #>> '{session,id}';
+begin
+  if session_id_text is null or length(trim(session_id_text)) = 0 then
+    raise exception 'session.id is required in projection payload';
+  end if;
+
+  insert into public.hqs (id, name, created_at, updated_at)
+  select
+    projection #>> '{hq,id}',
+    projection #>> '{hq,name}',
+    (projection #>> '{hq,created_at}')::timestamptz,
+    (projection #>> '{hq,updated_at}')::timestamptz
+  on conflict (id) do update
+  set
+    name = excluded.name,
+    updated_at = excluded.updated_at;
+
+  insert into public.branches (
+    id, hq_id, name, venue_name, venue_address,
+    default_max_capacity, default_table_count, is_active, created_at, updated_at, updated_by
+  )
+  select
+    projection #>> '{branch,id}',
+    projection #>> '{branch,hq_id}',
+    projection #>> '{branch,name}',
+    projection #>> '{branch,venue_name}',
+    projection #>> '{branch,venue_address}',
+    coalesce((projection #>> '{branch,default_max_capacity}')::integer, 30),
+    coalesce((projection #>> '{branch,default_table_count}')::integer, 5),
+    coalesce((projection #>> '{branch,is_active}')::boolean, true),
+    (projection #>> '{branch,created_at}')::timestamptz,
+    (projection #>> '{branch,updated_at}')::timestamptz,
+    projection #>> '{branch,updated_by}'
+  on conflict (id) do update
+  set
+    hq_id = excluded.hq_id,
+    name = excluded.name,
+    venue_name = excluded.venue_name,
+    venue_address = excluded.venue_address,
+    default_max_capacity = excluded.default_max_capacity,
+    default_table_count = excluded.default_table_count,
+    is_active = excluded.is_active,
+    updated_at = excluded.updated_at,
+    updated_by = excluded.updated_by;
+
+  insert into public.events (id, hq_id, branch_id, name, status, created_at, updated_at)
+  select
+    projection #>> '{event,id}',
+    projection #>> '{event,hq_id}',
+    projection #>> '{event,branch_id}',
+    projection #>> '{event,name}',
+    projection #>> '{event,status}',
+    (projection #>> '{event,created_at}')::timestamptz,
+    (projection #>> '{event,updated_at}')::timestamptz
+  on conflict (id) do update
+  set
+    hq_id = excluded.hq_id,
+    branch_id = excluded.branch_id,
+    name = excluded.name,
+    status = excluded.status,
+    updated_at = excluded.updated_at;
+
+  insert into public.sessions (
+    id, name, hq_id, branch_id, branch_name, event_id, venue_name, venue_address,
+    session_date_label, session_time_label, attendance_label, attendance_hint, code, phase,
+    reveal_senders, reveal_triggered_at, started_at, created_at, updated_at, table_count,
+    table_capacity, max_capacity, status, customer_session_version, active_content_ids,
+    snapshot_version, authority_backend, snapshot_json, updated_by
+  )
+  select
+    projection #>> '{session,id}',
+    projection #>> '{session,name}',
+    projection #>> '{session,hq_id}',
+    projection #>> '{session,branch_id}',
+    projection #>> '{session,branch_name}',
+    projection #>> '{session,event_id}',
+    projection #>> '{session,venue_name}',
+    projection #>> '{session,venue_address}',
+    projection #>> '{session,session_date_label}',
+    projection #>> '{session,session_time_label}',
+    projection #>> '{session,attendance_label}',
+    projection #>> '{session,attendance_hint}',
+    projection #>> '{session,code}',
+    projection #>> '{session,phase}',
+    coalesce((projection #>> '{session,reveal_senders}')::boolean, false),
+    (projection #>> '{session,reveal_triggered_at}')::timestamptz,
+    (projection #>> '{session,started_at}')::timestamptz,
+    coalesce((projection #>> '{session,created_at}')::timestamptz, (projection #>> '{session,started_at}')::timestamptz),
+    (projection #>> '{session,updated_at}')::timestamptz,
+    (projection #>> '{session,table_count}')::integer,
+    (projection #>> '{session,table_capacity}')::integer,
+    coalesce((projection #>> '{session,max_capacity}')::integer, 30),
+    coalesce(projection #>> '{session,status}', 'OPEN'),
+    coalesce((projection #>> '{session,customer_session_version}')::integer, 1),
+    coalesce(
+      array(select jsonb_array_elements_text(coalesce(projection #> '{session,active_content_ids}', '[]'::jsonb))),
+      '{}'::text[]
+    ),
+    coalesce((projection #>> '{session,snapshot_version}')::integer, 0),
+    coalesce(projection #>> '{session,authority_backend}', 'DB'),
+    projection #> '{session,snapshot_json}',
+    projection #>> '{session,updated_by}'
+  on conflict (id) do update
+  set
+    name = excluded.name,
+    hq_id = excluded.hq_id,
+    branch_id = excluded.branch_id,
+    branch_name = excluded.branch_name,
+    event_id = excluded.event_id,
+    venue_name = excluded.venue_name,
+    venue_address = excluded.venue_address,
+    session_date_label = excluded.session_date_label,
+    session_time_label = excluded.session_time_label,
+    attendance_label = excluded.attendance_label,
+    attendance_hint = excluded.attendance_hint,
+    code = excluded.code,
+    phase = excluded.phase,
+    reveal_senders = excluded.reveal_senders,
+    reveal_triggered_at = excluded.reveal_triggered_at,
+    started_at = excluded.started_at,
+    updated_at = excluded.updated_at,
+    table_count = excluded.table_count,
+    table_capacity = excluded.table_capacity,
+    max_capacity = excluded.max_capacity,
+    status = excluded.status,
+    customer_session_version = excluded.customer_session_version,
+    active_content_ids = excluded.active_content_ids,
+    snapshot_version = excluded.snapshot_version,
+    authority_backend = excluded.authority_backend,
+    snapshot_json = excluded.snapshot_json,
+    updated_by = excluded.updated_by;
+
+  delete from public.participants where session_id = session_id_text;
+  insert into public.participants
+  select *
+  from jsonb_populate_recordset(null::public.participants, coalesce(projection -> 'participants', '[]'::jsonb));
+
+  delete from public.reservations where session_id = session_id_text;
+  insert into public.reservations
+  select *
+  from jsonb_populate_recordset(null::public.reservations, coalesce(projection -> 'reservations', '[]'::jsonb));
+
+  delete from public.blacklist where session_id = session_id_text;
+  insert into public.blacklist
+  select *
+  from jsonb_populate_recordset(null::public.blacklist, coalesce(projection -> 'blacklist', '[]'::jsonb));
+
+  delete from public.incidents where session_id = session_id_text;
+  insert into public.incidents
+  select *
+  from jsonb_populate_recordset(null::public.incidents, coalesce(projection -> 'incidents', '[]'::jsonb));
+end;
+$$;

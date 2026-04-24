@@ -35,8 +35,8 @@ function createSnapshot(participants: ParticipantRecord[] = []): SessionSnapshot
       phase: "CHECKIN",
       revealSenders: false,
       revealTriggeredAt: null,
-      startedAt: "2026-04-22T10:00:00.000Z",
-      updatedAt: "2026-04-22T10:00:00.000Z",
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       tableCount: 1,
       tableCapacity: 6,
       customerSessionVersion: 1
@@ -182,7 +182,8 @@ describe("reservation session-context route", () => {
     tempDirs.push(tempDir);
 
     const { response, payload } = await requestSessionContext({
-      sessionId: SESSION_ID,
+      branchId: BRANCH_ID,
+      tableId: 1,
       checkinCode: "2001"
     });
 
@@ -200,7 +201,8 @@ describe("reservation session-context route", () => {
     tempDirs.push(tempDir);
 
     const { response, payload } = await requestSessionContext({
-      sessionId: SESSION_ID,
+      branchId: BRANCH_ID,
+      tableId: 1,
       checkinCode: "2001"
     });
 
@@ -234,7 +236,8 @@ describe("reservation session-context route", () => {
     tempDirs.push(tempDir);
 
     const { payload } = await requestSessionContext({
-      sessionId: SESSION_ID,
+      branchId: BRANCH_ID,
+      tableId: 1,
       checkinCode: "2001",
       participantId: "participant_1"
     });
@@ -261,7 +264,8 @@ describe("reservation session-context route", () => {
     tempDirs.push(tempDir);
 
     const { payload } = await requestSessionContext({
-      sessionId: SESSION_ID,
+      branchId: BRANCH_ID,
+      tableId: 1,
       checkinCode: "2002"
     });
 
@@ -298,7 +302,8 @@ describe("reservation session-context route", () => {
     tempDirs.push(tempDir);
 
     const { payload } = await requestSessionContext({
-      sessionId: SESSION_ID,
+      branchId: BRANCH_ID,
+      tableId: 1,
       checkinCode: "2003"
     });
 

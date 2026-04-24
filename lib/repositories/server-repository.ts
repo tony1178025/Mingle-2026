@@ -8,8 +8,10 @@ import {
 } from "@/features/checkin/model";
 import { getContentTemplate, isTemplateAllowedInPhase } from "@/features/content/library";
 import {
+  computeParticipantStatusMap,
   createAuditLog,
   createId,
+  isSessionExpired,
   MINGLE_CONSTANTS,
   normalizePhoneNumber,
   PROFILE_RULES,
@@ -22,7 +24,10 @@ import type {
   AnonymousMessageRecord,
   BlacklistRecord,
   CheckinResolution,
+  CheckinMode,
   CommandResult,
+  ContactExchangeMethod,
+  ContactExchangeRecord,
   ContentResponseRecord,
   EnergyType,
   IncidentRecord,
@@ -30,18 +35,108 @@ import type {
   LiveContentRecord,
   MingleCommand,
   ParticipantRecord,
+  ParticipantExportRow,
+  MatchExportRow,
+  ContactExchangeExportRow,
+  ReservationImportResult,
+  ReservationImportRow,
+  ReservationImportExportAdapter,
+  ReservationLookupRule,
+  ReservationStatus,
   ReservationSessionContextRequest,
+  WebsiteEntryContext,
+  WebsiteEntryPayload,
   RotationInstructionState,
   RotationPreview,
   SessionSnapshot
 } from "@/types/mingle";
 
+const OPERATIONAL_STATE_TRANSITIONS: Record<string, readonly string[]> = {
+  ROUND_1: ["BREAK", "ROUND_2", "CLOSED"],
+  BREAK: ["ROUND_2", "CLOSED"],
+  ROUND_2: ["CLOSED"],
+  CLOSED: []
+};
+
+const ADMIN_COMMAND_ALLOWLIST = new Set<string>([
+  "admin.setSessionState",
+  "admin.toggleReveal",
+  "admin.triggerReveal",
+  "admin.generateRotationPreview",
+  "admin.applyRotation",
+  "admin.activateContent",
+  "admin.clearContent",
+  "admin.publishAnnouncement",
+  "admin.resolveReport",
+  "admin.setBlacklistStatus",
+  "admin.moveParticipant",
+  "admin.createManualParticipant"
+]);
+
+export const WEBSITE_ENTRY_REQUIRED_FIELDS = ["branchId", "eventId", "eventDate"] as const;
+export const RESERVATION_IMPORT_REQUIRED_FIELDS = [
+  "reservationExternalId",
+  "reservationId",
+  "branchId",
+  "eventId",
+  "eventDate",
+  "status"
+] as const;
+export const RESERVATION_LOOKUP_RULE: ReservationLookupRule = {
+  mode: "EXTERNAL_ID_FIRST_PHONE_FALLBACK",
+  phonePolicy: "NORMALIZED_EXACT_MATCH",
+  notes: "Reservation grants eligibility only; participant is created only after QR check-in."
+};
+export const RESERVATION_ACTIVE_STATUSES = new Set<ReservationStatus>(["CONFIRMED", "CHECKED_IN"]);
+
+function isAdminCommand(command: MingleCommand): command is Extract<MingleCommand, { type: `admin.${string}` }> {
+  return command.type.startsWith("admin.");
+}
+
 async function persistSnapshot(nextSnapshot: SessionSnapshot) {
-  return getSessionAuthorityRepository().persistSessionSnapshot(nextSnapshot);
+  const persisted = await getSessionAuthorityRepository().persistSessionSnapshot(nextSnapshot);
+  return { ...persisted, participantStatusMap: computeParticipantStatusMap(persisted) };
+}
+
+async function enforceSessionExpiry(snapshot: SessionSnapshot) {
+  if (!isSessionExpired(snapshot.session.startedAt) || snapshot.session.phase === "CLOSED") {
+    return snapshot;
+  }
+
+  const now = new Date().toISOString();
+  const audit = createAuditLog(
+    "SESSION_STATE_CHANGED",
+    "system",
+    "SYSTEM",
+    "세션 운영 시간이 만료되어 자동 종료되었습니다.",
+    {
+      changed_by: "system",
+      from_state: snapshot.session.phase,
+      to_state: "CLOSED",
+      reason: "AUTO_EXPIRED_12H",
+      timestamp: now
+    },
+    snapshot.session.id
+  );
+
+  return persistSnapshot({
+    ...snapshot,
+    session: {
+      ...snapshot.session,
+      phase: "CLOSED",
+      updatedAt: now
+    },
+    auditLogs: [audit, ...snapshot.auditLogs]
+  });
 }
 
 export async function getServerSessionSnapshot() {
-  return getSessionAuthorityRepository().getSessionSnapshot();
+  const snapshot = await getSessionAuthorityRepository().getSessionSnapshot();
+  const effectiveSnapshot = await enforceSessionExpiry(snapshot);
+  return {
+    ...effectiveSnapshot,
+    participantStatusMap: computeParticipantStatusMap(effectiveSnapshot)
+  };
 }
 
 export function subscribeToSessionSnapshots(listener: (snapshot: SessionSnapshot) => void) {
@@ -51,7 +146,7 @@ export function subscribeToSessionSnapshots(listener: (snapshot: SessionSnapshot
 function getParticipant(snapshot: SessionSnapshot, participantId: string) {
   const participant = snapshot.participants.find((item) => item.id === participantId);
   if (!participant) {
-    throw new Error("李멸????뺣낫瑜?李얠쓣 ???놁뒿?덈떎.");
+    throw new Error("참가자를 찾을 수 없습니다.");
   }
 
   return participant;
@@ -73,7 +168,7 @@ function updateParticipant(
   });
 
   if (!found) {
-    throw new Error("李멸????뺣낫瑜?李얠쓣 ???놁뒿?덈떎.");
+    throw new Error("참가자를 찾을 수 없습니다.");
   }
 
   return participants;
@@ -291,6 +386,367 @@ function buildCheckinResolution(options: {
   };
 }
 
+function requireNonEmptyValue(value: string | null | undefined, label: string) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    throw new Error(`${label} 값이 필요합니다.`);
+  }
+  return normalized;
+}
+
+export function validateWebsiteEntryPayload(payload: WebsiteEntryPayload): WebsiteEntryPayload {
+  return {
+    branchId: requireNonEmptyValue(payload.branchId, "branchId"),
+    eventId: requireNonEmptyValue(payload.eventId, "eventId"),
+    eventDate: requireNonEmptyValue(payload.eventDate, "eventDate"),
+    reservationExternalId: payload.reservationExternalId?.trim() || null,
+    phone: normalizePhoneNumber(payload.phone) || null
+  };
+}
+
+export function resolveWebsiteEntryContext(
+  snapshot: SessionSnapshot,
+  payload: WebsiteEntryPayload
+): WebsiteEntryContext {
+  const validated = validateWebsiteEntryPayload(payload);
+  if (validated.branchId !== snapshot.session.branchId) {
+    throw new Error("웹사이트 진입 브랜치가 현재 운영 세션과 일치하지 않습니다.");
+  }
+  if (validated.eventId !== snapshot.session.eventId) {
+    throw new Error("웹사이트 진입 이벤트가 현재 운영 세션과 일치하지 않습니다.");
+  }
+
+  return {
+    sessionId: snapshot.session.id,
+    branchId: validated.branchId,
+    eventId: validated.eventId,
+    eventDate: validated.eventDate,
+    tableId: null,
+    reservationExternalId: validated.reservationExternalId ?? null,
+    participantId: null,
+    checkinCode: null,
+    reservationId: null
+  };
+}
+
+export function validateReservationImportRow(row: ReservationImportRow) {
+  const normalizedStatus = row.status;
+  if (!RESERVATION_ACTIVE_STATUSES.has(normalizedStatus) && normalizedStatus !== "CANCELLED" && normalizedStatus !== "BLOCKED" && normalizedStatus !== "PENDING") {
+    throw new Error("지원되지 않는 예약 상태입니다.");
+  }
+
+  return {
+    reservationExternalId: requireNonEmptyValue(row.reservationExternalId, "reservationExternalId"),
+    reservationId: requireNonEmptyValue(row.reservationId, "reservationId"),
+    branchId: requireNonEmptyValue(row.branchId, "branchId"),
+    eventId: requireNonEmptyValue(row.eventId, "eventId"),
+    eventDate: requireNonEmptyValue(row.eventDate, "eventDate"),
+    phone: normalizePhoneNumber(row.phone) || null,
+    status: normalizedStatus,
+    reservationLabel: row.reservationLabel?.trim() || null,
+    checkinCode: row.checkinCode?.trim() || null
+  };
+}
+
+function parseCsvLine(line: string) {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i]!;
+    const next = line[i + 1];
+    if (char === "\"") {
+      if (inQuotes && next === "\"") {
+        current += "\"";
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (char === "," && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function escapeCsvCell(value: string | number | null | undefined) {
+  const raw = value == null ? "" : String(value);
+  if (!raw.includes(",") && !raw.includes("\"") && !raw.includes("\n")) {
+    return raw;
+  }
+  return `"${raw.replace(/"/g, "\"\"")}"`;
+}
+
+function toCsv<T extends Record<string, string | number | null | undefined>>(
+  rows: T[],
+  headers: Array<keyof T>
+) {
+  const headerLine = headers.map((header) => escapeCsvCell(String(header))).join(",");
+  const bodyLines = rows.map((row) =>
+    headers.map((header) => escapeCsvCell(row[header])).join(",")
+  );
+  return [headerLine, ...bodyLines].join("\n");
+}
+
+export function mapReservationCsvToRows(csv: string): ReservationImportRow[] {
+  const lines = csv
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) {
+    return [];
+  }
+
+  const headers = parseCsvLine(lines[0]!).map((header) => header.trim());
+  return lines.slice(1).map((line) => {
+    const cells = parseCsvLine(line);
+    const row = Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? ""])) as Record<
+      string,
+      string
+    >;
+    return {
+      reservationExternalId: row.reservationExternalId ?? "",
+      reservationId: row.reservationId ?? "",
+      branchId: row.branchId ?? "",
+      eventId: row.eventId ?? "",
+      eventDate: row.eventDate ?? "",
+      phone: row.phone || null,
+      status: (row.status as ReservationStatus) ?? "PENDING",
+      reservationLabel: row.reservationLabel || undefined,
+      checkinCode: row.checkinCode || undefined
+    };
+  });
+}
+
+export function importReservationsFromCsv(csv: string): {
+  rows: ReservationImportRow[];
+  result: ReservationImportResult;
+} {
+  const parsedRows = mapReservationCsvToRows(csv);
+  let accepted = 0;
+  let rejected = 0;
+  const errors: Array<{ row: number; message: string }> = [];
+  const rows: ReservationImportRow[] = [];
+
+  parsedRows.forEach((row, index) => {
+    try {
+      const normalized = validateReservationImportRow(row);
+      rows.push({
+        reservationExternalId: normalized.reservationExternalId,
+        reservationId: normalized.reservationId,
+        branchId: normalized.branchId,
+        eventId: normalized.eventId,
+        eventDate: normalized.eventDate,
+        phone: normalized.phone,
+        status: normalized.status,
+        reservationLabel: normalized.reservationLabel ?? undefined,
+        checkinCode: normalized.checkinCode ?? undefined
+      });
+      accepted += 1;
+    } catch (error) {
+      rejected += 1;
+      errors.push({
+        row: index + 2,
+        message: error instanceof Error ? error.message : "유효하지 않은 예약 데이터입니다."
+      });
+    }
+  });
+
+  return {
+    rows,
+    result: {
+      accepted,
+      rejected,
+      errors
+    }
+  };
+}
+
+export function buildParticipantExportRows(
+  snapshot: SessionSnapshot,
+  options: { includePhone: boolean }
+): ParticipantExportRow[] {
+  const matchSet = new Set<string>();
+  for (const heart of snapshot.hearts) {
+    const isMutual = snapshot.hearts.some(
+      (target) => target.senderId === heart.recipientId && target.recipientId === heart.senderId
+    );
+    if (isMutual) {
+      matchSet.add(heart.senderId);
+      matchSet.add(heart.recipientId);
+    }
+  }
+
+  return snapshot.participants.map((participant) => ({
+    participantId: participant.id,
+    nickname: participant.nickname,
+    phone: options.includePhone ? normalizePhoneNumber(participant.phone) : null,
+    tableId: participant.tableId,
+    matchStatus: matchSet.has(participant.id) ? "MATCHED" : "UNMATCHED"
+  }));
+}
+
+export function buildMatchExportRows(
+  snapshot: SessionSnapshot,
+  options: { includePhone: boolean }
+): MatchExportRow[] {
+  const participantMap = new Map(snapshot.participants.map((participant) => [participant.id, participant]));
+  const pairKeys = new Set<string>();
+  const rows: MatchExportRow[] = [];
+
+  for (const heart of snapshot.hearts) {
+    const isMutual = snapshot.hearts.some(
+      (target) => target.senderId === heart.recipientId && target.recipientId === heart.senderId
+    );
+    if (!isMutual) {
+      continue;
+    }
+    const [aId, bId] = [heart.senderId, heart.recipientId].sort();
+    const key = `${aId}:${bId}`;
+    if (pairKeys.has(key)) {
+      continue;
+    }
+    pairKeys.add(key);
+    const participantA = participantMap.get(aId);
+    const participantB = participantMap.get(bId);
+    if (!participantA || !participantB) {
+      continue;
+    }
+    rows.push({
+      participantAId: participantA.id,
+      participantANickname: participantA.nickname,
+      participantAPhone: options.includePhone ? normalizePhoneNumber(participantA.phone) : null,
+      participantBId: participantB.id,
+      participantBNickname: participantB.nickname,
+      participantBPhone: options.includePhone ? normalizePhoneNumber(participantB.phone) : null,
+      status: "MATCHED"
+    });
+  }
+
+  return rows;
+}
+
+export function buildContactExchangeExportRows(
+  snapshot: SessionSnapshot,
+  options: { includePhone: boolean }
+): ContactExchangeExportRow[] {
+  const participantMap = new Map(snapshot.participants.map((participant) => [participant.id, participant]));
+  return (snapshot.contactExchanges ?? []).map((exchange) => {
+    const participantA = participantMap.get(exchange.participantAId);
+    const participantB = participantMap.get(exchange.participantBId);
+    return {
+      participantAId: exchange.participantAId,
+      participantANickname: participantA?.nickname ?? exchange.participantAId,
+      participantAPhone: options.includePhone ? normalizePhoneNumber(participantA?.phone) : null,
+      participantBId: exchange.participantBId,
+      participantBNickname: participantB?.nickname ?? exchange.participantBId,
+      participantBPhone: options.includePhone ? normalizePhoneNumber(participantB?.phone) : null,
+      contactExchangeStatus: exchange.status
+    };
+  });
+}
+
+export function createCsvReservationImportExportAdapter(): ReservationImportExportAdapter {
+  return {
+    async importRows(rows) {
+      let accepted = 0;
+      let rejected = 0;
+      const errors: Array<{ row: number; message: string }> = [];
+      rows.forEach((row, index) => {
+        try {
+          validateReservationImportRow(row);
+          accepted += 1;
+        } catch (error) {
+          rejected += 1;
+          errors.push({
+            row: index + 1,
+            message: error instanceof Error ? error.message : "유효하지 않은 예약 데이터입니다."
+          });
+        }
+      });
+      return { accepted, rejected, errors };
+    },
+    async exportRows(input) {
+      const headers: Array<keyof (typeof input.rows)[number]> = [
+        "sessionId",
+        "reservationExternalId",
+        "reservationId",
+        "branchId",
+        "eventId",
+        "eventDate",
+        "phone",
+        "status",
+        "reservationLabel",
+        "checkinCode",
+        "eligible",
+        "participantId"
+      ];
+      return {
+        fileName: `reservations-${input.sessionId}.csv`,
+        mimeType: "text/csv",
+        body: toCsv(input.rows, headers)
+      };
+    },
+    async exportParticipants(input) {
+      const rows = input.rows.map((row) => ({
+        ...row,
+        phone: input.includePhone ? row.phone : null
+      }));
+      return {
+        fileName: `participants-${input.sessionId}.csv`,
+        mimeType: "text/csv",
+        body: toCsv(rows, ["participantId", "nickname", "phone", "tableId", "matchStatus"])
+      };
+    },
+    async exportMatches(input) {
+      const rows = input.rows.map((row) => ({
+        ...row,
+        participantAPhone: input.includePhone ? row.participantAPhone : null,
+        participantBPhone: input.includePhone ? row.participantBPhone : null
+      }));
+      return {
+        fileName: `matches-${input.sessionId}.csv`,
+        mimeType: "text/csv",
+        body: toCsv(rows, [
+          "participantAId",
+          "participantANickname",
+          "participantAPhone",
+          "participantBId",
+          "participantBNickname",
+          "participantBPhone",
+          "status"
+        ])
+      };
+    },
+    async exportContactExchanges(input) {
+      const rows = input.rows.map((row) => ({
+        ...row,
+        participantAPhone: input.includePhone ? row.participantAPhone : null,
+        participantBPhone: input.includePhone ? row.participantBPhone : null
+      }));
+      return {
+        fileName: `contact-exchanges-${input.sessionId}.csv`,
+        mimeType: "text/csv",
+        body: toCsv(rows, [
+          "participantAId",
+          "participantANickname",
+          "participantAPhone",
+          "participantBId",
+          "participantBNickname",
+          "participantBPhone",
+          "contactExchangeStatus"
+        ])
+      };
+    }
+  };
+}
+
 export function applyHeartGrant(
   snapshot: SessionSnapshot,
   participantId: string,
@@ -403,21 +859,102 @@ function ensureProfileFields(draft: {
     !draft.animalType ||
     !draft.energyType
   ) {
-    throw new Error("?꾩닔 ?꾨줈???뺣낫瑜?紐⑤몢 ?낅젰?섏꽭??");
+    throw new Error("필수 프로필 정보를 모두 입력해 주세요.");
   }
 
   if (draft.age < PROFILE_RULES.minAge || draft.age > PROFILE_RULES.maxAge) {
-    throw new Error(`?섏씠??${PROFILE_RULES.minAge}~${PROFILE_RULES.maxAge} 踰붿쐞?ъ빞 ?⑸땲??`);
+    throw new Error(`나이는 ${PROFILE_RULES.minAge}~${PROFILE_RULES.maxAge} 범위여야 합니다.`);
   }
 
   if (draft.heightCm < PROFILE_RULES.minHeightCm || draft.heightCm > PROFILE_RULES.maxHeightCm) {
-    throw new Error(`?ㅻ뒗 ${PROFILE_RULES.minHeightCm}~${PROFILE_RULES.maxHeightCm}cm 踰붿쐞?ъ빞 ?⑸땲??`);
+    throw new Error(`키는 ${PROFILE_RULES.minHeightCm}~${PROFILE_RULES.maxHeightCm}cm 범위여야 합니다.`);
   }
 }
 
 function normalizeNickname(nickname: string) {
   return nickname.trim().toLocaleLowerCase("ko-KR");
 }
+
+function buildContactExchangePair(participantId: string, targetParticipantId: string) {
+  return [participantId, targetParticipantId].sort() as [string, string];
+}
+
+function findContactExchange(
+  snapshot: SessionSnapshot,
+  participantAId: string,
+  participantBId: string
+) {
+  return (
+    snapshot.contactExchanges?.find(
+      (item) => item.participantAId === participantAId && item.participantBId === participantBId
+    ) ?? null
+  );
+}
+
+function isMutualHeartMatch(snapshot: SessionSnapshot, participantId: string, targetParticipantId: string) {
+  const sent = snapshot.hearts.some(
+    (heart) => heart.senderId === participantId && heart.recipientId === targetParticipantId
+  );
+  const received = snapshot.hearts.some(
+    (heart) => heart.senderId === targetParticipantId && heart.recipientId === participantId
+  );
+  return sent && received;
+}
+
+function normalizeContactMethods(methods: ContactExchangeMethod | undefined): ContactExchangeMethod {
+  return {
+    realName: methods?.realName?.trim() || undefined,
+    phone: normalizePhoneNumber(methods?.phone) || undefined,
+    kakaoId: methods?.kakaoId?.trim() || undefined,
+    instagramId: methods?.instagramId?.trim() || undefined
+  };
+}
+
+function hasAtLeastOneContactMethod(methods: ContactExchangeMethod) {
+  return Boolean(methods.phone || methods.kakaoId || methods.instagramId);
+}
+
+function buildContactExchangeStats(contactExchanges: ContactExchangeRecord[]) {
+  return {
+    totalRequests: contactExchanges.length,
+    pendingCount: contactExchanges.filter((item) => item.status === "PENDING").length,
+    completedCount: contactExchanges.filter((item) => item.status === "COMPLETED").length,
+    blockedCount: contactExchanges.filter((item) => item.status === "BLOCKED").length
+  };
+}
+
+export function sanitizeSnapshotForClient(snapshot: SessionSnapshot): SessionSnapshot {
+  const normalizedExchanges = (snapshot.contactExchanges ?? []).map((exchange) => {
+    if (exchange.status === "COMPLETED") {
+      return exchange;
+    }
+    return {
+      ...exchange,
+      participantAMethods: null,
+      participantBMethods: null
+    };
+  });
+
+  return {
+    ...snapshot,
+    participantStatusMap: snapshot.participantStatusMap ?? {},
+    contactExchanges: normalizedExchanges,
+    contactExchangeStats: buildContactExchangeStats(normalizedExchanges)
+  };
+}
+
+const MANUAL_PARTICIPANT_DEFAULTS: Pick<
+  ParticipantRecord,
+  "age" | "jobCategory" | "job" | "heightCm" | "animalType" | "energyType" | "checkinMode"
+> = {
+  age: 29,
+  jobCategory: "운영",
+  job: "현장 등록",
+  heightCm: 170,
+  animalType: "알수없음",
+  energyType: "E",
+  checkinMode: "staff" satisfies CheckinMode
+};
 
 export function validateNicknameAvailability(
   participants: ParticipantRecord[],
@@ -533,6 +1070,7 @@ function createBlockedCheckinResolution(
   return {
     sessionId,
     branchId,
+    tableId: null,
     reservationId: "unknown",
     reservationExternalId: null,
     participantId: null,
@@ -551,21 +1089,54 @@ export async function getReservationSessionContext(
 ): Promise<CommandResult> {
   const snapshot = await getServerSessionSnapshot();
 
-  if (input.sessionId !== snapshot.session.id) {
+  // Guard 1: branchId must match the active session's branch.
+  // Session is resolved from branchId at runtime — not from QR.
+  if (input.branchId !== snapshot.session.branchId) {
     return {
       snapshot,
       participantId: null,
       checkinResolution: createBlockedCheckinResolution(
-        input.sessionId,
+        snapshot.session.id,
         snapshot.session.branchId,
         input.checkinCode,
-        "체크인 대상 세션이 현재 운영 중인 세션과 일치하지 않습니다."
+        "체크인 대상 브랜치가 현재 운영 중인 세션과 일치하지 않습니다."
       )
     };
   }
 
+  // Guard 2: CLOSED/MATCH_END blocks all new check-ins (late entry allowed in all other phases).
+  if (snapshot.session.phase === "MATCH_END" || snapshot.session.phase === "CLOSED") {
+    return {
+      snapshot,
+      participantId: null,
+      checkinResolution: createBlockedCheckinResolution(
+        snapshot.session.id,
+        snapshot.session.branchId,
+        input.checkinCode,
+        "세션이 종료되어 체크인을 진행할 수 없습니다."
+      )
+    };
+  }
+
+  // Guard 3: tableId must be within session bounds.
+  if (input.tableId < 1 || input.tableId > snapshot.session.tableCount) {
+    return {
+      snapshot,
+      participantId: null,
+      checkinResolution: createBlockedCheckinResolution(
+        snapshot.session.id,
+        snapshot.session.branchId,
+        input.checkinCode,
+        "QR의 테이블 정보가 현재 세션과 일치하지 않습니다."
+      )
+    };
+  }
+
+  // Session ID is resolved at runtime from the active snapshot — never taken from the QR.
+  const resolvedSessionId = snapshot.session.id;
+
   const externalContext = await getExternalReservationSessionContext({
-    sessionId: input.sessionId,
+    sessionId: resolvedSessionId,
     checkinCode: input.checkinCode
   });
 
@@ -574,7 +1145,7 @@ export async function getReservationSessionContext(
       snapshot,
       participantId: null,
       checkinResolution: createBlockedCheckinResolution(
-        input.sessionId,
+        resolvedSessionId,
         snapshot.session.branchId,
         input.checkinCode,
         "체크인 정보가 올바른지 다시 확인해 주세요."
@@ -587,17 +1158,18 @@ export async function getReservationSessionContext(
       snapshot,
       participantId: null,
       checkinResolution: createBlockedCheckinResolution(
-        input.sessionId,
+        resolvedSessionId,
         snapshot.session.branchId,
         input.checkinCode,
-        "체크인 대상 브랜치가 현재 운영 중인 세션과 일치하지 않습니다."
+        "예약 정보의 브랜치가 현재 운영 중인 세션과 일치하지 않습니다."
       )
     };
   }
 
   const resolution: CheckinResolution = {
-    sessionId: externalContext.sessionId,
+    sessionId: resolvedSessionId,
     branchId: externalContext.branchId ?? snapshot.session.branchId,
+    tableId: input.tableId,
     reservationId: externalContext.reservationId,
     reservationExternalId: externalContext.reservationExternalId ?? null,
     participantId: null,
@@ -643,7 +1215,7 @@ export async function getReservationSessionContext(
       logSuspiciousPattern({
         participantId: identityResult.participantId,
         reservationId: resolution.reservationId,
-        sessionId: snapshot.session.id,
+        sessionId: resolvedSessionId,
         action: "checkin",
         reason: blacklistEntry.reason
       });
@@ -680,10 +1252,11 @@ export async function getReservationSessionContext(
     `${resolution.reservationLabel} 체크인이 확인되었습니다.`,
     {
       reservationId: resolution.reservationId,
+      tableId: input.tableId,
       mode: "qr",
       flowState: identityResult.flowState
     },
-    snapshot.session.id
+    resolvedSessionId
   );
 
   const nextSnapshot = await persistSnapshot({
@@ -729,7 +1302,9 @@ function buildRotationInstruction(
 ): RotationInstructionState {
   const previousTableMap = new Map(beforeSnapshot.participants.map((participant) => [participant.id, participant.tableId]));
   const startsAt = new Date().toISOString();
-  const deadlineAt = new Date(Date.now() + 3 * 60 * 1000).toISOString();
+  const deadlineAt = new Date(
+    Date.now() + MINGLE_CONSTANTS.rotationInstructionDeadlineMs
+  ).toISOString();
   const moveReasonMap = new Map(
     preview.moves.map((move) => [move.participantId, move.reasonTags])
   );
@@ -821,6 +1396,21 @@ export async function grantHeartsByAdmin(participantId: string, heartsToAdd: num
 export async function executeServerCommand(command: MingleCommand): Promise<CommandResult> {
   const snapshot = await getServerSessionSnapshot();
 
+  if (isAdminCommand(command)) {
+    if (!ADMIN_COMMAND_ALLOWLIST.has(command.type)) {
+      throw new Error("허용되지 않은 관리자 명령입니다.");
+    }
+    if (snapshot.session.phase === "CLOSED") {
+      throw new Error("세션이 종료되었습니다.");
+    }
+    if (typeof command.expectedVersion !== "number") {
+      throw new Error("버전 정보가 없습니다.");
+    }
+    if (command.expectedVersion !== snapshot.version) {
+      throw new Error("세션이 갱신되었습니다. 다시 시도해 주세요.");
+    }
+  }
+
   switch (command.type) {
     case "customer.verifyCheckin": {
       const parsedQr = parseCheckinQrValue(command.draft.value);
@@ -838,7 +1428,8 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
       }
 
       return getReservationSessionContext({
-        sessionId: parsedQr.sessionId,
+        branchId: parsedQr.branchId,
+        tableId: parsedQr.tableId,
         checkinCode: parsedQr.checkinCode,
         participantId: command.participantId ?? null
       });
@@ -883,7 +1474,11 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
 
       const nickname = validateNicknameAvailability(snapshot.participants, command.draft.nickname);
 
-      const tableId = selectLeastCrowdedTable(snapshot.participants);
+      // QR check-in carries tableId from the physical table asset.
+      // Staff/code check-in falls back to least-crowded auto-assignment.
+      const tableId =
+        command.resolution.tableId ??
+        selectLeastCrowdedTable(snapshot.participants, snapshot.session.tableCount);
       const createdAt = new Date().toISOString();
       const participant: ParticipantRecord = {
         id: command.resolution.participantId,
@@ -1260,19 +1855,150 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
       return { snapshot: nextSnapshot };
     }
 
-    case "admin.setPhase": {
+    case "customer.submitContactExchangeConsent": {
+      const participant = await requireCustomerParticipant(
+        snapshot,
+        command.participantId,
+        "contact-exchange-consent"
+      );
+      const targetParticipant = requireSessionParticipant(snapshot, command.targetParticipantId);
+
+      if (participant.id === targetParticipant.id) {
+        throw new Error("본인과는 연락처 교환을 요청할 수 없습니다.");
+      }
+
+      if (!snapshot.session.revealSenders || snapshot.session.phase !== "ROUND_2") {
+        throw new Error("하트 공개 이후에만 연락처 교환을 요청할 수 있습니다.");
+      }
+
+      if (!isMutualHeartMatch(snapshot, participant.id, targetParticipant.id)) {
+        throw new Error("상호 하트가 성립된 참가자와만 연락처 교환이 가능합니다.");
+      }
+
+      const blockedIds = new Set((snapshot.blacklist ?? []).map((entry) => entry.participantId));
+      if (blockedIds.has(participant.id) || blockedIds.has(targetParticipant.id)) {
+        throw new Error("차단된 참가자와는 연락처 교환을 진행할 수 없습니다.");
+      }
+
+      const [participantAId, participantBId] = buildContactExchangePair(
+        participant.id,
+        targetParticipant.id
+      );
+      const existing = findContactExchange(snapshot, participantAId, participantBId);
+      if (existing?.status === "COMPLETED" && command.consent === false) {
+        throw new Error("이미 완료된 연락처 교환은 취소할 수 없습니다.");
+      }
+
+      const now = new Date().toISOString();
+      const normalizedMethods = normalizeContactMethods(command.methods);
+
+      if (command.consent && !hasAtLeastOneContactMethod(normalizedMethods)) {
+        throw new Error("연락수단(전화/카카오/인스타) 중 최소 1개를 입력해야 합니다.");
+      }
+
+      const participantIsA = participant.id === participantAId;
+      const base: ContactExchangeRecord =
+        existing ?? {
+          id: createId("contact_exchange"),
+          sessionId: snapshot.session.id,
+          participantAId,
+          participantBId,
+          participantAConsented: false,
+          participantBConsented: false,
+          participantAMethods: null,
+          participantBMethods: null,
+          status: "PENDING",
+          requestedAt: now,
+          completedAt: null
+        };
+
+      const updated: ContactExchangeRecord = {
+        ...base,
+        participantAConsented: participantIsA ? command.consent : base.participantAConsented,
+        participantBConsented: participantIsA ? base.participantBConsented : command.consent,
+        participantAMethods: participantIsA
+          ? command.consent
+            ? normalizedMethods
+            : null
+          : base.participantAMethods,
+        participantBMethods: participantIsA
+          ? base.participantBMethods
+          : command.consent
+          ? normalizedMethods
+          : null
+      };
+
+      const bothConsented = updated.participantAConsented && updated.participantBConsented;
+      const status = bothConsented ? "COMPLETED" : "PENDING";
+      const finalized: ContactExchangeRecord = {
+        ...updated,
+        status,
+        completedAt: bothConsented ? now : null
+      };
+
+      const nextExchanges = [
+        finalized,
+        ...(snapshot.contactExchanges ?? []).filter((item) => item.id !== finalized.id)
+      ];
+
       const audit = createAuditLog(
-        "PHASE_CHANGED",
-        "admin",
-        "ADMIN",
-        `${command.phase} ?④퀎濡??꾪솚?덉뒿?덈떎.`,
-        { phase: command.phase },
+        "CONTACT_EXCHANGE_UPDATED",
+        participant.id,
+        "CUSTOMER",
+        "연락처 교환 동의 상태를 변경했습니다.",
+        {
+          targetParticipantId: targetParticipant.id,
+          consent: command.consent,
+          status: finalized.status
+        },
         snapshot.session.id
       );
 
       const nextSnapshot = await persistSnapshot({
         ...snapshot,
-        session: { ...snapshot.session, phase: command.phase, updatedAt: audit.createdAt },
+        contactExchanges: nextExchanges,
+        auditLogs: [audit, ...snapshot.auditLogs],
+        session: { ...snapshot.session, updatedAt: now }
+      });
+
+      return { snapshot: nextSnapshot };
+    }
+
+    case "admin.setSessionState": {
+      const fromState = snapshot.session.phase;
+      const toState = command.state;
+
+      if (snapshot.session.lifecycleStatus === "DISABLED") {
+        throw new Error("비활성 세션입니다.");
+      }
+
+      if (fromState === toState) {
+        throw new Error("이미 같은 상태입니다.");
+      }
+
+      const allowedTargets = OPERATIONAL_STATE_TRANSITIONS[fromState] ?? [];
+      if (!allowedTargets.includes(toState)) {
+        throw new Error("허용되지 않은 상태 전환입니다.");
+      }
+
+      const transitionedAt = new Date().toISOString();
+      const audit = createAuditLog(
+        "SESSION_STATE_CHANGED",
+        "admin",
+        "ADMIN",
+        `${fromState}에서 ${toState}로 세션 상태를 변경했습니다.`,
+        {
+          changed_by: "admin",
+          from_state: fromState,
+          to_state: toState,
+          timestamp: transitionedAt
+        },
+        snapshot.session.id
+      );
+
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        session: { ...snapshot.session, phase: toState, updatedAt: transitionedAt },
         auditLogs: [audit, ...snapshot.auditLogs]
       });
       return { snapshot: nextSnapshot };
@@ -1300,6 +2026,40 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
       return { snapshot: nextSnapshot };
     }
 
+    case "admin.triggerReveal": {
+      if (snapshot.session.phase !== "ROUND_2") {
+        throw new Error("ROUND_2에서만 공개할 수 있습니다.");
+      }
+      if (snapshot.session.revealSenders) {
+        throw new Error("이미 공개되었습니다.");
+      }
+
+      const revealedAt = new Date().toISOString();
+      const audit = createAuditLog(
+        "REVEAL_TOGGLED",
+        "admin",
+        "ADMIN",
+        "ROUND_2 하트 공개를 시작했습니다.",
+        {
+          changed_by: "admin",
+          timestamp: revealedAt,
+          phase: snapshot.session.phase
+        },
+        snapshot.session.id
+      );
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        session: {
+          ...snapshot.session,
+          revealSenders: true,
+          revealTriggeredAt: revealedAt,
+          updatedAt: revealedAt
+        },
+        auditLogs: [audit, ...snapshot.auditLogs]
+      });
+      return { snapshot: nextSnapshot };
+    }
+
     case "admin.generateRotationPreview": {
       return {
         snapshot,
@@ -1309,7 +2069,7 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
 
     case "admin.applyRotation": {
       if (command.preview.baseVersion !== snapshot.version) {
-        throw new Error("誘몃━蹂닿린 湲곗? ?곹깭媛 諛붾뚯뿀?듬땲?? ?ㅼ떆 ?앹꽦?섏꽭??");
+        throw new Error("미리보기가 오래되었습니다.");
       }
 
       const rotated = applyRotationPreview(snapshot, command.preview);
@@ -1365,7 +2125,12 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         throw new Error("怨듭? 硫붿떆吏瑜??낅젰?섏꽭??");
       }
 
-      const { liveContent } = createLiveContent(snapshot, "operator-announcement", null, trimmedMessage);
+      const { liveContent } = createLiveContent(
+        snapshot,
+        MINGLE_CONSTANTS.announcementTemplateId,
+        null,
+        trimmedMessage
+      );
       const createdAt = new Date().toISOString();
       const audit = createAuditLog(
         "ANNOUNCEMENT_PUBLISHED",
@@ -1387,7 +2152,9 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
           },
           ...snapshot.announcements
         ],
-        activeContentIds: Array.from(new Set(["operator-announcement", ...snapshot.activeContentIds])),
+        activeContentIds: Array.from(
+          new Set([MINGLE_CONSTANTS.announcementTemplateId, ...snapshot.activeContentIds])
+        ),
         auditLogs: [audit, ...snapshot.auditLogs],
         session: { ...snapshot.session, updatedAt: createdAt }
       });
@@ -1400,6 +2167,9 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
       const updatedAt = new Date().toISOString();
 
       if (command.blocked) {
+        if (existingEntry) {
+          throw new Error("이미 차단된 참가자입니다.");
+        }
         const reason = command.reason?.trim() || "운영 정책상 제한";
         const entry: BlacklistRecord =
           existingEntry ?? {
@@ -1423,6 +2193,36 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
           snapshot.session.id
         );
 
+        const blockedContactExchanges = (snapshot.contactExchanges ?? []).map((exchange) => {
+          if (
+            exchange.participantAId !== participant.id &&
+            exchange.participantBId !== participant.id
+          ) {
+            return exchange;
+          }
+          return {
+            ...exchange,
+            status: "BLOCKED" as const,
+            completedAt: null
+          };
+        });
+        const blockedCount = blockedContactExchanges.filter((exchange, index) => {
+          const previous = (snapshot.contactExchanges ?? [])[index];
+          return previous && previous.status !== exchange.status;
+        }).length;
+
+        const contactAudit =
+          blockedCount > 0
+            ? createAuditLog(
+                "CONTACT_EXCHANGE_UPDATED",
+                "admin",
+                "ADMIN",
+                `${participant.nickname} 관련 연락처 교환을 운영 제한으로 차단했습니다.`,
+                { participantId: participant.id, blockedCount },
+                snapshot.session.id
+              )
+            : null;
+
         const nextSnapshot = await persistSnapshot({
           ...snapshot,
           blacklist: [
@@ -1432,7 +2232,8 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
             },
             ...(snapshot.blacklist ?? []).filter((item) => item.participantId !== participant.id)
           ],
-          auditLogs: [audit, ...snapshot.auditLogs],
+          contactExchanges: blockedContactExchanges,
+          auditLogs: contactAudit ? [contactAudit, audit, ...snapshot.auditLogs] : [audit, ...snapshot.auditLogs],
           session: { ...snapshot.session, updatedAt }
         });
         return { snapshot: nextSnapshot };
@@ -1456,6 +2257,140 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         session: { ...snapshot.session, updatedAt }
       });
       return { snapshot: nextSnapshot };
+    }
+
+    case "admin.moveParticipant": {
+      const participant = requireSessionParticipant(snapshot, command.participantId);
+
+      if (command.toTableId < 1 || command.toTableId > snapshot.session.tableCount) {
+        throw new Error("유효하지 않은 테이블입니다.");
+      }
+
+      if (participant.tableId === command.toTableId) {
+        throw new Error("이미 해당 테이블에 있습니다.");
+      }
+
+      const targetOccupancy = snapshot.participants.filter(
+        (p) => p.tableId === command.toTableId
+      ).length;
+      if (targetOccupancy >= snapshot.session.tableCapacity) {
+        throw new Error(`대상 테이블이 최대 인원(${snapshot.session.tableCapacity}명)을 초과했습니다.`);
+      }
+
+      const fromTableId = participant.tableId;
+      const movedAt = new Date().toISOString();
+
+      const audit = createAuditLog(
+        "PARTICIPANT_MOVED",
+        "admin",
+        "ADMIN",
+        `${participant.nickname} 님을 테이블 ${fromTableId}에서 테이블 ${command.toTableId}으로 이동했습니다.`,
+        { participantId: participant.id, fromTableId, toTableId: command.toTableId },
+        snapshot.session.id
+      );
+
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        participants: snapshot.participants.map((p) =>
+          p.id === command.participantId ? { ...p, tableId: command.toTableId } : p
+        ),
+        seatingAssignments: [
+          {
+            id: createId("seat"),
+            sessionId: snapshot.session.id,
+            rotationRound: 0,
+            participantId: command.participantId,
+            tableId: command.toTableId,
+            assignedAt: movedAt,
+            assignmentSource: "ADMIN_MOVE"
+          },
+          ...snapshot.seatingAssignments
+        ],
+        auditLogs: [audit, ...snapshot.auditLogs],
+        session: { ...snapshot.session, updatedAt: movedAt }
+      });
+      return { snapshot: nextSnapshot };
+    }
+
+    case "admin.createManualParticipant": {
+      const nickname = validateNicknameAvailability(snapshot.participants, command.nickname);
+      if (command.gender !== "M" && command.gender !== "F") {
+        throw new Error("성별은 필수입니다.");
+      }
+
+      if (command.tableId < 1 || command.tableId > snapshot.session.tableCount) {
+        throw new Error("유효하지 않은 테이블입니다.");
+      }
+
+      const targetOccupancy = snapshot.participants.filter(
+        (participant) => participant.tableId === command.tableId
+      ).length;
+      if (targetOccupancy >= snapshot.session.tableCapacity) {
+        throw new Error(`대상 테이블이 최대 인원(${snapshot.session.tableCapacity}명)을 초과했습니다.`);
+      }
+
+      const createdAt = new Date().toISOString();
+      const participant: ParticipantRecord = {
+        id: createId("viewer"),
+        sessionId: snapshot.session.id,
+        branchId: snapshot.session.branchId,
+        reservationId: null,
+        reservationExternalId: null,
+        phone: null,
+        nickname,
+        gender: command.gender,
+        ...MANUAL_PARTICIPANT_DEFAULTS,
+        photoUrl: null,
+        tableId: command.tableId,
+        round2Attendance: "UNDECIDED",
+        receivedHearts: 0,
+        sentHearts: 0,
+        profileViews: 0,
+        heartsRemaining: MINGLE_CONSTANTS.initialHearts,
+        metParticipantIds: [],
+        encounterHistory: [],
+        likedParticipantIds: [],
+        likedByParticipantIds: [],
+        popularityScore: 0,
+        tier: "C",
+        subTier: "LOW",
+        score: 0,
+        attractionScore: 0,
+        engagementScore: 0,
+        isVip: false,
+        isHighValue: false,
+        joinedAt: createdAt,
+        lastActiveAt: null
+      };
+
+      const audit = createAuditLog(
+        "MANUAL_PARTICIPANT_CREATED",
+        "admin",
+        "ADMIN",
+        `${participant.nickname} 참가자를 수동으로 등록했습니다.`,
+        { participantId: participant.id, tableId: participant.tableId },
+        snapshot.session.id
+      );
+
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        participants: [...snapshot.participants, participant],
+        seatingAssignments: [
+          {
+            id: createId("seat"),
+            sessionId: snapshot.session.id,
+            rotationRound: 0,
+            participantId: participant.id,
+            tableId: participant.tableId,
+            assignedAt: createdAt,
+            assignmentSource: "INITIAL"
+          },
+          ...snapshot.seatingAssignments
+        ],
+        auditLogs: [audit, ...snapshot.auditLogs],
+        session: { ...snapshot.session, updatedAt: createdAt }
+      });
+      return { snapshot: nextSnapshot, participantId: participant.id };
     }
 
     case "admin.resolveReport": {

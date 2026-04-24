@@ -6,7 +6,7 @@ import {
   resolveCustomerSessionParticipantId,
   validateCustomerSessionAgainstDbAuthority
 } from "@/lib/customer-session";
-import { getServerSessionSnapshot } from "@/lib/repositories/server-repository";
+import { getServerSessionSnapshot, sanitizeSnapshotForClient } from "@/lib/repositories/server-repository";
 
 export const runtime = "nodejs";
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const currentParticipantId = authorityValidation.valid
     ? resolveCustomerSessionParticipantId(snapshot, customerSession)
     : null;
-  const response = NextResponse.json({ data: snapshot, currentParticipantId });
+  const response = NextResponse.json({ data: sanitizeSnapshotForClient(snapshot), currentParticipantId });
 
   if (
     customerSession &&
