@@ -488,9 +488,7 @@ function toCsv<T extends Record<string, string | number | null | undefined>>(
   headers: Array<keyof T>
 ) {
   const headerLine = headers.map((header) => escapeCsvCell(String(header))).join(",");
-  const bodyLines = rows.map((row) =>
-    headers.map((header) => escapeCsvCell(row[header])).join(",")
-  );
+  const bodyLines = rows.map((row) => headers.map((header) => escapeCsvCell(row[header])).join(","));
   return [headerLine, ...bodyLines].join("\n");
 }
 
@@ -673,7 +671,21 @@ export function createCsvReservationImportExportAdapter(): ReservationImportExpo
       return { accepted, rejected, errors };
     },
     async exportRows(input) {
-      const headers: Array<keyof (typeof input.rows)[number]> = [
+      const rows = input.rows.map((row) => ({
+        sessionId: row.sessionId,
+        reservationExternalId: row.reservationExternalId,
+        reservationId: row.reservationId,
+        branchId: row.branchId,
+        eventId: row.eventId,
+        eventDate: row.eventDate,
+        phone: row.phone ?? null,
+        status: row.status,
+        reservationLabel: row.reservationLabel ?? null,
+        checkinCode: row.checkinCode ?? null,
+        eligible: row.eligible ? "true" : "false",
+        participantId: row.participantId ?? null
+      }));
+      const headers: Array<keyof (typeof rows)[number]> = [
         "sessionId",
         "reservationExternalId",
         "reservationId",
@@ -690,7 +702,7 @@ export function createCsvReservationImportExportAdapter(): ReservationImportExpo
       return {
         fileName: `reservations-${input.sessionId}.csv`,
         mimeType: "text/csv",
-        body: toCsv(input.rows, headers)
+        body: toCsv(rows, headers)
       };
     },
     async exportParticipants(input) {

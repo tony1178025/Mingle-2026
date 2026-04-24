@@ -155,7 +155,7 @@ describe("internal real-event simulation", () => {
         const { tempDir, repository } = await bootRepository(createBaseSnapshot(), reservations);
         tempDirs.push(tempDir);
 
-        let latestSnapshot = await repository.getServerSessionSnapshot();
+        let latestSnapshot: SessionSnapshot = await repository.getServerSessionSnapshot();
         let latestVersion = latestSnapshot.version;
 
         const participantIds: string[] = [];

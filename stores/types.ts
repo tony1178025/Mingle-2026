@@ -2,6 +2,7 @@ import type { StateCreator } from "zustand";
 import type {
   AdminPanel,
   CheckinDraft,
+  CommandResult,
   ContentTemplateRecord,
   ContactExchangeMethod,
   CustomerTab,
@@ -67,7 +68,9 @@ export type ViewerSlice = {
 export type AdminSlice = {
   rotationPreview: RotationPreview | null;
   getExpectedVersion: () => number;
-  executeAdminCommandWithRetry: <T>(commandFactory: (expectedVersion: number) => MingleCommand) => Promise<T>;
+  executeAdminCommandWithRetry: (
+    commandFactory: (expectedVersion: number) => MingleCommand
+  ) => Promise<CommandResult>;
   setSessionState: (state: SessionOperationalState) => Promise<void>;
   triggerReveal: () => Promise<void>;
   toggleRevealSenders: (value: boolean) => Promise<void>;
@@ -90,9 +93,9 @@ export type AdminSlice = {
 
 export type ContentSlice = {
   contentLibrary: readonly ContentTemplateRecord[];
-  executeAdminContentCommandWithRetry: <T>(
+  executeAdminContentCommandWithRetry: (
     commandFactory: (expectedVersion: number) => MingleCommand
-  ) => Promise<T>;
+  ) => Promise<CommandResult>;
   activateContent: (templateId: string, targetTableId?: number | null, message?: string) => Promise<void>;
   clearContent: () => Promise<void>;
   publishAnnouncement: (message: string) => Promise<void>;
