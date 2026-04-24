@@ -11,23 +11,37 @@ import { getServerSessionSnapshot, sanitizeSnapshotForClient } from "@/lib/repos
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const snapshot = await getServerSessionSnapshot();
-  const customerSession = readCustomerSession(request);
-  const authorityValidation = customerSession
-    ? await validateCustomerSessionAgainstDbAuthority(customerSession)
-    : { valid: true as const };
-  const currentParticipantId = authorityValidation.valid
-    ? resolveCustomerSessionParticipantId(snapshot, customerSession)
-    : null;
-  const response = NextResponse.json({ data: sanitizeSnapshotForClient(snapshot), currentParticipantId });
+  try {
+    const snapshot = await getServerSessionSnapshot();
+    const customerSession = readCustomerSession(request);
+    const authorityValidation = customerSession
+      ? await validateCustomerSessionAgainstDbAuthority(customerSession)
+      : { valid: true as const };
+    const currentParticipantId = authorityValidation.valid
+      ? resolveCustomerSessionParticipantId(snapshot, customerSession)
+      : null;
+    const response = NextResponse.json({ data: sanitizeSnapshotForClient(snapshot), currentParticipantId });
 
-  if (
-    customerSession &&
-    (!authorityValidation.valid ||
-      !isCustomerSessionCompatibleWithSnapshot(snapshot, customerSession))
-  ) {
-    clearCustomerSession(response);
+    if (
+      customerSession &&
+      (!authorityValidation.valid ||
+        !isCustomerSessionCompatibleWithSnapshot(snapshot, customerSession))
+    ) {
+      clearCustomerSession(response);
+    }
+
+    return response;
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message.trim()
+        ? error.message
+        : "세션 스냅샷을 불러오지 못했습니다.";
+    return NextResponse.json(
+      {
+        error: message,
+        code: "SESSION_SNAPSHOT_LOAD_FAILED"
+      },
+      { status: 500 }
+    );
   }
-
-  return response;
 }

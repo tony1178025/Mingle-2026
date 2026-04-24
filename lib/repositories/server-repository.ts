@@ -1,5 +1,4 @@
-﻿import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { applyRotationPreview, generateRotationPreview } from "@/engine/rotation";
+﻿import { applyRotationPreview, generateRotationPreview } from "@/engine/rotation";
 import {
   CHECKIN_BLOCKED_MESSAGE,
   CHECKIN_REENTRY_MESSAGE,
@@ -10,6 +9,7 @@ import { getContentTemplate, isTemplateAllowedInPhase } from "@/features/content
 import {
   computeParticipantStatusMap,
   createAuditLog,
+  createSeedSnapshot,
   createId,
   isSessionExpired,
   MINGLE_CONSTANTS,
@@ -17,6 +17,7 @@ import {
   PROFILE_RULES,
   selectLeastCrowdedTable
 } from "@/lib/mingle";
+import { readFromDbAuthority } from "@/lib/repositories/authority-config";
 import { logHighFrequencyAction, logSuspiciousPattern } from "@/lib/authority-monitoring";
 import { getSessionAuthorityRepository } from "@/lib/repositories/authority-backend";
 import { getSessionContext as getExternalReservationSessionContext } from "@/lib/reservations/external-reservation-adapter";
@@ -58,6 +59,8 @@ const OPERATIONAL_STATE_TRANSITIONS: Record<string, readonly string[]> = {
   CLOSED: []
 };
 
+export const SESSION_SNAPSHOT_LOAD_FAILED_CODE = "SESSION_SNAPSHOT_LOAD_FAILED";
+
 const ADMIN_COMMAND_ALLOWLIST = new Set<string>([
   "admin.setSessionState",
   "admin.toggleReveal",
@@ -88,6 +91,36 @@ export const RESERVATION_LOOKUP_RULE: ReservationLookupRule = {
   notes: "Reservation grants eligibility only; participant is created only after QR check-in."
 };
 export const RESERVATION_ACTIVE_STATUSES = new Set<ReservationStatus>(["CONFIRMED", "CHECKED_IN"]);
+
+function isSnapshotFallbackAllowed() {
+  return process.env.MINGLE_ALLOW_SNAPSHOT_FALLBACK === "true";
+}
+
+function hasMissingSupabaseEnv() {
+  return (
+    readFromDbAuthority() &&
+    (!process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
+      !process.env.SUPABASE_SERVICE_ROLE_KEY?.trim())
+  );
+}
+
+function buildSnapshotLoadErrorMessage(error: unknown) {
+  if (hasMissingSupabaseEnv()) {
+    return "세션 스냅샷 로드 실패: Supabase 환경변수(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)를 확인해 주세요.";
+  }
+  if (error instanceof Error && error.message.trim()) {
+    return `세션 스냅샷 로드 실패: ${error.message}`;
+  }
+  return "세션 스냅샷 로드 실패: 저장소 상태를 확인해 주세요.";
+}
+
+function createSeedFallbackSnapshot() {
+  const seed = createSeedSnapshot();
+  return {
+    ...seed,
+    participantStatusMap: computeParticipantStatusMap(seed)
+  };
+}
 
 function isAdminCommand(command: MingleCommand): command is Extract<MingleCommand, { type: `admin.${string}` }> {
   return command.type.startsWith("admin.");
@@ -131,12 +164,23 @@ async function enforceSessionExpiry(snapshot: SessionSnapshot) {
 }
 
 export async function getServerSessionSnapshot() {
-  const snapshot = await getSessionAuthorityRepository().getSessionSnapshot();
-  const effectiveSnapshot = await enforceSessionExpiry(snapshot);
-  return {
-    ...effectiveSnapshot,
-    participantStatusMap: computeParticipantStatusMap(effectiveSnapshot)
-  };
+  try {
+    const snapshot = await getSessionAuthorityRepository().getSessionSnapshot();
+    const effectiveSnapshot = await enforceSessionExpiry(snapshot);
+    return {
+      ...effectiveSnapshot,
+      participantStatusMap: computeParticipantStatusMap(effectiveSnapshot)
+    };
+  } catch (error) {
+    if (isSnapshotFallbackAllowed()) {
+      console.error("[session/current] snapshot load failed; returning seed fallback", error);
+      return createSeedFallbackSnapshot();
+    }
+
+    const loadError = new Error(buildSnapshotLoadErrorMessage(error));
+    loadError.name = SESSION_SNAPSHOT_LOAD_FAILED_CODE;
+    throw loadError;
+  }
 }
 
 export function subscribeToSessionSnapshots(listener: (snapshot: SessionSnapshot) => void) {
