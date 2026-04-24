@@ -68,6 +68,7 @@ function resolveVisiblePanels(adminSession: AdminSessionRecord | null): AdminPan
 export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRecord | null }) {
   const hydrated = useMingleStore((state) => state.hydrated);
   const snapshot = useMingleStore((state) => state.snapshot);
+  const snapshotLoadErrorCode = useMingleStore((state) => state.snapshotLoadErrorCode);
   const adminPanel = useMingleStore((state) => state.adminPanel);
   const setAdminPanel = useMingleStore((state) => state.setAdminPanel);
   const rotationPreview = useMingleStore((state) => state.rotationPreview);
@@ -120,11 +121,31 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     [snapshot]
   );
 
-  if (!hydrated || !snapshot) {
+  if (!hydrated) {
     return (
       <main className="admin-shell">
         <div className="admin-stage">
           <Surface className="skeleton-block" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!snapshot) {
+    return (
+      <main className="admin-shell">
+        <div className="admin-stage">
+          <Surface>
+            <EmptyState
+              title="세션 정보를 불러오지 못했습니다."
+              description="잠시 후 새로고침하거나 관리자에게 문의해 주세요."
+            />
+            {snapshotLoadErrorCode ? (
+              <p className="field-help" style={{ marginTop: "0.5rem" }}>
+                오류 코드: {snapshotLoadErrorCode}
+              </p>
+            ) : null}
+          </Surface>
         </div>
       </main>
     );

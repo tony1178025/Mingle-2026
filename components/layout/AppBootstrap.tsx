@@ -14,7 +14,7 @@ export function AppBootstrap() {
     void syncFromRepository();
   });
 
-  const registerPwaServiceWorker = useEffectEvent(() => {
+  const disableLegacyServiceWorkers = useEffectEvent(() => {
     if (process.env.NODE_ENV !== "production") {
       return;
     }
@@ -23,7 +23,10 @@ export function AppBootstrap() {
       return;
     }
 
-    void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+      .catch(() => undefined);
   });
 
   useEffect(() => {
@@ -31,7 +34,7 @@ export function AppBootstrap() {
       void runHydrate();
     }
 
-    registerPwaServiceWorker();
+    disableLegacyServiceWorkers();
 
     let stopPolling: (() => void) | null = null;
     const stopRealtime = startSessionRealtime(handleSync, () => {
@@ -44,7 +47,7 @@ export function AppBootstrap() {
       stopRealtime();
       stopPolling?.();
     };
-  }, [handleSync, hydrate, registerPwaServiceWorker, runHydrate]);
+  }, [disableLegacyServiceWorkers, handleSync, hydrate, runHydrate]);
 
   return null;
 }

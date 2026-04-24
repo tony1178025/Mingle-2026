@@ -8,6 +8,10 @@ import type {
 } from "@/lib/repositories/authority-types";
 import type { SessionSnapshot } from "@/types/mingle";
 
+function isServerlessRuntime() {
+  return process.env.VERCEL === "1";
+}
+
 type FileAuthorityRepositoryOptions = {
   dataDir?: string;
   snapshotFile?: string;
@@ -25,6 +29,10 @@ export function createFileAuthorityRepository(
   const listeners = new Set<(snapshot: SessionSnapshot) => void>();
 
   async function getExistingSessionSnapshot(options: AuthorityReadOptions = {}) {
+    if (isServerlessRuntime()) {
+      return null;
+    }
+
     if (snapshotCache && !options.fresh) {
       return deepClone(snapshotCache);
     }
@@ -39,6 +47,12 @@ export function createFileAuthorityRepository(
   }
 
   async function persistSessionSnapshot(nextSnapshot: SessionSnapshot) {
+    if (isServerlessRuntime()) {
+      throw new Error(
+        "File authority persistence is disabled in serverless runtime. Use DB or memory authority."
+      );
+    }
+
     const normalized = normalizeAuthoritySnapshot(nextSnapshot);
     const persisted = {
       ...normalized,
@@ -57,6 +71,12 @@ export function createFileAuthorityRepository(
   }
 
   async function getSessionSnapshot(options: AuthorityReadOptions = {}) {
+    if (isServerlessRuntime()) {
+      throw new Error(
+        "File authority session reads are disabled in serverless runtime. Use DB or memory authority."
+      );
+    }
+
     const existingSnapshot = await getExistingSessionSnapshot(options);
     if (existingSnapshot) {
       return existingSnapshot;

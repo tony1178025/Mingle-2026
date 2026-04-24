@@ -17,10 +17,38 @@ import type {
 } from "@/lib/repositories/authority-types";
 import type { SessionSnapshot } from "@/types/mingle";
 
+export type AuthoritySource = "db" | "memory" | "file" | "unknown";
+
+let runtimeAuthoritySource: AuthoritySource = "unknown";
 let fileRepository: SessionAuthorityRepository | null = null;
 let dbRepository: DbAuthorityRepository | null = null;
 let authorityRepositoryOverride: SessionAuthorityRepository | null = null;
 let compositeRepository: SessionAuthorityRepository | null = null;
+
+export function isServerlessRuntime() {
+  return process.env.VERCEL === "1";
+}
+
+function hasSupabaseUrl() {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim());
+}
+
+function hasSupabaseServiceRoleKey() {
+  return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+}
+
+export function getAuthorityRuntimeDiagnostics() {
+  return {
+    source: runtimeAuthoritySource,
+    env: {
+      VERCEL: process.env.VERCEL ?? null,
+      USE_DB_AUTHORITY: process.env.USE_DB_AUTHORITY ?? null,
+      READ_FROM_DB: process.env.READ_FROM_DB ?? null,
+      hasSupabaseUrl: hasSupabaseUrl(),
+      hasSupabaseServiceRoleKey: hasSupabaseServiceRoleKey()
+    }
+  };
+}
 
 function getFileRepository() {
   fileRepository ??= createFileAuthorityRepository();
@@ -43,7 +71,6 @@ export function getDbAuthorityRepository() {
 function createCompositeAuthorityRepository(): SessionAuthorityRepository {
   const listeners = new Set<(snapshot: SessionSnapshot) => void>();
   let memorySnapshot: SessionSnapshot | null = null;
-  const isVercelServerless = process.env.VERCEL === "1";
 
   function notify(snapshot: SessionSnapshot) {
     for (const listener of listeners) {
@@ -52,6 +79,7 @@ function createCompositeAuthorityRepository(): SessionAuthorityRepository {
   }
 
   function readMemorySnapshot() {
+    runtimeAuthoritySource = "memory";
     return memorySnapshot ? deepClone(memorySnapshot) : null;
   }
 
@@ -67,42 +95,93 @@ function createCompositeAuthorityRepository(): SessionAuthorityRepository {
   return {
     kind: readFromDbAuthority() ? "db" : "file",
     async getExistingSessionSnapshot(options: AuthorityReadOptions = {}) {
-      const dbAuthority = getDbAuthorityRepository();
-      if (readFromDbAuthority() && dbAuthority) {
-        const dbSnapshot = await dbAuthority.getExistingSessionSnapshot(options);
-        if (dbSnapshot) {
-          return dbSnapshot;
+      try {
+        const dbAuthority = getDbAuthorityRepository();
+        if (readFromDbAuthority() && dbAuthority) {
+          try {
+            const dbSnapshot = await dbAuthority.getExistingSessionSnapshot(options);
+            if (dbSnapshot) {
+              runtimeAuthoritySource = "db";
+              upsertMemorySnapshot(dbSnapshot);
+              return dbSnapshot;
+            }
+          } catch (error) {
+            logAuthorityFallback({
+              reason: "db-read-error-fallback",
+              sessionId: process.env.MINGLE_ACTIVE_SESSION_ID ?? null
+            });
+            console.error("[authority] db read failed, fallback path engaged", error);
+          }
+
+          logAuthorityFallback({
+            reason: "db-missing-read-fallback",
+            sessionId: process.env.MINGLE_ACTIVE_SESSION_ID ?? null
+          });
         }
 
+        const memory = readMemorySnapshot();
+        if (memory) {
+          return memory;
+        }
+
+        if (isServerlessRuntime()) {
+          return createSeedMemorySnapshot();
+        }
+
+        const fileSnapshot = await getFileRepository().getExistingSessionSnapshot(options);
+        if (fileSnapshot) {
+          runtimeAuthoritySource = "file";
+          upsertMemorySnapshot(fileSnapshot);
+          return fileSnapshot;
+        }
+        return null;
+      } catch (error) {
         logAuthorityFallback({
-          reason: "db-missing-read-fallback",
+          reason: "existing-snapshot-read-error-fallback",
           sessionId: process.env.MINGLE_ACTIVE_SESSION_ID ?? null
         });
-      }
-
-      if (isVercelServerless) {
-        return readMemorySnapshot();
-      }
-
-      return getFileRepository().getExistingSessionSnapshot(options);
-    },
-    async getSessionSnapshot(options: AuthorityReadOptions = {}) {
-      const existingSnapshot = await this.getExistingSessionSnapshot(options);
-      if (existingSnapshot) {
-        return existingSnapshot;
-      }
-
-      if (isVercelServerless) {
+        console.error("[authority] getExistingSessionSnapshot fallback after error", error);
+        const memory = readMemorySnapshot();
+        if (memory) {
+          return memory;
+        }
         return createSeedMemorySnapshot();
       }
+    },
+    async getSessionSnapshot(options: AuthorityReadOptions = {}) {
+      try {
+        const existingSnapshot = await this.getExistingSessionSnapshot(options);
+        if (existingSnapshot) {
+          return existingSnapshot;
+        }
 
-      return getFileRepository().getSessionSnapshot(options);
+        if (isServerlessRuntime()) {
+          return createSeedMemorySnapshot();
+        }
+
+        const fileSnapshot = await getFileRepository().getSessionSnapshot(options);
+        runtimeAuthoritySource = "file";
+        upsertMemorySnapshot(fileSnapshot);
+        return fileSnapshot;
+      } catch (error) {
+        logAuthorityFallback({
+          reason: "session-snapshot-read-error-fallback",
+          sessionId: process.env.MINGLE_ACTIVE_SESSION_ID ?? null
+        });
+        console.error("[authority] getSessionSnapshot fallback after error", error);
+        const memory = readMemorySnapshot();
+        if (memory) {
+          return memory;
+        }
+        return createSeedMemorySnapshot();
+      }
     },
     async persistSessionSnapshot(nextSnapshot: SessionSnapshot) {
-      if (isVercelServerless) {
+      if (isServerlessRuntime()) {
         const dbAuthority = getDbAuthorityRepository();
         if (dbAuthority) {
           const dbSnapshot = await dbAuthority.persistSessionSnapshot(nextSnapshot);
+          runtimeAuthoritySource = "db";
           upsertMemorySnapshot(dbSnapshot);
           notify(dbSnapshot);
           return dbSnapshot;
@@ -118,6 +197,7 @@ function createCompositeAuthorityRepository(): SessionAuthorityRepository {
       }
 
       const fileSnapshot = await getFileRepository().persistSessionSnapshot(nextSnapshot);
+      runtimeAuthoritySource = "file";
       const dbAuthority = getDbAuthorityRepository();
 
       if (!dbAuthority) {
@@ -126,6 +206,7 @@ function createCompositeAuthorityRepository(): SessionAuthorityRepository {
       }
 
       const dbSnapshot = await dbAuthority.persistSessionSnapshot(nextSnapshot);
+      runtimeAuthoritySource = readFromDbAuthority() ? "db" : "file";
       await assertAuthorityConsistency({
         fileSnapshot,
         dbRepository: dbAuthority

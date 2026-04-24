@@ -789,9 +789,30 @@ export function CustomerApp() {
   const hydrated = useMingleStore((state) => state.hydrated);
   const participant = useMingleStore(selectCurrentParticipant);
   const snapshot = useMingleStore((state) => state.snapshot);
+  const snapshotLoadErrorCode = useMingleStore((state) => state.snapshotLoadErrorCode);
 
-  if (!hydrated || !snapshot) {
+  if (!hydrated) {
     return <LoadingView />;
+  }
+
+  if (!snapshot) {
+    return (
+      <main className="customer-shell" data-phase="CHECKIN">
+        <div className="customer-stage">
+          <Surface>
+            <EmptyState
+              title="세션 정보를 불러오지 못했습니다."
+              description="잠시 후 새로고침하거나 관리자에게 문의해 주세요."
+            />
+            {snapshotLoadErrorCode ? (
+              <p className="field-help" style={{ marginTop: "0.5rem" }}>
+                오류 코드: {snapshotLoadErrorCode}
+              </p>
+            ) : null}
+          </Surface>
+        </div>
+      </main>
+    );
   }
 
   if (!participant) {

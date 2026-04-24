@@ -22,6 +22,21 @@ import type { CommandResult, MingleCommand } from "@/types/mingle";
 
 export const runtime = "nodejs";
 
+function getRequiredEnvErrorCode() {
+  const requiresDbAuthority =
+    process.env.USE_DB_AUTHORITY === "true" || process.env.READ_FROM_DB === "true";
+  if (!requiresDbAuthority) {
+    return null;
+  }
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) {
+    return "MISSING_SUPABASE_URL";
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+    return "MISSING_SERVICE_ROLE_KEY";
+  }
+  return null;
+}
+
 function isCustomerMutationCommand(command: MingleCommand) {
   return command.type !== "customer.verifyCheckin";
 }
@@ -117,6 +132,17 @@ function attachCustomerSession(
 }
 
 export async function POST(request: NextRequest) {
+  const missingEnvCode = getRequiredEnvErrorCode();
+  if (missingEnvCode) {
+    return NextResponse.json(
+      {
+        code: missingEnvCode,
+        message: "Supabase 필수 환경변수가 누락되었습니다."
+      },
+      { status: 500 }
+    );
+  }
+
   try {
     const command = (await request.json()) as MingleCommand;
     const snapshot = await getServerSessionSnapshot();

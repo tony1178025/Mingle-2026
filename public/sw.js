@@ -66,7 +66,9 @@ async function networkFirst(request, fallbackPath) {
 
   try {
     const response = await fetch(request);
-    cache.put(request, response.clone());
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
     return response;
   } catch {
     const cachedResponse = await cache.match(request);
@@ -91,7 +93,9 @@ async function staleWhileRevalidate(request) {
   const cachedResponse = await cache.match(request);
   const networkPromise = fetch(request)
     .then((response) => {
-      cache.put(request, response.clone());
+      if (response.ok) {
+        cache.put(request, response.clone());
+      }
       return response;
     })
     .catch(() => undefined);

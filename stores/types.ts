@@ -18,6 +18,8 @@ import type {
 export type SessionSlice = {
   hydrated: boolean;
   snapshot: SessionSnapshot | null;
+  snapshotLoadErrorCode: string | null;
+  snapshotLoadErrorMessage: string | null;
   hydrate: () => Promise<void>;
   syncFromRepository: () => Promise<void>;
 };

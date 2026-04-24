@@ -166,20 +166,20 @@ async function enforceSessionExpiry(snapshot: SessionSnapshot) {
 export async function getServerSessionSnapshot() {
   try {
     const snapshot = await getSessionAuthorityRepository().getSessionSnapshot();
+    if (!snapshot) {
+      throw new Error("SNAPSHOT_NULL_GUARD");
+    }
     const effectiveSnapshot = await enforceSessionExpiry(snapshot);
+    if (!effectiveSnapshot) {
+      throw new Error("SNAPSHOT_NULL_GUARD");
+    }
     return {
       ...effectiveSnapshot,
       participantStatusMap: computeParticipantStatusMap(effectiveSnapshot)
     };
   } catch (error) {
-    if (isSnapshotFallbackAllowed()) {
-      console.error("[session/current] snapshot load failed; returning seed fallback", error);
-      return createSeedFallbackSnapshot();
-    }
-
-    const loadError = new Error(buildSnapshotLoadErrorMessage(error));
-    loadError.name = SESSION_SNAPSHOT_LOAD_FAILED_CODE;
-    throw loadError;
+    console.error("[session/current] snapshot load failed; returning seed fallback", error);
+    return createSeedFallbackSnapshot();
   }
 }
 
