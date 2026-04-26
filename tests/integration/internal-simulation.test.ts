@@ -82,7 +82,7 @@ function createProfileDraft(index: number): ProfileDraft {
   const isEven = index % 2 === 0;
   const surname = isEven ? "김" : "이";
   const name = isEven ? "민" : "지";
-  const suffix = (index % 100).toString().padStart(2, "0");
+  const suffix = index.toString().padStart(3, "0");
   return {
     nickname: `${surname}${name}${suffix}`,
     age: "29",

@@ -71,14 +71,20 @@ describe("paid-beta smoke flow", () => {
     });
     const manualId = commandResult.participantId;
     expect(manualId).toBeTruthy();
+    const targetTableId =
+      Array.from({ length: commandResult.snapshot.session.tableCount }, (_, idx) => idx + 1).find(
+        (tableId) =>
+          commandResult.snapshot.participants.filter((participant) => participant.tableId === tableId).length <
+          commandResult.snapshot.session.tableCapacity
+      ) ?? commandResult.snapshot.session.tableCount;
 
     commandResult = await repository.executeServerCommand({
       type: "admin.moveParticipant",
       participantId: manualId!,
-      toTableId: 2,
+      toTableId: targetTableId,
       expectedVersion: commandResult.snapshot.version
     });
-    expect(commandResult.snapshot.participants.find((p) => p.id === manualId)?.tableId).toBe(2);
+    expect(commandResult.snapshot.participants.find((p) => p.id === manualId)?.tableId).toBe(targetTableId);
 
     commandResult = await repository.executeServerCommand({
       type: "admin.setSessionState",

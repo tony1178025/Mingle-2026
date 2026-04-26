@@ -38,11 +38,13 @@ describe("db authority integration", () => {
   const originalAdminSecret = process.env.MINGLE_ADMIN_SESSION_SECRET;
   const originalCustomerSecret = process.env.MINGLE_CUSTOMER_SESSION_SECRET;
   const originalReadFromDb = process.env.READ_FROM_DB;
+  const originalAllowDbAuthorityInTests = process.env.MINGLE_TEST_ALLOW_DB_AUTHORITY;
 
   beforeEach(() => {
     process.env.MINGLE_ADMIN_SESSION_SECRET = "admin-session-secret";
     process.env.MINGLE_CUSTOMER_SESSION_SECRET = "customer-session-secret";
     process.env.READ_FROM_DB = "true";
+    process.env.MINGLE_TEST_ALLOW_DB_AUTHORITY = "true";
     setAdminUserStoreForTests(
       createInMemoryAdminUserStore({
         users: [
@@ -74,6 +76,7 @@ describe("db authority integration", () => {
     process.env.MINGLE_ADMIN_SESSION_SECRET = originalAdminSecret;
     process.env.MINGLE_CUSTOMER_SESSION_SECRET = originalCustomerSecret;
     process.env.READ_FROM_DB = originalReadFromDb;
+    process.env.MINGLE_TEST_ALLOW_DB_AUTHORITY = originalAllowDbAuthorityInTests;
     setAdminUserStoreForTests(null);
     setSessionAuthorityRepositoryForTests(null);
   });

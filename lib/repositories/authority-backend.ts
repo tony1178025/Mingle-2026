@@ -198,6 +198,7 @@ function createCompositeAuthorityRepository(): SessionAuthorityRepository {
 
       const fileSnapshot = await getFileRepository().persistSessionSnapshot(nextSnapshot);
       runtimeAuthoritySource = "file";
+      upsertMemorySnapshot(fileSnapshot);
       const dbAuthority = getDbAuthorityRepository();
 
       if (!dbAuthority) {
@@ -213,6 +214,7 @@ function createCompositeAuthorityRepository(): SessionAuthorityRepository {
       });
 
       const resolvedSnapshot = readFromDbAuthority() ? dbSnapshot : fileSnapshot;
+      upsertMemorySnapshot(resolvedSnapshot);
       notify(resolvedSnapshot);
       return resolvedSnapshot;
     },

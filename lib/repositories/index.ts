@@ -1,17 +1,17 @@
 import { createHttpRepository } from "@/lib/repositories/http-repository";
 import type {
-  CommandResult,
   GrantHeartsRequest,
   GrantHeartsResponse,
   MingleCommand,
   ReservationSessionContextRequest,
+  SessionCommandResponse,
   SessionSnapshotResponse
 } from "@/types/mingle";
 
 export interface MingleRepository {
   getSessionSnapshot(): Promise<SessionSnapshotResponse>;
-  getReservationSessionContext(request: ReservationSessionContextRequest): Promise<CommandResult>;
-  executeCommand(command: MingleCommand): Promise<CommandResult>;
+  getReservationSessionContext(request: ReservationSessionContextRequest): Promise<SessionCommandResponse>;
+  executeCommand(command: MingleCommand): Promise<SessionCommandResponse>;
   grantHearts(request: GrantHeartsRequest): Promise<GrantHeartsResponse>;
 }
 

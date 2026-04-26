@@ -75,6 +75,7 @@ export type AuditAction =
   | "POLL_SYNC"
   | "PARTICIPANT_MOVED"
   | "MANUAL_PARTICIPANT_CREATED"
+  | "RESERVATION_IMPORT_APPLIED"
   | "CONTACT_EXCHANGE_UPDATED";
 
 export interface SessionRecord {
@@ -325,11 +326,58 @@ export interface SessionSnapshot {
   contactExchanges?: ContactExchangeRecord[];
   contactExchangeStats?: ContactExchangeStats;
   outboxEvents?: OutboxEventRecord[];
+  reservations?: ReservationBridgeRecord[];
   announcements: AnnouncementRecord[];
   rotationInstruction: RotationInstructionState | null;
   version: number;
   participantStatusMap?: Record<string, ParticipantStatus>;
 }
+
+export interface CustomerParticipantView {
+  id: string;
+  sessionId: string;
+  branchId: string;
+  nickname: string;
+  gender: ParticipantGender;
+  age: number;
+  jobCategory: string;
+  job: string;
+  photoUrl: string | null;
+  heightCm: number;
+  animalType: string;
+  energyType: EnergyType;
+  tableId: number;
+  round2Attendance: Round2Attendance;
+  receivedHearts: number;
+  sentHearts: number;
+  profileViews: number;
+  heartsRemaining: number;
+  metParticipantIds: string[];
+  encounterHistory: ParticipantEncounterRecord[];
+  likedParticipantIds: string[];
+  likedByParticipantIds: string[];
+  joinedAt: string;
+  lastActiveAt: string | null;
+}
+
+export interface CustomerSessionView {
+  session: SessionRecord;
+  participants: CustomerParticipantView[];
+  hearts: HeartRecord[];
+  activeContentIds: string[];
+  liveContent: LiveContentRecord | null;
+  contentResponses: ContentResponseRecord[];
+  anonymousMessages: AnonymousMessageRecord[];
+  contactExchanges?: ContactExchangeRecord[];
+  contactExchangeStats?: ContactExchangeStats;
+  announcements: AnnouncementRecord[];
+  rotationInstruction: RotationInstructionState | null;
+  version: number;
+  participantStatusMap?: Record<string, ParticipantStatus>;
+}
+
+export type AdminSessionView = SessionSnapshot;
+export type SessionView = CustomerSessionView | AdminSessionView;
 
 export interface ParsedCheckinQr {
   branchId: string;
@@ -391,13 +439,29 @@ export type ReservationStatus =
   | "CHECKED_IN";
 
 export interface ReservationBridgeRecord {
+  source: "NAVER" | "MANUAL" | "IMWEB" | "CSV";
   sessionId: string;
   branchId: string;
   eventId: string;
   eventDate: string;
   reservationId: string;
   reservationExternalId: string | null;
+  slot?: "1부" | "2부" | "1+2부";
+  name?: string | null;
   phone: string | null;
+  normalizedPhone?: string | null;
+  gender?: ParticipantGender | null;
+  birthYear?: number | null;
+  age?: number | null;
+  paymentStatus?: string | null;
+  reservationStatus?: string | null;
+  checkinStatus?: "PENDING" | "CHECKED_IN";
+  memo?: string | null;
+  privacyConsent?: boolean | null;
+  marketingConsent?: boolean | null;
+  rawRow?: Record<string, unknown> | null;
+  importedAt?: string;
+  checkinParticipantId?: string | null;
   status: ReservationStatus;
   eligible: boolean;
 }
@@ -546,6 +610,50 @@ export interface ProfileDraft {
   heightCm: string;
   animalType: string;
   energyType: EnergyType | "";
+  fullName?: string;
+  contact?: string;
+  birthYear?: string;
+  onboardingGoal?: string;
+  idealType1?: string;
+  idealType2?: string;
+  idealType3?: string;
+  consentPrivacy?: boolean;
+  consentPortrait?: boolean;
+  customJobInput?: string;
+}
+
+export interface StaffRecommendationSummary {
+  recommended: boolean;
+  grade: "S" | "A" | "B" | "C" | null;
+  tags: string[];
+  memo: string | null;
+}
+
+export interface BranchCustomerProfileSummary {
+  customerId: string;
+  branchId: string;
+  branchVisitCount: number;
+  branchReceivedHearts: number;
+  branchMutualMatches: number;
+  staffRecommendation: StaffRecommendationSummary;
+}
+
+export interface CustomerProfileSummary {
+  customerId: string;
+  name: string;
+  phone: string | null;
+  gender: ParticipantGender;
+  age: number;
+  heightCm: number;
+  job: string;
+  totalVisitCount: number;
+  totalReceivedHearts: number;
+  totalMutualMatches: number;
+  totalContactExchanges: number;
+  globalPopularityScore: number | null;
+  isBlacklisted: boolean;
+  hasReportHistory: boolean;
+  branchProfiles: BranchCustomerProfileSummary[];
 }
 
 export interface ProfileUploadEnabledResponse {
@@ -611,6 +719,7 @@ export interface RotationTablePreview {
   afterEnergyBalance: number;
   notes: string[];
   warnings: string[];
+  explanations?: string[];
   moves: RotationMovePreview[];
 }
 
@@ -809,13 +918,20 @@ export interface CustomerSessionRecord {
 }
 
 export interface SessionSnapshotResponse {
-  data: SessionSnapshot;
+  data: SessionView;
   currentParticipantId: string | null;
 }
 
 export interface SessionSyncEvent {
   type: "snapshot";
-  snapshot: SessionSnapshot;
+  snapshot: SessionView;
+}
+
+export interface SessionCommandResponse {
+  snapshot: SessionView;
+  participantId?: string | null;
+  rotationPreview?: RotationPreview | null;
+  checkinResolution?: CheckinResolution | null;
 }
 
 export interface CommandResult {
@@ -838,7 +954,7 @@ export interface GrantHeartsResponse {
 export interface ReservationSessionContextRequest {
   branchId: string;
   tableId: number;
-  checkinCode: string;
+  checkinCode?: string;
   participantId?: string | null;
 }
 
@@ -965,6 +1081,11 @@ export type MingleCommand =
       nickname: string;
       tableId: number;
       gender: ParticipantGender;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.importReservations";
+      rows: ReservationBridgeRecord[];
       expectedVersion?: number;
     };
 

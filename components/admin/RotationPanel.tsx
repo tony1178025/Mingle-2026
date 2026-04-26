@@ -31,10 +31,10 @@ function TableCard({ table }: { table: RotationTablePreview }) {
       />
 
       <div className="compact-stack">
-        <TableSignal label="Gender gap" before={table.beforeGenderBalance} after={table.afterGenderBalance} />
-        <TableSignal label="Repeat pairs" before={table.beforeRepeatMeetings} after={table.afterRepeatMeetings} />
-        <TableSignal label="Popularity load" before={table.beforePopularityLoad} after={table.afterPopularityLoad} />
-        <TableSignal label="Vibe" before={table.beforeVibeScore} after={table.afterVibeScore} />
+        <TableSignal label="성비 편차" before={table.beforeGenderBalance} after={table.afterGenderBalance} />
+        <TableSignal label="이전 테이블 중복" before={table.beforeRepeatMeetings} after={table.afterRepeatMeetings} />
+        <TableSignal label="상위 반응 집중" before={table.beforePopularityLoad} after={table.afterPopularityLoad} />
+        <TableSignal label="테이블 분위기" before={table.beforeVibeScore} after={table.afterVibeScore} />
       </div>
 
       <div className="badge-row">
@@ -49,6 +49,16 @@ function TableCard({ table }: { table: RotationTablePreview }) {
           </Badge>
         ))}
       </div>
+
+      {(table.explanations ?? []).length ? (
+        <div className="compact-stack">
+          {(table.explanations ?? []).map((line: string) => (
+            <p key={`${table.tableId}-${line}`} className="field-help">
+              {line}
+            </p>
+          ))}
+        </div>
+      ) : null}
 
       {table.moves.length ? (
         <div className="rotation-move-list">
@@ -88,17 +98,22 @@ export function RotationPanel({
     <div className="admin-main-column">
       <Surface className="inner-surface-highlight">
         <SectionHeader
-          eyebrow="ROTATION"
-          title="Preview before apply"
-          description="Gender balance, repeat avoidance, popularity spread, and table vibe are scored in one preview."
+          eyebrow="좌석 추천"
+          title="ROUND_2 추천안 미리보기"
+          description="자동 적용되지 않습니다. 추천 생성 -> 다시 섞기 -> 적용 순서로 운영자가 직접 결정합니다."
           actions={
             preview ? (
-              <Button onClick={() => void onApply()} data-testid="admin-apply-rotation">
-                Apply preview
-              </Button>
+              <div className="button-row">
+                <Button variant="secondary" onClick={() => void onGenerate()} data-testid="admin-reshuffle-rotation">
+                  다시 섞기
+                </Button>
+                <Button onClick={() => void onApply()} data-testid="admin-apply-rotation">
+                  적용
+                </Button>
+              </div>
             ) : (
               <Button onClick={() => void onGenerate()} data-testid="admin-generate-rotation">
-                Generate preview
+                추천 생성
               </Button>
             )
           }
@@ -108,19 +123,19 @@ export function RotationPanel({
           <>
             <div className="stats-row">
               <div className="stat-chip">
-                <strong>Quality</strong>
+                <strong>추천 점수</strong>
                 <span>
                   {preview.overallBeforeQuality} {"->"} {preview.overallAfterQuality}
                 </span>
               </div>
               <div className="stat-chip">
-                <strong>Heat</strong>
+                <strong>분산 지표</strong>
                 <span>
                   {preview.overallBeforeHeat} {"->"} {preview.overallAfterHeat}
                 </span>
               </div>
               <div className="stat-chip">
-                <strong>Fairness</strong>
+                <strong>총점</strong>
                 <span>{preview.fairnessDelta}</span>
               </div>
             </div>
@@ -153,8 +168,8 @@ export function RotationPanel({
           </>
         ) : (
           <EmptyState
-            title="No preview yet"
-            description="Generate the next round assignment before applying rotation."
+            title="추천안이 아직 없습니다."
+            description="추천 생성 버튼을 눌러 ROUND_2 좌석 추천안을 확인해주세요."
           />
         )}
       </Surface>

@@ -7,11 +7,12 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit --incremental false",
     "diagnose:production": "node ./scripts/diagnose-production.mjs",
     "diagnose:prod": "node ./scripts/diagnose-production.mjs",
     "backfill:db-authority": "node --experimental-strip-types ./scripts/backfill-db-authority.ts",
     "seed:admin-users": "node --experimental-strip-types ./scripts/seed-admin-users.ts",
+    "check:r2": "node ./scripts/check-r2-env.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"

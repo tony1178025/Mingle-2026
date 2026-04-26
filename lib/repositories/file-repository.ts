@@ -21,8 +21,8 @@ type FileAuthorityRepositoryOptions = {
 export function createFileAuthorityRepository(
   options: FileAuthorityRepositoryOptions = {}
 ): SessionAuthorityRepository {
-  const dataDir = options.dataDir ?? path.join(process.cwd(), ".mingle-data");
-  const snapshotFile = options.snapshotFile ?? path.join(dataDir, "session.json");
+  const resolveDataDir = () => options.dataDir ?? path.join(process.cwd(), ".mingle-data");
+  const resolveSnapshotFile = () => options.snapshotFile ?? path.join(resolveDataDir(), "session.json");
   const createSnapshot = options.createSnapshot ?? createSeedSnapshot;
 
   let snapshotCache: SessionSnapshot | null = null;
@@ -38,7 +38,7 @@ export function createFileAuthorityRepository(
     }
 
     try {
-      const raw = await readFile(snapshotFile, "utf8");
+      const raw = await readFile(resolveSnapshotFile(), "utf8");
       snapshotCache = normalizeAuthoritySnapshot(JSON.parse(raw) as SessionSnapshot);
       return deepClone(snapshotCache);
     } catch {
@@ -59,8 +59,8 @@ export function createFileAuthorityRepository(
       version: normalized.version + 1
     };
 
-    await mkdir(dataDir, { recursive: true });
-    await writeFile(snapshotFile, JSON.stringify(persisted, null, 2), "utf8");
+    await mkdir(resolveDataDir(), { recursive: true });
+    await writeFile(resolveSnapshotFile(), JSON.stringify(persisted, null, 2), "utf8");
     snapshotCache = deepClone(persisted);
 
     for (const listener of listeners) {

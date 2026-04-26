@@ -4,11 +4,11 @@ import { useState } from "react";
 import { Button, MetricCard, SectionHeader, Surface } from "@/components/shared/ui";
 import type { SessionOperationalState, SessionSnapshot } from "@/types/mingle";
 
-const SESSION_STATE_ACTIONS: Array<{ state: SessionOperationalState; label: string; requiresConfirm?: boolean }> = [
+const SESSION_STATE_ACTIONS: Array<{ state: SessionOperationalState; label: string }> = [
   { state: "ROUND_1", label: "1라운드 시작" },
   { state: "BREAK", label: "휴식" },
-  { state: "ROUND_2", label: "2라운드 시작", requiresConfirm: true },
-  { state: "CLOSED", label: "세션 종료", requiresConfirm: true }
+  { state: "ROUND_2", label: "2라운드 시작" },
+  { state: "CLOSED", label: "세션 종료" }
 ];
 
 export function LiveOpsControls({
@@ -45,15 +45,13 @@ export function LiveOpsControls({
               key={action.state}
               variant={snapshot.session.phase === action.state ? "primary" : "ghost"}
               onClick={() => {
-                if (action.requiresConfirm) {
-                  const confirmed = window.confirm(
-                    action.state === "CLOSED"
-                      ? "세션을 종료하면 다시 열 수 없습니다. 진행할까요?"
-                      : "2라운드를 시작할까요?"
-                  );
-                  if (!confirmed) {
-                    return;
-                  }
+                const confirmed = window.confirm(
+                  action.state === "CLOSED"
+                    ? "세션을 종료하면 다시 열 수 없습니다. 전환할까요?"
+                    : `${action.label}로 상태를 전환할까요?`
+                );
+                if (!confirmed) {
+                  return;
                 }
                 void onSetSessionState(action.state);
               }}
@@ -108,6 +106,10 @@ export function LiveOpsControls({
         <Button
           block
           onClick={async () => {
+            const confirmed = window.confirm("공지 노출은 고객 화면에 즉시 반영됩니다. 발행할까요?");
+            if (!confirmed) {
+              return;
+            }
             await onPublishAnnouncement(announcement);
             setAnnouncement("");
           }}

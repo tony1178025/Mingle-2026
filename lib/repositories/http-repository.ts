@@ -1,9 +1,9 @@
 import type {
-  CommandResult,
   GrantHeartsRequest,
   GrantHeartsResponse,
   MingleCommand,
   ReservationSessionContextRequest,
+  SessionCommandResponse,
   SessionSnapshotResponse
 } from "@/types/mingle";
 import type { MingleRepository } from "@/lib/repositories";
@@ -43,7 +43,7 @@ export function createHttpRepository(): MingleRepository {
         body: JSON.stringify(request)
       });
 
-      return parseJson<CommandResult>(response);
+      return parseJson<SessionCommandResponse>(response);
     },
 
     async executeCommand(command: MingleCommand) {
@@ -56,7 +56,7 @@ export function createHttpRepository(): MingleRepository {
         body: JSON.stringify(command)
       });
 
-      return parseJson<CommandResult>(response);
+      return parseJson<SessionCommandResponse>(response);
     },
 
     async grantHearts(request: GrantHeartsRequest) {

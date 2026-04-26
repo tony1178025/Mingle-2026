@@ -202,7 +202,7 @@ export const createCheckinSlice: StoreSlice<CheckinSlice> = (set, get) => ({
           : 1,
         checkinDraft: createEmptyCheckinDraft(),
         profileDraft: createEmptyProfileDraft(),
-        toast: createToast("success", "입장이 완료되었습니다.")
+        toast: createToast("success", "이제 참여가 시작됩니다. 자리에서 대화를 시작해주세요.")
       });
       return true;
     } catch (error) {

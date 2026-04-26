@@ -56,7 +56,7 @@ export function ReportsPanel({
                 <div key={report.id} className="compact-row report-row">
                   <div>
                     <strong>
-                      {reporter?.nickname ?? "?????놁쓬"} ??{target?.nickname ?? "?????놁쓬"}
+                      {reporter?.nickname ?? "이름 없음"} → {target?.nickname ?? "이름 없음"}
                     </strong>
                     <span>{report.reason}</span>
                     <span>{report.details}</span>
@@ -72,19 +72,37 @@ export function ReportsPanel({
                     {target ? (
                       <Button
                         variant={blacklistEntry ? "secondary" : "danger"}
-                        onClick={() =>
+                        onClick={() => {
+                          const blocked = !blacklistEntry;
+                          const confirmed = window.confirm(
+                            blocked
+                              ? "해당 참가자를 운영 제한 처리할까요?"
+                              : "운영 제한을 해제할까요?"
+                          );
+                          if (!confirmed) {
+                            return;
+                          }
                           void onSetBlacklistStatus(
                             target.id,
-                            !blacklistEntry,
+                            blocked,
                             blacklistEntry ? undefined : `신고 사유: ${report.reason}`
-                          )
-                        }
+                          );
+                        }}
                       >
                         {blacklistEntry ? "차단 해제" : "차단"}
                       </Button>
                     ) : null}
                     {report.status !== "RESOLVED" ? (
-                      <Button variant="secondary" onClick={() => void onResolve(report.id)}>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          const confirmed = window.confirm("이 신고를 처리 완료로 변경할까요?");
+                          if (!confirmed) {
+                            return;
+                          }
+                          void onResolve(report.id);
+                        }}
+                      >
                         처리 완료
                       </Button>
                     ) : null}

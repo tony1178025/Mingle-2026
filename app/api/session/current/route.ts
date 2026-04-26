@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_SESSION_COOKIE, readAdminSessionValue } from "@/lib/admin-auth";
 import {
   clearCustomerSession,
   isCustomerSessionCompatibleWithSnapshot,
@@ -7,13 +8,16 @@ import {
   validateCustomerSessionAgainstDbAuthority
 } from "@/lib/customer-session";
 import { getAuthorityRuntimeDiagnostics } from "@/lib/repositories/authority-backend";
-import { getServerSessionSnapshot, sanitizeSnapshotForClient } from "@/lib/repositories/server-repository";
+import {
+  getServerSessionSnapshot,
+  sanitizeSnapshotForAdmin,
+  sanitizeSnapshotForCustomer
+} from "@/lib/repositories/server-repository";
 
 export const runtime = "nodejs";
 
 function getRequiredEnvErrorCode() {
-  const requiresDbAuthority =
-    process.env.USE_DB_AUTHORITY === "true" || process.env.READ_FROM_DB === "true";
+  const requiresDbAuthority = process.env.USE_DB_AUTHORITY === "true";
   if (!requiresDbAuthority) {
     return null;
   }
@@ -43,6 +47,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const snapshot = await getServerSessionSnapshot();
+    const adminSession = readAdminSessionValue(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+    const responseSnapshot = adminSession
+      ? sanitizeSnapshotForAdmin(snapshot)
+      : sanitizeSnapshotForCustomer(snapshot);
     const customerSession = readCustomerSession(request);
     const authorityValidation = customerSession
       ? await validateCustomerSessionAgainstDbAuthority(customerSession)
@@ -50,7 +58,7 @@ export async function GET(request: NextRequest) {
     const currentParticipantId = authorityValidation.valid
       ? resolveCustomerSessionParticipantId(snapshot, customerSession)
       : null;
-    const response = NextResponse.json({ data: sanitizeSnapshotForClient(snapshot), currentParticipantId });
+    const response = NextResponse.json({ data: responseSnapshot, currentParticipantId });
     response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
     if (

@@ -142,8 +142,8 @@ describe("manual participant flow and table state classification", () => {
     expect(created?.reservationId).toBeNull();
     expect(created?.checkinMode).toBe("staff");
     expect(created?.tableId).toBe(2);
-    expect(created?.lastActiveAt).toBeNull();
-    expect(created ? result.snapshot.participantStatusMap?.[created.id] : null).toBe("IDLE");
+    expect(created?.lastActiveAt).toBeTruthy();
+    expect(created ? result.snapshot.participantStatusMap?.[created.id] : null).toBe("ACTIVE");
     expect(result.snapshot.version).toBeGreaterThan(baseSnapshot.version);
   }, 30000);
 
@@ -157,16 +157,18 @@ describe("manual participant flow and table state classification", () => {
       tableId: 1,
       gender: "M"
     });
+    expect(createdResult.participantId).toBeTruthy();
     const created = createdResult.snapshot.participants.find((p) => p.nickname === "manual-move");
     expect(created).toBeDefined();
+    const createdParticipantId = createdResult.participantId ?? created!.id;
 
     const moved = await repository.executeServerCommand({
       type: "admin.moveParticipant",
-      participantId: created!.id,
+      participantId: createdParticipantId,
       toTableId: 3
     });
 
-    expect(moved.snapshot.participants.find((p) => p.id === created!.id)?.tableId).toBe(3);
+    expect(moved.snapshot.participants.find((p) => p.id === createdParticipantId)?.tableId).toBe(3);
   }, 30000);
 
   it("classifies table states from participant status counts", () => {

@@ -15,6 +15,9 @@ import type {
   ParticipantRow,
   ParticipantStatus,
   ProfileDraft,
+  CustomerProfileSummary,
+  BranchCustomerProfileSummary,
+  StaffRecommendationSummary,
   ReportRecord,
   ReportRow,
   ContactExchangeRecord,
@@ -54,11 +57,35 @@ export const MINGLE_CONSTANTS = {
   initialHearts: 3
 } as const;
 
+export const STAFF_RECOMMENDATION_TAGS = [
+  "추천 고객",
+  "재초대 후보",
+  "분위기 메이커",
+  "대화 리드형",
+  "외모 반응 좋음",
+  "매너 좋음",
+  "밸런스 카드",
+  "주의 필요"
+] as const;
+
 // Presence threshold: if lastActiveAt is older than this, participant is considered physically gone.
 // Offline events run 2–3 hours; 60 min without any app interaction is a reliable gone signal.
 // IDLE is reserved for participants whose lastActiveAt is null (never used the app — display-only,
 // no operational weight). The 8–30 min "IDLE band" was wrong for offline presence.
 export const PARTICIPANT_GONE_THRESHOLD_MS = 60 * 60 * 1000;
+
+export const ADMIN_DEFAULT_CONFIG = {
+  tableCapacity: MINGLE_CONSTANTS.tableCapacity,
+  initialHearts: MINGLE_CONSTANTS.initialHearts,
+  rotationDeadlineMinutes: Math.round(MINGLE_CONSTANTS.rotationInstructionDeadlineMs / 60000),
+  presenceGoneThresholdMinutes: Math.round(PARTICIPANT_GONE_THRESHOLD_MS / 60000),
+  announcementTemplateId: MINGLE_CONSTANTS.announcementTemplateId,
+  defaultProfileImagePaths: {
+    male: "/avatars/male-default.png",
+    female: "/avatars/female-default.png",
+    unknown: "/avatars/default.png"
+  }
+} as const;
 
 export function computeParticipantStatusMap(
   snapshot: SessionSnapshot,
@@ -616,7 +643,17 @@ export function createEmptyProfileDraft(): ProfileDraft {
     photoUrl: "",
     heightCm: "",
     animalType: "",
-    energyType: ""
+    energyType: "",
+    fullName: "",
+    contact: "",
+    birthYear: "",
+    onboardingGoal: "",
+    idealType1: "",
+    idealType2: "",
+    idealType3: "",
+    consentPrivacy: false,
+    consentPortrait: false,
+    customJobInput: ""
   };
 }
 
@@ -730,6 +767,63 @@ export function computeAdminKpis(tableSummaries: TableSummary[], participants: P
     coldTables: tableSummaries.filter((table) => table.heat <= 8).length,
     highValueParticipants: participants.filter((participant) => participant.isHighValue).length
   };
+}
+
+export function buildCustomerProfileSummaries(snapshot: SessionSnapshot): CustomerProfileSummary[] {
+  const blacklistIds = new Set((snapshot.blacklist ?? []).map((entry) => entry.participantId));
+  const reportTargetIds = new Set(snapshot.reports.map((report) => report.targetId));
+  const pairKeys = new Set<string>();
+  for (const heart of snapshot.hearts) {
+    const reverse = snapshot.hearts.some(
+      (next) => next.senderId === heart.recipientId && next.recipientId === heart.senderId
+    );
+    if (reverse) {
+      pairKeys.add([heart.senderId, heart.recipientId].sort().join(":"));
+    }
+  }
+
+  return snapshot.participants.map((participant) => {
+    const mutualMatches = Array.from(pairKeys).filter((pairKey) =>
+      pairKey.split(":").includes(participant.id)
+    ).length;
+    const branchProfile: BranchCustomerProfileSummary = {
+      customerId: participant.id,
+      branchId: participant.branchId,
+      branchVisitCount: 1,
+      branchReceivedHearts: participant.receivedHearts,
+      branchMutualMatches: mutualMatches,
+      staffRecommendation: {
+        recommended: false,
+        grade: null,
+        tags: [],
+        memo: null
+      } satisfies StaffRecommendationSummary
+    };
+
+    return {
+      customerId: participant.id,
+      name: participant.nickname,
+      phone: normalizePhoneNumber(participant.phone),
+      gender: participant.gender,
+      age: participant.age,
+      heightCm: participant.heightCm,
+      job: participant.job,
+      totalVisitCount: 1,
+      totalReceivedHearts: participant.receivedHearts,
+      totalMutualMatches: mutualMatches,
+      totalContactExchanges: (snapshot.contactExchanges ?? []).filter(
+        (exchange) =>
+          exchange.status === "COMPLETED" &&
+          (exchange.participantAId === participant.id || exchange.participantBId === participant.id)
+      ).length,
+      globalPopularityScore: Number.isFinite(participant.popularityScore)
+        ? participant.popularityScore
+        : null,
+      isBlacklisted: blacklistIds.has(participant.id),
+      hasReportHistory: reportTargetIds.has(participant.id),
+      branchProfiles: [branchProfile]
+    } satisfies CustomerProfileSummary;
+  });
 }
 
 export function findParticipant(

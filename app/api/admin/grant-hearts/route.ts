@@ -7,7 +7,7 @@ import {
 import {
   getServerSessionSnapshot,
   grantHeartsByAdmin,
-  sanitizeSnapshotForClient
+  sanitizeSnapshotForAdmin
 } from "@/lib/repositories/server-repository";
 import type { GrantHeartsRequest } from "@/types/mingle";
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const result = await grantHeartsByAdmin(body.participantId, body.heartsToAdd);
     return NextResponse.json({
       ...result,
-      snapshot: sanitizeSnapshotForClient(result.snapshot)
+      snapshot: sanitizeSnapshotForAdmin(result.snapshot)
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "하트 지급에 실패했습니다.";

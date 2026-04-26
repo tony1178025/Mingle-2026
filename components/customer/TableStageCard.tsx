@@ -43,7 +43,7 @@ export function TableStageCard({
     return (
       <Surface className="table-stage-card">
         <SectionHeader
-          eyebrow="TABLE STAGE"
+          eyebrow="테이블 진행"
           title={`${participant.nickname}님, 지금은 테이블 대화 시간입니다`}
           description="다음 운영 미션이 열릴 때까지 지금 테이블 대화를 이어가면 됩니다."
         />
@@ -75,10 +75,22 @@ export function TableStageCard({
   return (
     <Surface className={`table-stage-card table-stage-${liveContent.kind}`}>
       <SectionHeader
-        eyebrow="LIVE TABLE"
+        eyebrow="현장 미션"
         title={liveContent.title}
         description={liveContent.description}
-        actions={<Badge tone={toneForContent(liveContent.kind)}>{liveContent.kind.toUpperCase()}</Badge>}
+        actions={
+          <Badge tone={toneForContent(liveContent.kind)}>
+            {liveContent.kind === "announcement"
+              ? "공지"
+              : liveContent.kind === "nudge"
+                ? "유도"
+                : liveContent.kind === "vote"
+                  ? "투표"
+                  : liveContent.kind === "anonymous"
+                    ? "익명"
+                    : "질문"}
+          </Badge>
+        }
       />
       <div className="compact-row">
         <strong>참여 수</strong>

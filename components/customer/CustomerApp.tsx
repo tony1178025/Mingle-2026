@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ProfileFormFields } from "@/components/customer/ProfileFormFields";
 import { RevealProgressCard } from "@/components/customer/RevealProgressCard";
 import { RotationInstructionModal } from "@/components/customer/RotationInstructionModal";
@@ -17,8 +17,8 @@ import {
   isRotationInstructionActive
 } from "@/engine/content";
 import { buildRevealState } from "@/engine/reveal";
-import { createCheckinCopy } from "@/features/checkin/model";
-import { cn, formatTableName, REPORT_REASONS } from "@/lib/mingle";
+import { cn, createToast, formatTableName, REPORT_REASONS } from "@/lib/mingle";
+import { parseCheckinQrValue } from "@/features/checkin/model";
 import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStore";
 import type { ContactExchangeMethod, CustomerTab, ParticipantRecord } from "@/types/mingle";
 
@@ -69,11 +69,13 @@ function OnboardingView() {
   const snapshot = useMingleStore((state) => state.snapshot);
   const checkinDraft = useMingleStore((state) => state.checkinDraft);
   const profileDraft = useMingleStore((state) => state.profileDraft);
-  const updateCheckinValue = useMingleStore((state) => state.updateCheckinValue);
   const verifyCheckin = useMingleStore((state) => state.verifyCheckin);
+  const updateCheckinValue = useMingleStore((state) => state.updateCheckinValue);
   const updateProfileDraft = useMingleStore((state) => state.updateProfileDraft);
   const completeProfile = useMingleStore((state) => state.completeProfile);
   const onboardingProfileUploadSubjectRef = useRef("");
+  const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
+  const hasAutoRequestedRef = useRef(false);
   if (!onboardingProfileUploadSubjectRef.current) {
     onboardingProfileUploadSubjectRef.current =
       globalThis.crypto?.randomUUID?.() ??
@@ -86,21 +88,55 @@ function OnboardingView() {
     return <LoadingView />;
   }
 
-  const copy = createCheckinCopy();
-  const reservationLabel =
-    checkinDraft.resolution?.reservationLabel ?? checkinDraft.resolution?.reservationId ?? null;
   const branchName = snapshot.session.branchName?.trim() ?? "";
   const sessionName = snapshot.session.name?.trim() ?? "";
   const hasSessionContext = Boolean(branchName && sessionName);
-  const profileProgressText =
-    checkinDraft.flowState === "SUCCESS" ? "입장까지 1단계 남았어요" : "기본 정보 입력 중";
+  const hasEntryContext = checkinDraft.flowState === "SUCCESS" && Boolean(checkinDraft.resolution);
+
+  useEffect(() => {
+    if (checkinDraft.value.trim() || typeof window === "undefined") {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const branchId = params.get("branchId")?.trim() ?? "";
+    const tableId = params.get("tableId")?.trim() ?? "";
+    const code = params.get("code")?.trim() ?? "";
+    if (!branchId || !tableId) {
+      return;
+    }
+    const canonicalQr = `mingle://table/${branchId}/${tableId}${code ? `?code=${code}` : ""}`;
+    if (!parseCheckinQrValue(canonicalQr)) {
+      return;
+    }
+    updateCheckinValue(canonicalQr);
+  }, [checkinDraft.value, updateCheckinValue]);
+
+  useEffect(() => {
+    if (
+      hasAutoRequestedRef.current ||
+      hasEntryContext ||
+      checkinDraft.isSubmitting ||
+      !checkinDraft.value.trim()
+    ) {
+      return;
+    }
+    hasAutoRequestedRef.current = true;
+    void verifyCheckin();
+  }, [
+    checkinDraft.flowState,
+    checkinDraft.isSubmitting,
+    checkinDraft.resolution,
+    checkinDraft.value,
+    hasEntryContext,
+    verifyCheckin
+  ]);
 
   return (
     <main className="customer-shell" data-phase="CHECKIN">
       <div className="customer-stage onboarding-stage">
         <Surface className="customer-hero">
           <div className="hero-copy-stack">
-            <p className="eyebrow">입장 확인</p>
+            <p className="eyebrow">프로필 설정</p>
             {hasSessionContext ? (
               <>
                 <h1 className="hero-title">
@@ -111,107 +147,47 @@ function OnboardingView() {
             ) : (
               <h1 className="hero-title">입장 정보를 확인하고 있어요.</h1>
             )}
-            <p className="onboarding-progress-text">{profileProgressText}</p>
           </div>
         </Surface>
 
-        <div className="customer-grid">
-          <div className="customer-main-column">
-            <Surface>
-              <SectionHeader eyebrow="입장 확인" title={copy.title} description={copy.description} />
-
-              <label className="field">
-                <span>체크인 QR</span>
-                <input
-                  value={checkinDraft.value}
-                  onChange={(event) => updateCheckinValue(event.target.value)}
-                  placeholder={copy.placeholder}
-                  data-testid="checkin-input"
-                  disabled={checkinDraft.isSubmitting}
+        {!hasEntryContext ? (
+          <Surface>
+            <EmptyState
+              title="입장 정보를 확인할 수 없어요."
+              description="QR을 다시 스캔해주세요."
+            />
+            {checkinDraft.error ? <p className="field-error">{checkinDraft.error}</p> : null}
+          </Surface>
+        ) : (
+          <div className="customer-grid">
+            <div className="customer-main-column">
+              <Surface>
+                <SectionHeader
+                  eyebrow="온보딩"
+                  title="기본 정보를 입력해주세요"
+                  description="긴 한 장짜리 폼 대신 단계별로 차근차근 입력하면 됩니다."
                 />
-              </label>
-
-              {reservationLabel ? (
-                <div className="compact-row">
-                  <strong>{reservationLabel}</strong>
-                  <span>{checkinDraft.resolution?.reservationId}</span>
-                </div>
-              ) : null}
-
-              {checkinDraft.flowState === "LOADING" ? (
-                <Surface className="empty-state">
-                  <h3>체크인 확인 중입니다</h3>
-                  <p>중복 요청을 막기 위해 잠시만 기다려 주세요.</p>
-                </Surface>
-              ) : null}
-
-              {checkinDraft.flowState === "SUCCESS" ? (
-                <Surface className="empty-state">
-                  <h3>입장 확인 완료</h3>
-                  <p>{checkinDraft.customerSecondaryMessage ?? "다음 단계로 진행해 주세요."}</p>
-                </Surface>
-              ) : null}
-
-              {checkinDraft.flowState === "BLOCKED" ? (
-                <Surface className="empty-state">
-                  <h3>{checkinDraft.customerMessage ?? "입장 확인을 진행할 수 없습니다"}</h3>
-                  <p>
-                    {checkinDraft.customerSecondaryMessage ??
-                      "예약 정보나 세션 상태를 다시 확인해 주세요."}
-                  </p>
-                </Surface>
-              ) : null}
-
-              {checkinDraft.flowState === "FAILURE" ? (
-                <Surface className="empty-state">
-                  <h3>{checkinDraft.customerMessage ?? "입장 확인 중 문제가 발생했습니다"}</h3>
-                  <p>{checkinDraft.customerSecondaryMessage ?? "잠시 후 다시 시도해 주세요."}</p>
-                </Surface>
-              ) : null}
-
-              {checkinDraft.error &&
-              (checkinDraft.flowState === "FAILURE" ||
-                checkinDraft.flowState === "BLOCKED" ||
-                checkinDraft.flowState === "IDLE") ? (
-                <p className="field-error">{checkinDraft.error}</p>
-              ) : null}
-
-              <Button
-                block
-                onClick={() => void verifyCheckin()}
-                data-testid="checkin-verify"
-                disabled={checkinDraft.isSubmitting}
-              >
-                {checkinDraft.isSubmitting ? "확인 중..." : "체크인 확인"}
-              </Button>
-            </Surface>
+                <ProfileFormFields
+                  mode="onboarding"
+                  value={profileDraft}
+                  testIdPrefix="profile"
+                  onChange={updateProfileDraft}
+                  profileUploadSubjectId={profileUploadSubjectId}
+                  avatarGender={checkinDraft.resolution?.gender ?? "M"}
+                  checkinPhone={checkinDraft.resolution?.phone ?? ""}
+                  completeButtonDisabled={isSubmittingProfile}
+                  onComplete={() => {
+                    setIsSubmittingProfile(true);
+                    void completeProfile().finally(() => {
+                      setIsSubmittingProfile(false);
+                    });
+                  }}
+                />
+              </Surface>
+            </div>
+            <div className="customer-side-column" />
           </div>
-
-          <div className="customer-side-column">
-            <Surface>
-              <SectionHeader
-                eyebrow="프로필"
-                title="기본 정보를 입력해주세요"
-                description="닉네임은 프로필 정보로 저장되며, 중복되면 다른 닉네임을 입력해야 합니다. 사진은 선택 사항이며, 정사각 중앙 크롭 후 800×800으로 맞추고 약 300KB 전후로 압축한 뒤 미리보기·업로드합니다. 업로드가 불가능하면 기본 이미지로 계속 진행할 수 있습니다."
-              />
-              <ProfileFormFields
-                value={profileDraft}
-                testIdPrefix="profile"
-                onChange={updateProfileDraft}
-                profileUploadSubjectId={profileUploadSubjectId}
-                avatarGender={checkinDraft.resolution?.gender ?? "M"}
-              />
-              <Button
-                block
-                onClick={() => void completeProfile()}
-                data-testid="complete-profile"
-                disabled={checkinDraft.flowState !== "SUCCESS"}
-              >
-                프로필 완료 후 입장
-              </Button>
-            </Surface>
-          </div>
-        </div>
+        )}
       </div>
     </main>
   );
@@ -290,6 +266,10 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   const respondToContent = useMingleStore((state) => state.respondToContent);
 
   const [stagedRevealOpen, setStagedRevealOpen] = useState(false);
+  const [isRevealLoading, setIsRevealLoading] = useState(false);
+  const [revealVisibleCount, setRevealVisibleCount] = useState(0);
+  const revealStartTimerRef = useRef<number | null>(null);
+  const revealStepTimerRef = useRef<number | null>(null);
   const [reportTarget, setReportTarget] = useState("");
   const [reportReason, setReportReason] = useState<string>(REPORT_REASONS[0] ?? "");
   const [reportDetails, setReportDetails] = useState("");
@@ -374,17 +354,56 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   const handleSendHeart = async (recipientId: string) => {
     if (sentHeartRecipientIds.has(recipientId)) {
       setHeartFeedback("이미 하트를 보낸 사람입니다.");
+      useMingleStore.setState({ toast: createToast("info", "이미 하트를 보낸 사람입니다") });
       return;
     }
     if (participant.heartsRemaining <= 0) {
       setHeartFeedback("남은 하트가 없어요.");
+      useMingleStore.setState({ toast: createToast("warning", "남은 하트가 없어요") });
       return;
     }
     const ok = await sendHeart(recipientId);
     if (ok) {
       setHeartFeedback("하트를 보냈어요.");
+      useMingleStore.setState({ toast: createToast("success", "하트를 보냈어요") });
     }
   };
+
+  useEffect(() => {
+    if (!stagedRevealOpen || !heartInbox.canReveal) {
+      setIsRevealLoading(false);
+      setRevealVisibleCount(0);
+      if (revealStartTimerRef.current) {
+        window.clearTimeout(revealStartTimerRef.current);
+      }
+      if (revealStepTimerRef.current) {
+        window.clearInterval(revealStepTimerRef.current);
+      }
+      return;
+    }
+
+    setIsRevealLoading(true);
+    setRevealVisibleCount(0);
+    revealStartTimerRef.current = window.setTimeout(() => {
+      setIsRevealLoading(false);
+      setRevealVisibleCount(1);
+      revealStepTimerRef.current = window.setInterval(() => {
+        setRevealVisibleCount((current) => {
+          const next = current + 1;
+          return next > heartInbox.visibleSenders.length ? heartInbox.visibleSenders.length : next;
+        });
+      }, 140);
+    }, 380);
+
+    return () => {
+      if (revealStartTimerRef.current) {
+        window.clearTimeout(revealStartTimerRef.current);
+      }
+      if (revealStepTimerRef.current) {
+        window.clearInterval(revealStepTimerRef.current);
+      }
+    };
+  }, [heartInbox.canReveal, heartInbox.visibleSenders.length, stagedRevealOpen]);
 
   return (
     <main className="customer-shell" data-phase={snapshot.session.phase}>
@@ -438,7 +457,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               </button>
             ))}
           </div>
-          <div className="compact-row" style={{ marginTop: "0.5rem" }}>
+          <div className="compact-row customer-heart-row">
             <strong>남은 하트 {participant.heartsRemaining}개</strong>
             <Button variant="secondary" onClick={() => setCustomerTab("hearts")}>
               하트 보기
@@ -508,7 +527,9 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                         </div>
                         <div className="badge-row">
                           <Badge tone="neutral">{candidate.animalType}</Badge>
-                      <Button onClick={() => void handleSendHeart(candidate.id)}>하트 보내기</Button>
+                      <Button className="heart-send-button" onClick={() => void handleSendHeart(candidate.id)}>
+                        하트 보내기
+                      </Button>
                         </div>
                       </article>
                     ))}
@@ -554,8 +575,8 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                 <Surface>
                   <SectionHeader
                     eyebrow="공개"
-                    title="공개를 열 준비가 되었습니다"
-                    description={heartInbox.status}
+                    title="결과를 확인할 수 있어요"
+                    description="순서대로 결과를 보여드릴게요."
                     actions={<Button onClick={() => setStagedRevealOpen(true)}>보낸 사람 보기</Button>}
                   />
                 </Surface>
@@ -566,11 +587,12 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   <Surface>
                     <SectionHeader
                       eyebrow="공개 완료"
-                      title="보낸 사람이 공개되었습니다"
-                      description={heartInbox.status}
+                      title="결과를 확인할 수 있어요"
+                      description="나에게 하트를 보낸 사람입니다."
                     />
+                    {isRevealLoading ? <p className="field-help">결과를 불러오고 있어요...</p> : null}
                     <div className="participant-grid">
-                      {heartInbox.visibleSenders.map((sender) => (
+                      {heartInbox.visibleSenders.slice(0, revealVisibleCount).map((sender) => (
                         <article key={sender.id} className="participant-card">
                           <div className="participant-head">
                             <UserPhoto photoUrl={sender.photoUrl} gender={sender.gender} size={52} />
@@ -581,7 +603,9 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                               </p>
                             </div>
                           </div>
-                          <Button onClick={() => void handleSendHeart(sender.id)}>하트 보내기</Button>
+                          <Button className="heart-send-button" onClick={() => void handleSendHeart(sender.id)}>
+                            하트 보내기
+                          </Button>
                         </article>
                       ))}
                     </div>
@@ -690,7 +714,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                         <p className="field-help">대상 선택 + 연락수단 1개 이상 입력 후 제출할 수 있어요.</p>
                       ) : null}
 
-                      <div className="compact-stack" style={{ marginTop: "0.75rem" }}>
+                      <div className="compact-stack customer-contact-status-list">
                         {mutualMatches.map((candidate) => {
                           const exchange = getContactExchangeBetween(snapshot, participant.id, candidate.id);
                           return (
@@ -867,22 +891,13 @@ export function CustomerApp() {
           <Surface>
             <EmptyState
               title="입장 정보를 확인할 수 없어요."
-              description="체크인 코드를 다시 입력해주세요."
+              description="QR을 다시 스캔해주세요."
             />
             {snapshotLoadErrorCode ? (
-              <p className="field-help" style={{ marginTop: "0.5rem" }}>
+              <p className="field-help customer-snapshot-help">
                 문제가 계속되면 운영팀에 코드({snapshotLoadErrorCode})를 전달해주세요.
               </p>
             ) : null}
-            <div className="form-grid" style={{ marginTop: "0.75rem" }}>
-              <label className="field">
-                <span>체크인 코드</span>
-                <input placeholder="코드를 입력해주세요" disabled />
-              </label>
-              <Button block disabled>
-                입장 확인
-              </Button>
-            </div>
           </Surface>
         </div>
       </main>

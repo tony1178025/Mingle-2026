@@ -17,7 +17,7 @@ export const createViewerSlice: StoreSlice<ViewerSlice> = (set, get) => ({
         recipientId
       });
       applyCommandResult(set, result, {
-        toast: createToast("success", "하트를 보냈습니다.")
+        toast: createToast("success", "하트를 보냈어요")
       });
       return true;
     } catch (error) {

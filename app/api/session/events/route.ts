@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_SESSION_COOKIE, readAdminSessionValue } from "@/lib/admin-auth";
 import { getAuthorityRuntimeDiagnostics } from "@/lib/repositories/authority-backend";
 import {
   getServerSessionSnapshot,
-  sanitizeSnapshotForClient,
+  sanitizeSnapshotForAdmin,
+  sanitizeSnapshotForCustomer,
   subscribeToSessionSnapshots
 } from "@/lib/repositories/server-repository";
 import type { SessionSyncEvent } from "@/types/mingle";
@@ -14,8 +16,7 @@ function encodeEvent(event: SessionSyncEvent) {
 }
 
 function getRequiredEnvErrorCode() {
-  const requiresDbAuthority =
-    process.env.USE_DB_AUTHORITY === "true" || process.env.READ_FROM_DB === "true";
+  const requiresDbAuthority = process.env.USE_DB_AUTHORITY === "true";
   if (!requiresDbAuthority) {
     return null;
   }
@@ -28,7 +29,7 @@ function getRequiredEnvErrorCode() {
   return null;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const missingEnvCode = getRequiredEnvErrorCode();
   if (missingEnvCode) {
     const diagnostics = getAuthorityRuntimeDiagnostics();
@@ -45,6 +46,8 @@ export async function GET() {
 
   try {
     const initial = await getServerSessionSnapshot();
+    const adminSession = readAdminSessionValue(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+    const sanitize = adminSession ? sanitizeSnapshotForAdmin : sanitizeSnapshotForCustomer;
     const encoder = new TextEncoder();
     let unsubscribe: (() => void) | null = null;
     let heartbeat: ReturnType<typeof setInterval> | null = null;
@@ -53,14 +56,14 @@ export async function GET() {
       start(controller) {
         controller.enqueue(
           encoder.encode(
-            encodeEvent({ type: "snapshot", snapshot: sanitizeSnapshotForClient(initial) })
+            encodeEvent({ type: "snapshot", snapshot: sanitize(initial) })
           )
         );
 
         unsubscribe = subscribeToSessionSnapshots((snapshot) => {
           controller.enqueue(
             encoder.encode(
-              encodeEvent({ type: "snapshot", snapshot: sanitizeSnapshotForClient(snapshot) })
+              encodeEvent({ type: "snapshot", snapshot: sanitize(snapshot) })
             )
           );
         });

@@ -11,95 +11,95 @@
   --font-display: "Cormorant Garamond", "Iowan Old Style", serif;
 
   /* ── Core Brand Tokens ──────────────────────────────────────── */
-  --brand-bg-deep: #1E1232;
-  --brand-accent-rose: #D48197;
-  --brand-detail-gold: #D4B36A;
+  --brand-bg-deep: #0f172a;
+  --brand-accent-rose: #d48aa0;
+  --brand-detail-gold: #c6a56d;
 
   /* ── Background System (20% 라이트닝 — 파티 에너지) ────────── */
-  --bg-foundation: #110A1E;
-  --bg-base: #16102A;
-  --bg-elevated: #1E1232;
-  --bg-surface: #271842;
-  --bg-surface-secondary: #30204E;
+  --bg-foundation: #0b1220;
+  --bg-base: #111a2f;
+  --bg-elevated: #18233c;
+  --bg-surface: #1f2b45;
+  --bg-surface-secondary: #253452;
 
   /* ── Ink Foundations ─────────────────────────────────────────── */
-  --ink-950: #110A1E;
-  --ink-900: #16102A;
-  --ink-800: #1E1232;
-  --ink-700: #30204E;
+  --ink-950: #090f1c;
+  --ink-900: #0f172a;
+  --ink-800: #1e293b;
+  --ink-700: #334155;
 
   /* ── Paper / Light (admin) ──────────────────────────────────── */
-  --paper-50: #F8F5FC;
-  --paper-100: #F0EAF7;
-  --paper-200: #DED4EE;
+  --paper-50: #f6f8fc;
+  --paper-100: #edf2f9;
+  --paper-200: #dbe5f1;
 
   /* ── Text System (높은 대비, 정보 우선) ─────────────────────── */
-  --text-primary: #F5F0FA;
-  --text-secondary: #C4B6DA;
-  --text-muted: #8E7CAA;
-  --text-strong: #110D1A;
+  --text-primary: #eff4ff;
+  --text-secondary: #c3d0ea;
+  --text-muted: #8ea0c3;
+  --text-strong: #0f172a;
   --text-on-accent: #FFFFFF;
 
   /* ── Rose Accent (따뜻한 에너지) ────────────────────────────── */
-  --accent-600: #B8637A;
-  --accent-500: #D48197;
-  --accent-400: #E8A4B6;
-  --accent-300: #F0C0CC;
-  --accent-glow: rgba(212, 129, 151, 0.20);
-  --accent-pulse: rgba(212, 129, 151, 0.14);
+  --accent-600: #9b6ab2;
+  --accent-500: #7c6fb6;
+  --accent-400: #a197d5;
+  --accent-300: #c2bae8;
+  --accent-glow: rgba(124, 111, 182, 0.16);
+  --accent-pulse: rgba(124, 111, 182, 0.1);
 
   /* ── Violet ─────────────────────────────────────────────────── */
-  --violet-600: #6344B8;
-  --violet-500: #7A55D4;
-  --violet-400: #9B7AE8;
-  --violet-glow: rgba(122, 85, 212, 0.14);
+  --violet-600: #4f5e98;
+  --violet-500: #5f71b2;
+  --violet-400: #7d8fcc;
+  --violet-glow: rgba(95, 113, 178, 0.12);
 
   /* ── Warm Gold (파티 조명 에너지) ────────────────────────────── */
-  --gold-500: #D4B36A;
-  --gold-400: #E0C07A;
-  --gold-300: #ECD498;
-  --gold-glow: rgba(212, 179, 106, 0.16);
+  --gold-500: #b89058;
+  --gold-400: #c9a46b;
+  --gold-300: #d8bb8b;
+  --gold-glow: rgba(184, 144, 88, 0.12);
 
   /* ── Warm Orange (앰비언트 라이트 큐) ───────────────────────── */
-  --warm-500: #D49A6A;
-  --warm-400: #E0AD82;
-  --warm-glow: rgba(212, 154, 106, 0.12);
+  --warm-500: #bd835a;
+  --warm-400: #ce9b76;
+  --warm-glow: rgba(189, 131, 90, 0.1);
 
   /* ── Semantic States ────────────────────────────────────────── */
-  --success-500: #3DA87E;
-  --success-glow: rgba(61, 168, 126, 0.14);
-  --warning-500: #D4895A;
-  --warning-glow: rgba(212, 137, 90, 0.14);
-  --danger-500: #C94F5A;
-  --danger-glow: rgba(201, 79, 90, 0.14);
+  --success-500: #2f8f6b;
+  --success-glow: rgba(47, 143, 107, 0.14);
+  --warning-500: #b47d45;
+  --warning-glow: rgba(180, 125, 69, 0.14);
+  --danger-500: #b6505b;
+  --danger-glow: rgba(182, 80, 91, 0.14);
   --disabled-bg: #E5E7EB;
   --disabled-text: #6B7280;
 
   /* ── Border / Line (약간 밝게 — 가독성) ─────────────────────── */
-  --line-dark: rgba(255, 255, 255, 0.09);
-  --line-dark-strong: rgba(255, 255, 255, 0.16);
-  --line-dark-accent: rgba(212, 129, 151, 0.20);
+  --line-dark: rgba(195, 208, 234, 0.14);
+  --line-dark-strong: rgba(195, 208, 234, 0.24);
+  --line-dark-accent: rgba(124, 111, 182, 0.28);
   --line-light: rgba(17, 13, 26, 0.08);
   --line-light-strong: rgba(17, 13, 26, 0.14);
 
   /* ── Surface System (과한 래커 제거, 클린) ──────────────────── */
-  --surface-dark: rgba(255, 255, 255, 0.05);
-  --surface-dark-strong: rgba(255, 255, 255, 0.08);
-  --surface-dark-hover: rgba(255, 255, 255, 0.11);
-  --surface-light: rgba(255, 255, 255, 0.94);
+  --surface-dark: rgba(15, 23, 42, 0.72);
+  --surface-dark-strong: rgba(30, 41, 59, 0.9);
+  --surface-dark-hover: rgba(30, 41, 59, 1);
+  --surface-light: rgba(255, 255, 255, 0.97);
   --surface-light-strong: #FFFFFF;
 
   /* ── Glow (절제 — 앰비언트 파티 라이트) ─────────────────────── */
-  --glow-soft: rgba(212, 129, 151, 0.08);
-  --glow-rose: rgba(212, 129, 151, 0.14);
-  --glow-violet: rgba(122, 85, 212, 0.10);
-  --glow-gold: rgba(212, 179, 106, 0.10);
+  --glow-soft: rgba(124, 111, 182, 0.05);
+  --glow-rose: rgba(212, 138, 160, 0.08);
+  --glow-violet: rgba(95, 113, 178, 0.08);
+  --glow-gold: rgba(184, 144, 88, 0.08);
   --glow-warm: rgba(212, 154, 106, 0.08);
 
   /* ── Shadow (가볍게 — 시네마틱 과잉 제거) ───────────────────── */
-  --shadow-dark: 0 16px 40px rgba(8, 4, 18, 0.32);
-  --shadow-soft: 0 10px 28px rgba(8, 4, 18, 0.18);
-  --shadow-subtle: 0 4px 16px rgba(8, 4, 18, 0.12);
+  --shadow-dark: 0 16px 36px rgba(3, 10, 24, 0.36);
+  --shadow-soft: 0 8px 22px rgba(3, 10, 24, 0.2);
+  --shadow-subtle: 0 4px 12px rgba(3, 10, 24, 0.12);
 
   /* ── Radius ─────────────────────────────────────────────────── */
   --radius-xl: 24px;
@@ -134,19 +134,19 @@
 
   /* ── Hero Gradients (앰비언트 파티 라이트) ───────────────────── */
   --hero-gradient:
-    radial-gradient(ellipse at 10% 6%, rgba(122, 85, 212, 0.18), transparent 34%),
-    radial-gradient(ellipse at 88% 10%, rgba(212, 129, 151, 0.18), transparent 36%),
-    radial-gradient(ellipse at 60% 95%, rgba(212, 179, 106, 0.08), transparent 30%);
+    radial-gradient(ellipse at 12% 8%, rgba(95, 113, 178, 0.14), transparent 35%),
+    radial-gradient(ellipse at 88% 12%, rgba(212, 138, 160, 0.1), transparent 38%),
+    radial-gradient(ellipse at 58% 94%, rgba(184, 144, 88, 0.05), transparent 32%);
 
   --hero-gradient-r2:
-    radial-gradient(ellipse at 75% 10%, rgba(212, 179, 106, 0.14), transparent 30%),
-    radial-gradient(ellipse at 20% 15%, rgba(212, 129, 151, 0.22), transparent 32%),
-    radial-gradient(ellipse at 50% 90%, rgba(212, 154, 106, 0.08), transparent 28%);
+    radial-gradient(ellipse at 74% 10%, rgba(184, 144, 88, 0.1), transparent 32%),
+    radial-gradient(ellipse at 22% 16%, rgba(124, 111, 182, 0.16), transparent 34%),
+    radial-gradient(ellipse at 52% 90%, rgba(95, 113, 178, 0.07), transparent 28%);
 
   /* ── CTA (에너지감 있는 로즈) ───────────────────────────────── */
-  --cta-gradient: linear-gradient(135deg, #D88DA0 0%, #C46E84 60%, #A25670 100%);
-  --cta-glow: 0 10px 28px rgba(212, 129, 151, 0.24);
-  --cta-hover-glow: 0 14px 36px rgba(212, 129, 151, 0.32);
+  --cta-gradient: linear-gradient(135deg, #5c6cad 0%, #4e5f99 62%, #425183 100%);
+  --cta-glow: 0 8px 20px rgba(78, 95, 153, 0.28);
+  --cta-hover-glow: 0 10px 26px rgba(78, 95, 153, 0.34);
 }
 
 .rotation-move-list {
@@ -475,8 +475,9 @@ img {
 
 .surface {
   padding: 1.1rem;
-  background: rgba(255, 255, 255, 0.045);
-  box-shadow: var(--shadow-soft);
+  background: var(--surface-dark);
+  border-color: var(--line-dark);
+  box-shadow: var(--shadow-subtle);
 }
 
 .inner-surface-highlight {
@@ -498,7 +499,7 @@ img {
 
 .section-title {
   margin: 0.35rem 0;
-  font-size: clamp(1.02rem, 1.2vw, 1.2rem);
+  font-size: clamp(1.08rem, 1.2vw, 1.25rem);
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.4;
@@ -518,13 +519,13 @@ img {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
+  min-height: 44px;
   padding: 0.8rem 1.15rem;
   border: 1px solid transparent;
   border-radius: 14px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.93rem;
+  font-size: 0.94rem;
   line-height: 1.2;
   letter-spacing: 0.005em;
   transition:
@@ -577,17 +578,17 @@ img {
 
 .button-secondary {
   color: var(--text-on-accent);
-  background: linear-gradient(135deg, rgba(122, 85, 212, 0.90), rgba(99, 68, 184, 0.88));
-  box-shadow: 0 8px 24px rgba(122, 85, 212, 0.20);
+  background: linear-gradient(135deg, rgba(95, 113, 178, 0.94), rgba(79, 94, 152, 0.9));
+  box-shadow: 0 8px 20px rgba(79, 94, 152, 0.24);
 }
 
 .button-secondary:hover {
-  box-shadow: 0 12px 32px rgba(122, 85, 212, 0.26);
+  box-shadow: 0 10px 26px rgba(79, 94, 152, 0.32);
 }
 
 .button-ghost {
   color: inherit;
-  background: var(--surface-dark);
+  background: rgba(15, 23, 42, 0.58);
   border-color: var(--line-dark);
 }
 
@@ -620,13 +621,13 @@ img {
 
 .badge-neutral {
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(148, 163, 184, 0.16);
   border: 1px solid var(--line-dark);
 }
 
 .badge-accent {
   color: var(--text-on-accent);
-  background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+  background: linear-gradient(135deg, var(--accent-500), var(--violet-600));
 }
 
 .badge-success {
@@ -649,15 +650,11 @@ img {
    ═══════════════════════════════════════════════════════════════ */
 
 .customer-shell {
-  background:
-    var(--hero-gradient),
-    linear-gradient(180deg, var(--bg-base) 0%, var(--bg-foundation) 100%);
+  background: var(--hero-gradient), linear-gradient(180deg, var(--bg-base) 0%, var(--bg-foundation) 100%);
 }
 
 .customer-shell[data-phase="ROUND_2"] {
-  background:
-    var(--hero-gradient-r2),
-    linear-gradient(180deg, #1C1020 0%, var(--bg-foundation) 100%);
+  background: var(--hero-gradient-r2), linear-gradient(180deg, #121a2f 0%, var(--bg-foundation) 100%);
 }
 
 .customer-stage,
@@ -699,6 +696,9 @@ img {
   margin-bottom: 1rem;
   position: relative;
   overflow: hidden;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.78));
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-lg);
 }
 
 .hero-signal-grid,
@@ -718,7 +718,7 @@ img {
 .admin-hero-actions {
   padding: 1rem 1.1rem;
   border-radius: var(--radius-md);
-  background: var(--surface-dark);
+  background: rgba(15, 23, 42, 0.62);
   border: 1px solid var(--line-dark);
 }
 
@@ -821,6 +821,22 @@ img {
   font-size: 0.92rem;
 }
 
+.customer-heart-row {
+  margin-top: 0.5rem;
+}
+
+.customer-contact-status-list {
+  margin-top: 0.75rem;
+}
+
+.customer-snapshot-help {
+  margin-top: 0.5rem;
+}
+
+.customer-snapshot-form {
+  margin-top: 0.75rem;
+}
+
 .customer-sticky-status {
   position: sticky;
   top: 0.75rem;
@@ -852,6 +868,82 @@ img {
   font-size: 0.9rem;
 }
 
+.admin-error-code {
+  margin-top: 0.5rem;
+}
+
+.admin-inline-form {
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.admin-inline-input {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.admin-mini-button {
+  border: 1px solid var(--line-dark-strong);
+  border-radius: 10px;
+  background: var(--surface-dark-hover);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  padding: 0.28rem 0.56rem;
+}
+
+.admin-shell .admin-mini-button {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+.admin-mini-button-table {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.42rem;
+}
+
+.admin-table-detail-stack {
+  padding-left: 0.75rem;
+  border-left: 2px solid #dbe5f1;
+}
+
+.admin-participant-row {
+  cursor: pointer;
+}
+
+.admin-participant-row[data-status="GONE"] {
+  opacity: 0.5;
+}
+
+.admin-participant-row[data-status="BLOCKED"] .admin-participant-name,
+.admin-participant-row[data-status="BLOCKED"] .admin-participant-status {
+  color: var(--warning-500);
+  font-weight: 600;
+}
+
+.admin-participant-row[data-status="GONE"] .admin-participant-status {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.admin-participant-actions-wrap {
+  padding-top: 0.25rem;
+}
+
+.admin-participant-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.admin-table-move-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-top: 0.25rem;
+  justify-content: flex-end;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -865,7 +957,7 @@ img {
 }
 
 .field span {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
@@ -1171,9 +1263,19 @@ img {
   gap: 0.8rem;
   align-items: flex-start;
   padding: 0.9rem 1rem;
-  border-radius: 16px;
-  background: var(--surface-dark);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.58);
   border: 1px solid var(--line-dark);
+}
+
+.compact-row[data-tone="warning"] {
+  background: rgba(180, 125, 69, 0.14);
+  border-color: rgba(180, 125, 69, 0.34);
+}
+
+.compact-row[data-tone="danger"] {
+  background: rgba(182, 80, 91, 0.14);
+  border-color: rgba(182, 80, 91, 0.34);
 }
 
 .compact-list,
@@ -1359,7 +1461,7 @@ img {
 .admin-shell .qr-card {
   background: var(--surface-light);
   border-color: var(--line-light);
-  box-shadow: 0 8px 24px rgba(17, 13, 26, 0.05), 0 2px 8px rgba(17, 13, 26, 0.03);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07), 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
 .admin-shell input,
@@ -1463,9 +1565,9 @@ img {
 }
 
 .admin-console-sidebar {
-  background: #111827;
-  color: #e5e7eb;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0f172a;
+  color: #e2e8f0;
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
   padding: 1rem;
   position: sticky;
   top: 0;
@@ -1476,7 +1578,7 @@ img {
 .admin-console-brand h2 {
   margin: 0.35rem 0 1rem;
   font-size: 1.1rem;
-  color: #f9fafb;
+  color: #f8fafc;
 }
 
 .admin-console-nav {
@@ -1487,8 +1589,8 @@ img {
 .admin-console-nav-group {
   display: grid;
   gap: 0.35rem;
-  padding-bottom: 0.35rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .admin-console-nav-group:last-child {
@@ -1502,7 +1604,7 @@ img {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 .admin-console-nav-group-items {
@@ -1531,9 +1633,9 @@ img {
 
 .admin-console-nav-item {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: #d1d5db;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.56);
+  color: #dbe6f6;
   border-radius: 10px;
   min-height: 40px;
   padding: 0.55rem 0.7rem;
@@ -1545,18 +1647,30 @@ img {
 }
 
 .admin-console-nav-item small {
-  color: #9ca3af;
+  color: #94a3b8;
   font-size: 0.72rem;
 }
 
 .admin-console-nav-item-active {
-  background: rgba(212, 129, 151, 0.18);
-  border-color: rgba(212, 129, 151, 0.45);
+  background: rgba(95, 113, 178, 0.28);
+  border-color: rgba(95, 113, 178, 0.52);
   color: #ffffff;
 }
 
 .admin-console-nav-item:disabled {
   opacity: 0.72;
+}
+
+.admin-branch-tree {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-branch-tree-children {
+  display: grid;
+  gap: 0.35rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid rgba(148, 163, 184, 0.2);
 }
 
 .admin-console-main {
@@ -1661,6 +1775,34 @@ img {
   gap: 1rem;
 }
 
+.admin-simple-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line-light);
+  border-radius: 12px;
+}
+
+.admin-simple-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.admin-simple-table th,
+.admin-simple-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--line-light);
+  text-align: left;
+  font-size: 0.86rem;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.admin-simple-table th {
+  background: #f8fafc;
+  font-weight: 700;
+}
+
 .admin-dashboard-metric-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
@@ -1733,6 +1875,17 @@ img {
 
 .qr-skeleton {
   background: linear-gradient(135deg, rgba(17, 13, 26, 0.06), rgba(17, 13, 26, 0.03));
+}
+
+.heart-send-button {
+  transition:
+    transform 90ms ease,
+    filter 120ms ease;
+}
+
+.heart-send-button:active {
+  transform: scale(0.96);
+  filter: saturate(1.08);
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  ADMIN_SESSION_COOKIE,
   canAccessAdminBranch,
   hasRequiredAdminRole,
   isAdminCommand,
-  readAdminSessionFromRequest
+  readAdminSessionFromRequest,
+  readAdminSessionValue
 } from "@/lib/admin-auth";
 import {
   buildCustomerSession,
@@ -16,15 +18,15 @@ import { logInvalidSessionAttempt } from "@/lib/authority-monitoring";
 import {
   executeServerCommand,
   getServerSessionSnapshot,
-  sanitizeSnapshotForClient
+  sanitizeSnapshotForAdmin,
+  sanitizeSnapshotForCustomer
 } from "@/lib/repositories/server-repository";
-import type { CommandResult, MingleCommand } from "@/types/mingle";
+import type { CommandResult, MingleCommand, SessionCommandResponse } from "@/types/mingle";
 
 export const runtime = "nodejs";
 
 function getRequiredEnvErrorCode() {
-  const requiresDbAuthority =
-    process.env.USE_DB_AUTHORITY === "true" || process.env.READ_FROM_DB === "true";
+  const requiresDbAuthority = process.env.USE_DB_AUTHORITY === "true";
   if (!requiresDbAuthority) {
     return null;
   }
@@ -208,10 +210,15 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await executeServerCommand(command);
-    const response = NextResponse.json({
+    const responseSnapshot = isAdminCommand(command) ||
+      Boolean(readAdminSessionValue(request.cookies.get(ADMIN_SESSION_COOKIE)?.value))
+      ? sanitizeSnapshotForAdmin(result.snapshot)
+      : sanitizeSnapshotForCustomer(result.snapshot);
+    const payload: SessionCommandResponse = {
       ...result,
-      snapshot: sanitizeSnapshotForClient(result.snapshot)
-    });
+      snapshot: responseSnapshot
+    };
+    const response = NextResponse.json(payload);
     attachCustomerSession(response, command, result);
     return response;
   } catch (error) {

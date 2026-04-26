@@ -142,13 +142,13 @@ describe("HeartGrantPanel", () => {
       })
     );
 
-    expect(markup).toContain("Participant ID: participant_1");
-    expect(markup).toContain("Participant ID: participant_2");
-    expect(markup).toContain("Reservation ID: reservation_a");
-    expect(markup).toContain("Reservation ID: reservation_b");
-    expect(markup).toContain("Phone: 010-12**-5678");
-    expect(markup).toContain("Phone: 010-87**-4321");
-    expect(markup).toContain("Status: BLOCKED");
-    expect(markup).toContain("Block reason: 운영 정책상 제한");
+    expect(markup).toContain("참가자 ID: participant_1");
+    expect(markup).toContain("참가자 ID: participant_2");
+    expect(markup).toContain("예약 ID: reservation_a");
+    expect(markup).toContain("예약 ID: reservation_b");
+    expect(markup).toContain("전화번호: 010-12**-5678");
+    expect(markup).toContain("전화번호: 010-87**-4321");
+    expect(markup).toContain("상태: 운영 제한");
+    expect(markup).toContain("제한 사유: 운영 정책상 제한");
   });
 });

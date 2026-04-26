@@ -14,14 +14,14 @@ export function createCheckinCopy() {
     title: "QR로 입장 확인",
     description:
       "테이블에 부착된 QR을 스캔하거나 그대로 붙여 넣어 예약/세션 컨텍스트를 확인합니다.",
-    placeholder: "mingle://table/branch-id/1?code=1234"
+    placeholder: "https://app-domain/customer?branchId=branch-id&tableId=1"
   };
 }
 
-// QR contract: mingle://table/<branchId>/<tableId>?code=<4digit>
+// QR contract: mingle://table/<branchId>/<tableId>[?code=<4digit>]
 // branchId + tableId identify the physical table (permanent, session-independent).
 // Session is resolved at runtime from branchId.
-// checkinCode links to the participant's reservation in the external system.
+// Web QR for browser/PWA uses /customer?branchId=<branchId>&tableId=<tableId>[&code=...].
 export function parseCheckinQrValue(rawValue: string): ParsedCheckinQr | null {
   const trimmed = rawValue.trim();
   if (!trimmed) {
@@ -31,20 +31,23 @@ export function parseCheckinQrValue(rawValue: string): ParsedCheckinQr | null {
   try {
     const url = new URL(trimmed);
 
-    if (url.protocol !== "mingle:" || url.hostname !== "table") {
+    let branchId = "";
+    let tableIdStr = "";
+    if (url.protocol === "mingle:" && url.hostname === "table") {
+      if (url.hash) {
+        return null;
+      }
+      const pathParts = url.pathname.replace(/^\/+/, "").split("/");
+      if (pathParts.length !== 2) {
+        return null;
+      }
+      [branchId, tableIdStr] = pathParts;
+    } else if ((url.protocol === "https:" || url.protocol === "http:") && url.pathname === "/customer") {
+      branchId = url.searchParams.get("branchId") ?? "";
+      tableIdStr = url.searchParams.get("tableId") ?? "";
+    } else {
       return null;
     }
-
-    if (url.hash) {
-      return null;
-    }
-
-    const pathParts = url.pathname.replace(/^\/+/, "").split("/");
-    if (pathParts.length !== 2) {
-      return null;
-    }
-
-    const [branchId, tableIdStr] = pathParts;
     if (!branchId || !BRANCH_ID_PATTERN.test(branchId)) {
       return null;
     }
@@ -58,17 +61,12 @@ export function parseCheckinQrValue(rawValue: string): ParsedCheckinQr | null {
       return null;
     }
 
-    const queryKeys = [...url.searchParams.keys()];
-    if (queryKeys.length !== 1 || queryKeys[0] !== "code") {
+    const rawCheckinCode = url.searchParams.get("code")?.trim() ?? "";
+    if (rawCheckinCode && !CHECKIN_CODE_PATTERN.test(rawCheckinCode)) {
       return null;
     }
 
-    const checkinCode = url.searchParams.get("code") ?? "";
-    if (!CHECKIN_CODE_PATTERN.test(checkinCode)) {
-      return null;
-    }
-
-    return { branchId, tableId, checkinCode };
+    return { branchId, tableId, checkinCode: rawCheckinCode };
   } catch {
     return null;
   }

@@ -618,7 +618,7 @@ describe("admin operations management routes", () => {
         },
         body: JSON.stringify({
           name: "Ops Session Final",
-          status: "OPEN",
+          status: "DRAFT",
           maxCapacity: 34
         })
       }),
@@ -639,7 +639,7 @@ describe("admin operations management routes", () => {
     expect(session).toMatchObject({
       id: "session_ops_20260426",
       name: "Ops Session Final",
-      status: "OPEN",
+      status: "DRAFT",
       maxCapacity: 34
     });
   }, 30000);

@@ -165,11 +165,11 @@ describe("ReportsPanel", () => {
       })
     );
 
-    expect(markup).toContain("Participant ID: participant_target");
-    expect(markup).toContain("Phone: 010-87**-4321");
-    expect(markup).toContain("Status: BLOCKED");
-    expect(markup).toContain("Block reason: 운영 정책상 제한");
-    expect(markup).toContain("REPORT_SUBMITTED");
+    expect(markup).toContain("참가자 ID: participant_target");
+    expect(markup).toContain("전화번호: 010-87**-4321");
+    expect(markup).toContain("상태: 운영 제한");
+    expect(markup).toContain("제한 사유: 운영 정책상 제한");
+    expect(markup).toContain("신고 접수");
     expect(markup).toContain("Report submitted: 불쾌한 언행");
   });
 });

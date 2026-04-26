@@ -4,18 +4,30 @@ import {
   MINGLE_CONSTANTS,
   setCachedParticipantId
 } from "@/lib/mingle";
-import type { CommandResult, SessionSnapshot } from "@/types/mingle";
+import type { SessionCommandResponse, SessionSnapshot, SessionView } from "@/types/mingle";
 
-export function normalizeSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
+export function normalizeSnapshot(snapshot: SessionView): SessionSnapshot {
   const contactExchanges = snapshot.contactExchanges ?? [];
+  const participants = classifyParticipants(
+    snapshot.participants.map((participant) => ({
+      ...participant,
+      reservationId: null,
+      reservationExternalId: null,
+      phone: null,
+      popularityScore: 0,
+      tier: "C",
+      subTier: "LOW",
+      score: 0,
+      attractionScore: 0,
+      engagementScore: 0,
+      isVip: false,
+      isHighValue: false,
+      checkinMode: "qr"
+    }))
+  );
   return {
     ...snapshot,
-    participants: classifyParticipants(
-      snapshot.participants.map((participant) => ({
-        ...participant,
-        round2Attendance: participant.round2Attendance ?? "UNDECIDED"
-      }))
-    ),
+    participants,
     activeContentIds: snapshot.activeContentIds ?? [],
     liveContent: snapshot.liveContent ?? null,
     contentResponses: snapshot.contentResponses ?? [],
@@ -28,9 +40,14 @@ export function normalizeSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
       blockedCount: contactExchanges.filter((item) => item.status === "BLOCKED").length
     },
     announcements: snapshot.announcements ?? [],
-    outboxEvents: snapshot.outboxEvents ?? [],
+    outboxEvents: "outboxEvents" in snapshot ? snapshot.outboxEvents ?? [] : [],
     rotationInstruction: snapshot.rotationInstruction ?? null,
     participantStatusMap: snapshot.participantStatusMap ?? {},
+    reports: "reports" in snapshot ? snapshot.reports : [],
+    blacklist: "blacklist" in snapshot ? snapshot.blacklist ?? [] : [],
+    incidents: "incidents" in snapshot ? snapshot.incidents ?? [] : [],
+    auditLogs: "auditLogs" in snapshot ? snapshot.auditLogs : [],
+    seatingAssignments: "seatingAssignments" in snapshot ? snapshot.seatingAssignments : [],
     session: {
       ...snapshot.session,
       tableCount: snapshot.session.tableCount || MINGLE_CONSTANTS.tableCount,
@@ -41,7 +58,7 @@ export function normalizeSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
 
 export function applyCommandResult(
   set: (partial: Record<string, unknown> | ((state: { snapshot?: SessionSnapshot | null }) => Record<string, unknown>)) => void,
-  result: CommandResult,
+  result: SessionCommandResponse,
   extra: Record<string, unknown> = {}
 ) {
   const snapshot = normalizeSnapshot(result.snapshot);

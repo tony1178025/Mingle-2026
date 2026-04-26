@@ -9,7 +9,9 @@ tsconfig.tsbuildinfo
 .claude/
 .vercel/
 .env.local
+.env
 .env.*.local
+mingle_R2.env
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

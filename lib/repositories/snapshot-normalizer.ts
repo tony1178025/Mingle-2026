@@ -47,6 +47,7 @@ export function normalizeAuthoritySnapshot(snapshot: SessionSnapshot): SessionSn
       completedCount: contactExchanges.filter((item) => item.status === "COMPLETED").length,
       blockedCount: contactExchanges.filter((item) => item.status === "BLOCKED").length
     },
+    reservations: snapshot.reservations ?? [],
     announcements: snapshot.announcements ?? [],
     outboxEvents: snapshot.outboxEvents ?? [],
     rotationInstruction: snapshot.rotationInstruction ?? null,

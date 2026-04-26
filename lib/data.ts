@@ -58,11 +58,14 @@ export function resolveObjectStorageConfig(): ObjectStorageConfig | null {
     };
   }
 
-  const bucket = process.env.R2_BUCKET;
+  const bucket = process.env.R2_BUCKET || process.env.R2_BUCKET_NAME;
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
   const publicBaseUrl = process.env.R2_PUBLIC_BASE_URL;
-  const endpoint = process.env.R2_ENDPOINT;
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const endpoint =
+    process.env.R2_ENDPOINT ||
+    (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined);
   const region = process.env.AWS_REGION || "auto";
 
   if (!bucket || !accessKeyId || !secretAccessKey || !publicBaseUrl || !endpoint) {

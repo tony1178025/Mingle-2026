@@ -53,8 +53,12 @@ describe("checkin qr parsing", () => {
     expect(parseCheckinQrValue("mingle://session/session_test?code=1234")).toBeNull();
   });
 
-  it("rejects missing code", () => {
-    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3")).toBeNull();
+  it("accepts missing code for walk-in qr", () => {
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3")).toEqual({
+      branchId: "branch_seongsu",
+      tableId: 3,
+      checkinCode: ""
+    });
   });
 
   it("rejects non-4-digit code", () => {
@@ -66,8 +70,12 @@ describe("checkin qr parsing", () => {
     expect(parseCheckinQrValue("mingle://table/branch_seongsu/0?code=1234")).toBeNull();
   });
 
-  it("rejects extra query parameters", () => {
-    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3?code=1234&extra=yes")).toBeNull();
+  it("accepts extra query parameters if code is valid", () => {
+    expect(parseCheckinQrValue("mingle://table/branch_seongsu/3?code=1234&extra=yes")).toEqual({
+      branchId: "branch_seongsu",
+      tableId: 3,
+      checkinCode: "1234"
+    });
   });
 
   it("rejects missing tableId path segment", () => {
