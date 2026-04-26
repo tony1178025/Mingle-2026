@@ -13,6 +13,9 @@ import {
   PROFILE_PERSONALITY_KEYWORDS
 } from "@/features/profile/options";
 import { Button } from "@/components/shared/ui";
+import { triggerHaptic } from "@/lib/haptics";
+import { cn, createToast } from "@/lib/mingle";
+import { useMingleStore } from "@/stores/useMingleStore";
 import type { EnergyType, ParticipantGender, ProfileDraft } from "@/types/mingle";
 
 type ProfileFieldState = Pick<
@@ -90,6 +93,9 @@ export function ProfileFormFields({
   onComplete?: () => void;
   completeButtonDisabled?: boolean;
 }) {
+  const showMaxSelectionToast = () => {
+    useMingleStore.setState({ toast: createToast("info", "최대 3개까지 선택할 수 있어요") });
+  };
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
   const [contact, setContact] = useState(checkinPhone);
@@ -103,6 +109,7 @@ export function ProfileFormFields({
   const [consentPrivacy, setConsentPrivacy] = useState(false);
   const [consentPortrait, setConsentPortrait] = useState(false);
   const [maxSelectionHint, setMaxSelectionHint] = useState<string | null>(null);
+  const [showValidationHint, setShowValidationHint] = useState(false);
 
   useEffect(() => {
     setContact(checkinPhone);
@@ -143,6 +150,7 @@ export function ProfileFormFields({
     (step === 5 && Boolean(selectedIdealTypes.length === MAX_CHIP_SELECTION && consentPrivacy && consentPortrait));
 
   const isReadyToComplete = canGoNext && step === 5;
+  const showStepValidation = showValidationHint && !canGoNext;
 
   useEffect(() => {
     if (!derivedAge || Number.isNaN(derivedAge)) {
@@ -154,32 +162,32 @@ export function ProfileFormFields({
   if (mode === "onboarding") {
     return (
       <div className="compact-stack">
-        <p className="field-help">{progressLabel}</p>
+        <p className="field-help onboarding-progress-text">{progressLabel}</p>
 
         {step === 1 ? (
           <div className="form-grid">
-            <label className="field">
+            <label className={cn("field", showStepValidation && !fullName.trim() && "field-invalid-shake", "floating-field")}>
               <span>이름</span>
               <input
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                placeholder="이름을 입력해주세요"
+                placeholder=" "
               />
             </label>
-            <label className="field">
+            <label className={cn("field", "floating-field")}>
               <span>연락처</span>
               <input
                 value={contact}
                 onChange={(event) => setContact(event.target.value)}
-                placeholder="연락처를 입력해주세요"
+                placeholder=" "
               />
             </label>
-            <label className="field">
+            <label className={cn("field", showStepValidation && birthYear.trim().length !== 4 && "field-invalid-shake", "floating-field")}>
               <span>출생연도</span>
               <input
                 value={birthYear}
                 onChange={(event) => setBirthYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="예: 1996"
+                placeholder=" "
                 inputMode="numeric"
               />
             </label>
@@ -201,25 +209,25 @@ export function ProfileFormFields({
               value={value.photoUrl}
               onChange={(url) => onChange("photoUrl", url)}
             />
-            <label className="field">
+            <label className={cn("field", showStepValidation && !value.nickname.trim() && "field-invalid-shake", "floating-field")}>
               <span>닉네임</span>
               <input
                 value={value.nickname}
                 onChange={(event) => onChange("nickname", event.target.value)}
                 maxLength={8}
                 autoComplete="nickname"
-                placeholder="테이블에서 불릴 이름"
+                placeholder=" "
                 data-testid={`${testIdPrefix}-nickname`}
               />
             </label>
-            <label className="field">
+            <label className={cn("field", showStepValidation && !value.heightCm.trim() && "field-invalid-shake", "floating-field")}>
               <span>키</span>
               <input
                 value={value.heightCm}
                 onChange={(event) => onChange("heightCm", event.target.value.replace(/\D/g, ""))}
                 inputMode="numeric"
                 maxLength={3}
-                placeholder="예: 170"
+                placeholder=" "
                 data-testid={`${testIdPrefix}-height`}
               />
             </label>
@@ -309,6 +317,8 @@ export function ProfileFormFields({
                       onClick={() => {
                         const next = toggleChipWithLimit(selectedAppearanceTraits, keyword, () => {
                           setMaxSelectionHint("최대 3개까지 선택할 수 있어요");
+                          triggerHaptic("light");
+                          showMaxSelectionToast();
                         });
                         if (next !== selectedAppearanceTraits) {
                           setMaxSelectionHint(null);
@@ -316,7 +326,7 @@ export function ProfileFormFields({
                         setSelectedAppearanceTraits(next);
                         onChange("animalType", serializeTraitValue(next, selectedPersonalityTraits));
                       }}
-                      style={{ opacity: active ? 1 : 0.88, transform: active ? "scale(0.98)" : "scale(1)" }}
+                      style={{ opacity: active ? 1 : 0.88, transform: active ? "scale(1.04)" : "scale(1)" }}
                     >
                       <strong>{keyword}</strong>
                     </button>
@@ -338,6 +348,8 @@ export function ProfileFormFields({
                       onClick={() => {
                         const next = toggleChipWithLimit(selectedPersonalityTraits, keyword, () => {
                           setMaxSelectionHint("최대 3개까지 선택할 수 있어요");
+                          triggerHaptic("light");
+                          showMaxSelectionToast();
                         });
                         if (next !== selectedPersonalityTraits) {
                           setMaxSelectionHint(null);
@@ -345,7 +357,7 @@ export function ProfileFormFields({
                         setSelectedPersonalityTraits(next);
                         onChange("animalType", serializeTraitValue(selectedAppearanceTraits, next));
                       }}
-                      style={{ opacity: active ? 1 : 0.88, transform: active ? "scale(0.98)" : "scale(1)" }}
+                      style={{ opacity: active ? 1 : 0.88, transform: active ? "scale(1.04)" : "scale(1)" }}
                     >
                       <strong>{keyword}</strong>
                     </button>
@@ -415,12 +427,14 @@ export function ProfileFormFields({
                         }
                         if (selectedIdealTypes.length >= MAX_CHIP_SELECTION) {
                           setMaxSelectionHint("최대 3개까지 선택할 수 있어요");
+                          triggerHaptic("light");
+                          showMaxSelectionToast();
                           return;
                         }
                         setSelectedIdealTypes((current) => [...current, option]);
                         setMaxSelectionHint(null);
                       }}
-                      style={{ opacity: active ? 1 : 0.88, transform: active ? "scale(0.98)" : "scale(1)" }}
+                      style={{ opacity: active ? 1 : 0.88, transform: active ? "scale(1.04)" : "scale(1)" }}
                     >
                       <strong>{active ? `${order + 1}순위 · ${option}` : option}</strong>
                     </button>
@@ -452,12 +466,23 @@ export function ProfileFormFields({
           </div>
         ) : null}
 
-        <div className="button-row">
+        <div className="button-row onboarding-sticky-actions">
           <Button variant="ghost" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1}>
             이전
           </Button>
           {step < 5 ? (
-            <Button onClick={() => setStep((current) => Math.min(5, current + 1))} disabled={!canGoNext}>
+            <Button
+              onClick={() => {
+                triggerHaptic("light");
+                if (!canGoNext) {
+                  setShowValidationHint(true);
+                  return;
+                }
+                setShowValidationHint(false);
+                setStep((current) => Math.min(5, current + 1));
+              }}
+              disabled={false}
+            >
               다음
             </Button>
           ) : null}

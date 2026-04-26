@@ -18,6 +18,7 @@ import {
 } from "@/engine/content";
 import { buildRevealState } from "@/engine/reveal";
 import { cn, createToast, formatTableName, REPORT_REASONS } from "@/lib/mingle";
+import { triggerHaptic } from "@/lib/haptics";
 import { parseCheckinQrValue } from "@/features/checkin/model";
 import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStore";
 import type { ContactExchangeMethod, CustomerTab, ParticipantRecord } from "@/types/mingle";
@@ -55,11 +56,32 @@ function formatContactExchangeStatus(status: "PENDING" | "COMPLETED" | "BLOCKED"
 }
 
 function LoadingView() {
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [showSlowMessage, setShowSlowMessage] = useState(false);
+
+  useEffect(() => {
+    const skeletonTimer = window.setTimeout(() => setShowSkeleton(true), 120);
+    const slowTimer = window.setTimeout(() => setShowSlowMessage(true), 400);
+    return () => {
+      window.clearTimeout(skeletonTimer);
+      window.clearTimeout(slowTimer);
+    };
+  }, []);
+
   return (
     <main className="customer-shell" data-phase="CHECKIN">
       <div className="customer-stage">
-        <Surface className="skeleton-block" />
-        <Surface className="skeleton-block" />
+        {showSkeleton ? (
+          <>
+            <Surface className="skeleton-block" />
+            <Surface className="skeleton-block" />
+          </>
+        ) : null}
+        {showSlowMessage ? (
+          <Surface>
+            <p className="field-help">불러오는 중...</p>
+          </Surface>
+        ) : null}
       </div>
     </main>
   );
@@ -177,10 +199,19 @@ function OnboardingView() {
                   checkinPhone={checkinDraft.resolution?.phone ?? ""}
                   completeButtonDisabled={isSubmittingProfile}
                   onComplete={() => {
+                    triggerHaptic("light");
                     setIsSubmittingProfile(true);
-                    void completeProfile().finally(() => {
-                      setIsSubmittingProfile(false);
-                    });
+                    void completeProfile()
+                      .then((ok) => {
+                        if (ok) {
+                          triggerHaptic("success");
+                        } else {
+                          triggerHaptic("error");
+                        }
+                      })
+                      .finally(() => {
+                        setIsSubmittingProfile(false);
+                      });
                   }}
                 />
               </Surface>
@@ -337,6 +368,8 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   }, [participant.heartsRemaining, snapshot.session.phase, snapshot.session.revealSenders]);
   const rotationInstruction = getRotationInstructionForParticipant(snapshot, participant.id);
   const showRotationModal = isRotationInstructionActive(rotationInstruction);
+  const [phaseBannerMessage, setPhaseBannerMessage] = useState<string | null>(null);
+  const prevPhaseRef = useRef(snapshot.session.phase);
 
   const saveProfile = async () => {
     await updateParticipantProfile({
@@ -352,20 +385,24 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   };
 
   const handleSendHeart = async (recipientId: string) => {
+    triggerHaptic("light");
     if (sentHeartRecipientIds.has(recipientId)) {
       setHeartFeedback("이미 하트를 보낸 사람입니다.");
       useMingleStore.setState({ toast: createToast("info", "이미 하트를 보낸 사람입니다") });
+      triggerHaptic("error");
       return;
     }
     if (participant.heartsRemaining <= 0) {
       setHeartFeedback("남은 하트가 없어요.");
       useMingleStore.setState({ toast: createToast("warning", "남은 하트가 없어요") });
+      triggerHaptic("error");
       return;
     }
     const ok = await sendHeart(recipientId);
     if (ok) {
       setHeartFeedback("하트를 보냈어요.");
       useMingleStore.setState({ toast: createToast("success", "하트를 보냈어요") });
+      triggerHaptic("success");
     }
   };
 
@@ -385,6 +422,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     setIsRevealLoading(true);
     setRevealVisibleCount(0);
     revealStartTimerRef.current = window.setTimeout(() => {
+      triggerHaptic("medium");
       setIsRevealLoading(false);
       setRevealVisibleCount(1);
       revealStepTimerRef.current = window.setInterval(() => {
@@ -392,8 +430,8 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           const next = current + 1;
           return next > heartInbox.visibleSenders.length ? heartInbox.visibleSenders.length : next;
         });
-      }, 140);
-    }, 380);
+      }, 100);
+    }, 300);
 
     return () => {
       if (revealStartTimerRef.current) {
@@ -404,6 +442,22 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
       }
     };
   }, [heartInbox.canReveal, heartInbox.visibleSenders.length, stagedRevealOpen]);
+
+  useEffect(() => {
+    const prevPhase = prevPhaseRef.current;
+    const currentPhase = snapshot.session.phase;
+    if (prevPhase !== currentPhase) {
+      if (currentPhase === "BREAK") {
+        setPhaseBannerMessage("잠시 후 자리를 이동합니다");
+      } else if (currentPhase === "ROUND_2") {
+        setPhaseBannerMessage("2라운드가 시작되었습니다");
+        triggerHaptic("medium");
+      } else {
+        setPhaseBannerMessage(null);
+      }
+      prevPhaseRef.current = currentPhase;
+    }
+  }, [snapshot.session.phase]);
 
   return (
     <main className="customer-shell" data-phase={snapshot.session.phase}>
@@ -443,6 +497,11 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
             <span>현재 단계: {formatOperationalPhaseLabel(snapshot.session.phase)}</span>
           </div>
         </Surface>
+        {phaseBannerMessage ? (
+          <Surface className="customer-phase-banner">
+            <strong>{phaseBannerMessage}</strong>
+          </Surface>
+        ) : null}
 
         <Surface>
           <div className="segmented">
@@ -452,6 +511,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                 type="button"
                 className={cn("segmented-item", customerTab === tab && "segmented-item-active")}
                 onClick={() => setCustomerTab(tab)}
+                onMouseDown={() => triggerHaptic("light")}
               >
                 {TAB_LABELS[tab]}
               </button>
@@ -577,14 +637,23 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                     eyebrow="공개"
                     title="결과를 확인할 수 있어요"
                     description="순서대로 결과를 보여드릴게요."
-                    actions={<Button onClick={() => setStagedRevealOpen(true)}>보낸 사람 보기</Button>}
+                    actions={
+                      <Button
+                        onClick={() => {
+                          triggerHaptic("medium");
+                          setStagedRevealOpen(true);
+                        }}
+                      >
+                        보낸 사람 보기
+                      </Button>
+                    }
                   />
                 </Surface>
               ) : null}
 
               {heartInbox.canReveal ? (
                 stagedRevealOpen ? (
-                  <Surface>
+                  <Surface className="reveal-sequence-surface">
                     <SectionHeader
                       eyebrow="공개 완료"
                       title="결과를 확인할 수 있어요"
@@ -697,8 +766,10 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                           )
                         }
                         onClick={async () => {
+                          triggerHaptic("light");
                           const ok = await submitContactExchangeConsent(contactTargetId, contactDraft, true);
                           if (ok) {
+                            triggerHaptic("success");
                             setContactDraft({ realName: "", phone: "", kakaoId: "", instagramId: "" });
                           }
                         }}
@@ -879,6 +950,7 @@ export function CustomerApp() {
   const participant = useMingleStore(selectCurrentParticipant);
   const snapshot = useMingleStore((state) => state.snapshot);
   const snapshotLoadErrorCode = useMingleStore((state) => state.snapshotLoadErrorCode);
+  const hydrate = useMingleStore((state) => state.hydrate);
 
   if (!hydrated) {
     return <LoadingView />;
@@ -898,6 +970,17 @@ export function CustomerApp() {
                 문제가 계속되면 운영팀에 코드({snapshotLoadErrorCode})를 전달해주세요.
               </p>
             ) : null}
+            <div className="customer-snapshot-form">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  triggerHaptic("light");
+                  void hydrate();
+                }}
+              >
+                다시 시도
+              </Button>
+            </div>
           </Surface>
         </div>
       </main>

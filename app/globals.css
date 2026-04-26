@@ -127,6 +127,8 @@
   --dur-quick: 120ms;
   --dur-base: 180ms;
   --dur-page: 260ms;
+  --dur-page-fast: 210ms;
+  --ease-page: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* ── Focus States ───────────────────────────────────────────── */
   --focus-ring-dark: 0 0 0 1px rgba(212, 179, 106, 0.24), 0 0 0 3px rgba(212, 179, 106, 0.10);
@@ -544,6 +546,12 @@ img {
   transition-duration: 60ms;
 }
 
+.button:active,
+.segmented-item:active,
+.choice-card:active {
+  transform: scale(0.96);
+}
+
 .button:focus-visible,
 .segmented-item:focus-visible,
 .table-pill:focus-visible,
@@ -662,6 +670,21 @@ img {
   width: min(1280px, 100%);
   margin: 0 auto;
   padding: clamp(1.2rem, 3vw, 2rem);
+}
+
+.customer-stage {
+  animation: customer-page-in var(--dur-page-fast) var(--ease-page);
+}
+
+@keyframes customer-page-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .customer-stack {
@@ -999,6 +1022,13 @@ img {
     background var(--dur-base) var(--ease-standard);
 }
 
+.choice-card {
+  transition:
+    transform 120ms var(--ease-snappy),
+    border-color var(--dur-base) var(--ease-standard),
+    background var(--dur-base) var(--ease-standard);
+}
+
 .choice-card strong {
   color: var(--text-primary);
 }
@@ -1006,6 +1036,7 @@ img {
 .choice-card-active {
   border-color: rgba(212, 129, 151, 0.36);
   background: rgba(212, 129, 151, 0.10);
+  transform: scale(1.04);
 }
 
 .upload-preview {
@@ -1922,11 +1953,96 @@ img {
   transition:
     transform 90ms ease,
     filter 120ms ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .heart-send-button:active {
-  transform: scale(0.96);
+  animation: heart-pop 160ms var(--ease-snappy);
   filter: saturate(1.08);
+}
+
+.heart-send-button::after {
+  content: "♡";
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  color: rgba(255, 107, 157, 0.65);
+  opacity: 0;
+}
+
+.heart-send-button:active::after {
+  animation: heart-burst 180ms ease-out;
+}
+
+@keyframes heart-pop {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes heart-burst {
+  0% { opacity: 0.2; transform: translateY(0) scale(0.8); }
+  100% { opacity: 0; transform: translateY(-16px) scale(1.3); }
+}
+
+.customer-phase-banner {
+  border-color: rgba(124, 111, 182, 0.4);
+  background: linear-gradient(135deg, rgba(124, 111, 182, 0.18), rgba(212, 129, 151, 0.12));
+  animation: phase-banner-drop 210ms var(--ease-page);
+}
+
+@keyframes phase-banner-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onboarding-sticky-actions {
+  position: sticky;
+  bottom: 0.6rem;
+  padding-top: 0.5rem;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0), rgba(15, 23, 42, 0.88) 30%);
+}
+
+.field-invalid-shake {
+  animation: field-shake 180ms ease-in-out;
+}
+
+@keyframes field-shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  50% { transform: translateX(8px); }
+  75% { transform: translateX(-8px); }
+  100% { transform: translateX(0); }
+}
+
+.floating-field {
+  position: relative;
+}
+
+.floating-field > span {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  background: transparent;
+  pointer-events: none;
+  transition: transform 120ms var(--ease-standard), color 120ms var(--ease-standard);
+}
+
+.floating-field:focus-within > span,
+.floating-field:has(input:not(:placeholder-shown)) > span {
+  transform: translateY(-18px) scale(0.9);
+  color: var(--text-muted);
+}
+
+.reveal-sequence-surface {
+  backdrop-filter: blur(10px);
 }
 
 /* ═══════════════════════════════════════════════════════════════

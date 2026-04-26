@@ -7,6 +7,29 @@ import {
 } from "@/stores/helpers";
 import type { SessionSlice, StoreSlice } from "@/stores/types";
 
+const RETRY_DELAYS_MS = [1000, 2000, 3000];
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function withRetry<T>(runner: () => Promise<T>) {
+  let lastError: unknown;
+  for (let i = 0; i < RETRY_DELAYS_MS.length; i += 1) {
+    try {
+      return await runner();
+    } catch (error) {
+      lastError = error;
+      if (i < RETRY_DELAYS_MS.length - 1) {
+        await sleep(RETRY_DELAYS_MS[i]);
+      }
+    }
+  }
+  throw lastError;
+}
+
 export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   hydrated: false,
   snapshot: null,
@@ -15,7 +38,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
 
   async hydrate() {
     try {
-      const response = await getMingleRepository().getSessionSnapshot();
+      const response = await withRetry(() => getMingleRepository().getSessionSnapshot());
       const snapshot = normalizeSnapshot(response.data);
       const viewerState = getInitialViewerState(snapshot, response.currentParticipantId);
 
@@ -49,7 +72,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
 
   async syncFromRepository() {
     try {
-      const response = await getMingleRepository().getSessionSnapshot();
+      const response = await withRetry(() => getMingleRepository().getSessionSnapshot());
       const snapshot = normalizeSnapshot(response.data);
       const resolved = syncCachedParticipantState(snapshot, response.currentParticipantId);
       set((state) => {
