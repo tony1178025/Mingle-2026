@@ -1813,6 +1813,47 @@ img {
   gap: 0.9rem;
 }
 
+.reservation-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.65rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.reservation-calendar-cell {
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1f2937;
+  padding: 0.65rem 0.75rem;
+  transition:
+    border-color var(--dur-base) var(--ease-standard),
+    box-shadow var(--dur-base) var(--ease-standard),
+    transform var(--dur-quick) var(--ease-snappy);
+}
+
+.reservation-calendar-cell:hover {
+  transform: translateY(-1px);
+  border-color: #a197d5;
+}
+
+.reservation-calendar-cell:active {
+  transform: scale(0.985);
+}
+
+.reservation-calendar-cell span {
+  color: #5e5575;
+  font-size: 0.82rem;
+}
+
+.reservation-calendar-cell-active {
+  border-color: #7c6fb6;
+  box-shadow: 0 0 0 2px rgba(124, 111, 182, 0.14);
+}
+
 .ops-table-card {
   padding: 1rem;
   text-align: left;

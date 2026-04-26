@@ -1,12 +1,12 @@
  "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
 import { HeartGrantPanel } from "@/components/admin/HeartGrantPanel";
 import { LiveOpsControls } from "@/components/admin/LiveOpsControls";
 import { ReportsPanel } from "@/components/admin/ReportsPanel";
 import { SessionQrCard } from "@/components/admin/SessionQrCard";
-import { Button, EmptyState, SectionHeader, Surface } from "@/components/shared/ui";
+import { Badge, Button, EmptyState, SectionHeader, Surface } from "@/components/shared/ui";
 import { buildTableSummaries } from "@/engine/heat";
 import { buildInterventionRecommendations } from "@/engine/intervention";
 import {
@@ -24,6 +24,7 @@ import {
 import { useMingleStore } from "@/stores/useMingleStore";
 import type {
   AdminSessionRecord,
+  BranchRecord,
   CustomerProfileSummary,
   ParticipantGender,
   ReservationBridgeRecord
@@ -81,6 +82,13 @@ function getContextPageLabel(page: AdminPageKey) {
   return "지점 설정";
 }
 
+function formatRoleLabel(role: AdminSessionRecord["role"] | undefined) {
+  if (role === "HQ_ADMIN") return "본부 관리자";
+  if (role === "BRANCH_ADMIN") return "지점 관리자";
+  if (role === "STAFF") return "운영 스태프";
+  return "미인증";
+}
+
 export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRecord | null }) {
   const hydrated = useMingleStore((state) => state.hydrated);
   const snapshot = useMingleStore((state) => state.snapshot);
@@ -116,6 +124,32 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
   const [staffMemoMap, setStaffMemoMap] = useState<Record<string, string>>({});
   const [staffGradeMap, setStaffGradeMap] = useState<Record<string, "S" | "A" | "B" | "C" | "">>({});
   const [staffTagsMap, setStaffTagsMap] = useState<Record<string, string[]>>({});
+  const [branches, setBranches] = useState<BranchRecord[]>([]);
+  const [quickNoticeMessage, setQuickNoticeMessage] = useState("");
+  const [quickActionLoading, setQuickActionLoading] = useState<
+    null | "round2" | "reveal" | "notice" | "close"
+  >(null);
+
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/admin/branches", {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = (await response.json()) as { branches?: BranchRecord[] };
+        if (!active) return;
+        setBranches(payload.branches ?? []);
+      })
+      .catch(() => {
+        if (!active) return;
+        setBranches([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const persistedReservationRows = useMemo<ManualReservationRow[]>(
     () =>
@@ -146,21 +180,41 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
   const isBranchScoped = adminSession?.role === "BRANCH_ADMIN" || adminSession?.role === "STAFF";
   const branchNodes = useMemo<BranchNode[]>(() => {
     if (!snapshot) return [];
-    const nodes = [
-      {
-        branchId: snapshot.session.branchId,
-        branchName: snapshot.session.branchName || snapshot.session.branchId,
-        sessionName: snapshot.session.name
-      }
-    ];
+    const fallbackNode = {
+      branchId: snapshot.session.branchId,
+      branchName: snapshot.session.branchName || snapshot.session.branchId,
+      sessionName: snapshot.session.name
+    };
+    const dynamicNodes =
+      branches.length > 0
+        ? branches
+            .filter((branch) => branch.isActive)
+            .map((branch) => ({
+              branchId: branch.id,
+              branchName: branch.name,
+              sessionName: branch.id === snapshot.session.branchId ? snapshot.session.name : "세션 대기"
+            }))
+        : [fallbackNode];
+    const nodes = dynamicNodes.some((node) => node.branchId === fallbackNode.branchId)
+      ? dynamicNodes
+      : [fallbackNode, ...dynamicNodes];
     if (isBranchScoped && adminSession?.branchId) {
       return nodes.filter((node) => node.branchId === adminSession.branchId);
     }
     return nodes;
-  }, [adminSession?.branchId, isBranchScoped, snapshot]);
+  }, [adminSession?.branchId, branches, isBranchScoped, snapshot]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>(branchNodes[0]?.branchId ?? "");
   const selectedBranch = branchNodes.find((node) => node.branchId === selectedBranchId) ?? branchNodes[0] ?? null;
   const [activePage, setActivePage] = useState<AdminPageKey>(isHqAdmin ? "hq-dashboard" : "branch-dashboard");
+  useEffect(() => {
+    if (!selectedBranchId && branchNodes[0]?.branchId) {
+      setSelectedBranchId(branchNodes[0].branchId);
+      return;
+    }
+    if (selectedBranchId && !branchNodes.some((node) => node.branchId === selectedBranchId)) {
+      setSelectedBranchId(branchNodes[0]?.branchId ?? "");
+    }
+  }, [branchNodes, selectedBranchId]);
   const tableSummaries = useMemo(
     () =>
       snapshot
@@ -232,6 +286,38 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     window.document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   };
+
+  const maleParticipants = snapshot?.participants.filter((participant) => participant.gender === "M").length ?? 0;
+  const femaleParticipants = snapshot?.participants.filter((participant) => participant.gender === "F").length ?? 0;
+  const reservationByDate = useMemo(() => {
+    const map = new Map<string, { male: number; female: number; total: number }>();
+    for (const row of reservationRows) {
+      const key = row.eventDate || selectedDate;
+      const prev = map.get(key) ?? { male: 0, female: 0, total: 0 };
+      const isMale = row.gender === "남" || row.gender === "M";
+      const isFemale = row.gender === "여" || row.gender === "F";
+      map.set(key, {
+        male: prev.male + (isMale ? 1 : 0),
+        female: prev.female + (isFemale ? 1 : 0),
+        total: prev.total + 1
+      });
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(0, 42);
+  }, [reservationRows, selectedDate]);
+
+  async function runQuickAction(
+    action: "round2" | "reveal" | "notice" | "close",
+    fn: () => Promise<void>
+  ) {
+    setQuickActionLoading(action);
+    try {
+      await fn();
+    } finally {
+      setQuickActionLoading(null);
+    }
+  }
 
   if (!hydrated) {
     return (
@@ -715,6 +801,24 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           <span>날짜 선택</span>
           <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
         </label>
+        <div className="reservation-calendar-grid">
+          {reservationByDate.length > 0 ? (
+            reservationByDate.map(([dateKey, stats]) => (
+              <button
+                key={dateKey}
+                type="button"
+                className={dateKey === selectedDate ? "reservation-calendar-cell reservation-calendar-cell-active" : "reservation-calendar-cell"}
+                onClick={() => setSelectedDate(dateKey)}
+              >
+                <strong>{dateKey}</strong>
+                <span>남 {stats.male} / 여 {stats.female}</span>
+                <span>총 {stats.total}명</span>
+              </button>
+            ))
+          ) : (
+            <p className="field-help">캘린더 데이터가 없습니다. CSV를 업로드해 주세요.</p>
+          )}
+        </div>
         <div className="segmented">
           {(["1부", "2부", "1+2부"] as const).map((round) => (
             <button
@@ -893,7 +997,10 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                 </tr>
               </thead>
               <tbody>
-                {reservationRows.slice(0, 200).map((row, index) => (
+                {reservationRows
+                  .filter((row) => row.eventDate === selectedDate && row.slot === reservationRound)
+                  .slice(0, 200)
+                  .map((row, index) => (
                   <tr key={`${row.phone}-${index}`}>
                     <td>{row.name}</td>
                     <td>{row.phone}</td>
@@ -1044,21 +1151,112 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
 
   const renderSessionOverview = () => (
     <div className="admin-main-column">
+      <div className="metric-grid admin-dashboard-metric-grid">
+        <Surface className="metric-card"><strong>참가자</strong><p className="metric-value">{snapshot.participants.length}명</p></Surface>
+        <Surface className="metric-card"><strong>남/여</strong><p className="metric-value">{maleParticipants} / {femaleParticipants}</p></Surface>
+        <Surface className="metric-card"><strong>테이블</strong><p className="metric-value">{snapshot.session.tableCount}개</p></Surface>
+        <Surface className="metric-card"><strong>진행 상태</strong><p className="metric-value">{formatPhaseLabel(snapshot.session.phase)}</p></Surface>
+      </div>
+
       <Surface>
-        <SectionHeader eyebrow="현재 회차" title="회차 현황" description="지점당 동시 OPEN 회차는 1개만 허용됩니다." />
-        <div className="compact-stack">
-          <div className="compact-row"><strong>회차명</strong><span>{snapshot.session.name}</span></div>
-          <div className="compact-row"><strong>입장 시작</strong><span>{snapshot.session.sessionTimeLabel}</span></div>
-          <div className="compact-row"><strong>시작 시간</strong><span>{snapshot.session.startedAt}</span></div>
-          <div className="compact-row"><strong>종료 예정</strong><span>시작 후 12시간 자동 종료</span></div>
-          <div className="compact-row"><strong>현재 단계</strong><span>{formatPhaseLabel(snapshot.session.phase)}</span></div>
-          <div className="compact-row"><strong>참가자 수</strong><span>{snapshot.participants.length}</span></div>
-          <div className="compact-row"><strong>테이블 수</strong><span>{snapshot.session.tableCount}</span></div>
-          <div className="compact-row"><strong>하트 공개</strong><span>{snapshot.session.revealSenders ? "공개됨" : "비공개"}</span></div>
-          <div className="compact-row"><strong>연락처 공유</strong><span>완료 {snapshot.contactExchangeStats?.completedCount ?? 0}건</span></div>
+        <SectionHeader eyebrow="테이블 상태" title="테이블 운영 카드" description="리스트가 아닌 카드로 테이블 상태를 즉시 파악합니다." />
+        <div className="admin-table-grid">
+          {tableSummaries.map((table) => {
+            const maleCount = table.participants.filter((participant) => participant.gender === "M").length;
+            const femaleCount = table.participants.filter((participant) => participant.gender === "F").length;
+            const reactionS = table.participants.filter((participant) => participant.receivedHearts >= 4).length;
+            const reactionA = table.participants.filter((participant) => participant.receivedHearts >= 2 && participant.receivedHearts < 4).length;
+            const reactionB = table.participants.filter((participant) => participant.receivedHearts < 2).length;
+            return (
+              <Surface key={table.tableId} className="ops-table-card">
+                <div className="ops-table-head">
+                  <strong>{formatTableName(table.tableId)}</strong>
+                  <Badge tone={table.tableState === "COLLAPSING" ? "warning" : "neutral"}>
+                    {table.tableState === "COLLAPSING" ? "주의 필요" : "안정"}
+                  </Badge>
+                </div>
+                <div className="ops-table-meta">
+                  <span>남 {maleCount}</span>
+                  <span>여 {femaleCount}</span>
+                  <span>S:{reactionS} / A:{reactionA} / B:{reactionB}</span>
+                </div>
+              </Surface>
+            );
+          })}
         </div>
-        <div className="button-row">
-          <Button onClick={() => setActivePage("branch-live")}>라이브 콘솔 열기</Button>
+      </Surface>
+
+      <Surface>
+        <SectionHeader eyebrow="참가자 목록" title="운영 참가자 테이블" description="이름/나이/테이블/하트/상태/액션을 한 화면에서 처리합니다." />
+        <div className="admin-simple-table-wrap">
+          <table className="admin-simple-table">
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>나이</th>
+                <th>테이블</th>
+                <th>하트 받은 수</th>
+                <th>상태</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.participants.map((participant) => {
+                const status = snapshot.participantStatusMap?.[participant.id] ?? "IDLE";
+                return (
+                  <tr key={participant.id}>
+                    <td>{participant.nickname}</td>
+                    <td>{participant.age}</td>
+                    <td>T{participant.tableId}</td>
+                    <td>{participant.receivedHearts}</td>
+                    <td>{formatParticipantStatusLabel(status)}</td>
+                    <td>
+                      <div className="button-row">
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            setMovingParticipantId(movingParticipantId === participant.id ? null : participant.id)
+                          }
+                        >
+                          이동
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => {
+                            const confirmed = window.confirm("해당 참가자를 운영 제한할까요?");
+                            if (!confirmed) return;
+                            void setBlacklistStatus(participant.id, true, "운영 제한");
+                          }}
+                        >
+                          차단
+                        </Button>
+                      </div>
+                      {movingParticipantId === participant.id ? (
+                        <div className="admin-table-move-list">
+                          {Array.from({ length: snapshot.session.tableCount }, (_, i) => i + 1)
+                            .filter((tid) => tid !== participant.tableId)
+                            .map((tid) => (
+                              <button
+                                key={tid}
+                                type="button"
+                                className="admin-mini-button admin-mini-button-table"
+                                onClick={() => {
+                                  const confirmed = window.confirm(`참가자를 T${tid}로 이동할까요?`);
+                                  if (!confirmed) return;
+                                  void moveParticipant(participant.id, tid).then(() => setMovingParticipantId(null));
+                                }}
+                              >
+                                T{tid}
+                              </button>
+                            ))}
+                        </div>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </Surface>
     </div>
@@ -1226,8 +1424,6 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                 <p className="admin-console-nav-group-title">본부</p>
                 <div className="admin-console-nav-group-items">
                   <button type="button" className={activePage === "hq-dashboard" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("hq-dashboard")}>본부 대시보드</button>
-                  <button type="button" className={activePage === "hq-customers" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("hq-customers")}>전체 고객 DB</button>
-                  <button type="button" className={activePage === "hq-reservations" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("hq-reservations")}>전체 예약 현황</button>
                   <button type="button" className={activePage === "hq-admin-users" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("hq-admin-users")}>관리자 관리</button>
                 </div>
               </div>
@@ -1249,14 +1445,8 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                   </button>
                   {selectedBranch?.branchId === branch.branchId ? (
                     <div className="admin-branch-tree-children">
-                      <button type="button" className={activePage === "branch-dashboard" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-dashboard")}>지점 대시보드</button>
-                      <button type="button" className={activePage === "branch-reservations" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-reservations")}>예약 현황</button>
                       <button type="button" className={activePage === "branch-session" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-session")}>세션</button>
-                      <div className="admin-branch-tree-children">
-                        <button type="button" className={activePage === "branch-live" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-live")}>라이브 콘솔</button>
-                      </div>
-                      <button type="button" className={activePage === "branch-customers" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-customers")}>참가자/고객 현황</button>
-                      <button type="button" className={activePage === "branch-settings" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-settings")}>지점 설정</button>
+                      <button type="button" className={activePage === "branch-reservations" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-reservations")}>예약 현황</button>
                     </div>
                   ) : null}
                 </div>
@@ -1289,16 +1479,69 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
               <div className="admin-console-topbar-row">
                 <div className="admin-console-topbar-meta">
                   <p>
-                    <strong>권한</strong> {adminSession?.role ?? "미인증"}
+                    <strong>권한</strong> {formatRoleLabel(adminSession?.role)}
                   </p>
                 </div>
                 <div className="badge-row">
                   <span className="badge badge-neutral">현재 단계 {formatPhaseLabel(snapshot.session.phase)}</span>
                   <span className="badge badge-neutral">참가자 {snapshot.participants.length}명</span>
                   <span className="badge badge-neutral">테이블 {snapshot.session.tableCount}</span>
-                  <span className="badge badge-accent">{adminSession?.role ?? "권한 없음"}</span>
+                  <span className="badge badge-accent">{formatRoleLabel(adminSession?.role)}</span>
                 </div>
                 <div className="button-row wrap-row">
+                  <Button
+                    variant="secondary"
+                    disabled={quickActionLoading !== null}
+                    onClick={() =>
+                      runQuickAction("round2", async () => {
+                        if (snapshot.session.phase === "ROUND_2") return;
+                        const confirmed = window.confirm("라운드2를 시작할까요?");
+                        if (!confirmed) return;
+                        await setSessionState("ROUND_2");
+                      })
+                    }
+                  >
+                    {quickActionLoading === "round2" ? "처리 중..." : "ROUND_2 시작"}
+                  </Button>
+                  <Button
+                    disabled={quickActionLoading !== null}
+                    onClick={() =>
+                      runQuickAction("reveal", async () => {
+                        const confirmed = window.confirm("하트 공개를 실행할까요?");
+                        if (!confirmed) return;
+                        await triggerReveal();
+                      })
+                    }
+                  >
+                    {quickActionLoading === "reveal" ? "처리 중..." : "하트 공개"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    disabled={quickActionLoading !== null}
+                    onClick={() =>
+                      runQuickAction("notice", async () => {
+                        const message = window.prompt("공지 내용을 입력하세요.", quickNoticeMessage || "곧 다음 단계가 시작됩니다.");
+                        if (!message || !message.trim()) return;
+                        setQuickNoticeMessage(message);
+                        await publishAnnouncement(message.trim());
+                      })
+                    }
+                  >
+                    {quickActionLoading === "notice" ? "처리 중..." : "공지"}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    disabled={quickActionLoading !== null}
+                    onClick={() =>
+                      runQuickAction("close", async () => {
+                        const confirmed = window.confirm("세션을 종료하시겠습니까? 종료 후 운영 명령이 제한됩니다.");
+                        if (!confirmed) return;
+                        await setSessionState("CLOSED");
+                      })
+                    }
+                  >
+                    {quickActionLoading === "close" ? "처리 중..." : "세션 종료"}
+                  </Button>
                   <Button variant="ghost" onClick={() => (window.location.href = "/")}>
                     나가기
                   </Button>
