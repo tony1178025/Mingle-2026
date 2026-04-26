@@ -24,9 +24,9 @@ import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStor
 import type { ContactExchangeMethod, CustomerTab, ParticipantRecord } from "@/types/mingle";
 
 const TAB_LABELS: Record<CustomerTab, string> = {
-  table: "테이블",
-  hearts: "하트",
-  settings: "설정"
+  table: "전체",
+  hearts: "콘텐츠",
+  settings: "내 정보"
 };
 
 const PHASE_LABELS: Record<string, string> = {
@@ -53,6 +53,12 @@ function formatContactExchangeStatus(status: "PENDING" | "COMPLETED" | "BLOCKED"
   if (status === "COMPLETED") return "공유 완료";
   if (status === "BLOCKED") return "운영 제한";
   return "상대 동의 대기";
+}
+
+function getPhaseSingleMessage(phase: string, revealOpen: boolean) {
+  if (revealOpen) return "서로 선택된 분과 대화를 이어가보세요";
+  if (phase === "ROUND_2") return "대화를 이어가고 싶은 분을 선택해주세요";
+  return "관심 있는 분께 가볍게 표시해보세요";
 }
 
 function LoadingView() {
@@ -315,7 +321,6 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     energyType: participant.energyType
   });
   const [contactTargetId, setContactTargetId] = useState("");
-  const [heartFeedback, setHeartFeedback] = useState<string | null>(null);
   const [contactDraft, setContactDraft] = useState<ContactExchangeMethod>({
     realName: "",
     phone: "",
@@ -354,22 +359,9 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
       ),
     [participant.id, snapshot.hearts]
   );
-  const revealConditionMessage = useMemo(() => {
-    if (snapshot.session.phase !== "ROUND_2") {
-      return "2라운드에서 운영자가 공개를 열면 결과를 확인할 수 있어요.";
-    }
-    if (!snapshot.session.revealSenders) {
-      return "운영자가 하트 공개를 열기 전입니다.";
-    }
-    if (participant.heartsRemaining > 0) {
-      return `남은 하트를 모두 사용하면 결과를 확인할 수 있어요.`;
-    }
-    return "결과를 확인할 수 있어요.";
-  }, [participant.heartsRemaining, snapshot.session.phase, snapshot.session.revealSenders]);
   const rotationInstruction = getRotationInstructionForParticipant(snapshot, participant.id);
   const showRotationModal = isRotationInstructionActive(rotationInstruction);
-  const [phaseBannerMessage, setPhaseBannerMessage] = useState<string | null>(null);
-  const prevPhaseRef = useRef(snapshot.session.phase);
+  const phaseGuideMessage = getPhaseSingleMessage(snapshot.session.phase, stagedRevealOpen && heartInbox.canReveal);
 
   const saveProfile = async () => {
     await updateParticipantProfile({
@@ -387,20 +379,17 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   const handleSendHeart = async (recipientId: string) => {
     triggerHaptic("light");
     if (sentHeartRecipientIds.has(recipientId)) {
-      setHeartFeedback("이미 하트를 보낸 사람입니다.");
       useMingleStore.setState({ toast: createToast("info", "이미 하트를 보낸 사람입니다") });
       triggerHaptic("error");
       return;
     }
     if (participant.heartsRemaining <= 0) {
-      setHeartFeedback("남은 하트가 없어요.");
       useMingleStore.setState({ toast: createToast("warning", "남은 하트가 없어요") });
       triggerHaptic("error");
       return;
     }
     const ok = await sendHeart(recipientId);
     if (ok) {
-      setHeartFeedback("하트를 보냈어요.");
       useMingleStore.setState({ toast: createToast("success", "하트를 보냈어요") });
       triggerHaptic("success");
     }
@@ -443,22 +432,6 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     };
   }, [heartInbox.canReveal, heartInbox.visibleSenders.length, stagedRevealOpen]);
 
-  useEffect(() => {
-    const prevPhase = prevPhaseRef.current;
-    const currentPhase = snapshot.session.phase;
-    if (prevPhase !== currentPhase) {
-      if (currentPhase === "BREAK") {
-        setPhaseBannerMessage("잠시 후 자리를 이동합니다");
-      } else if (currentPhase === "ROUND_2") {
-        setPhaseBannerMessage("2라운드가 시작되었습니다");
-        triggerHaptic("medium");
-      } else {
-        setPhaseBannerMessage(null);
-      }
-      prevPhaseRef.current = currentPhase;
-    }
-  }, [snapshot.session.phase]);
-
   return (
     <main className="customer-shell" data-phase={snapshot.session.phase}>
       <div className="customer-stage">
@@ -468,40 +441,15 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
             <h1 className="hero-title">
               {participant.nickname}님, 지금은 {formatTableName(participant.tableId)} 라운드입니다.
             </h1>
-            <p className="hero-description">
-              테이블 중심으로 진행하고, 운영 지시와 연결 신호는 이 화면에서 바로 이어집니다.
-            </p>
-          </div>
-          <div className="hero-signal-grid">
-            <div className="hero-signal-card">
-              <span className="hero-side-kicker">현재 단계</span>
-              <strong>{formatPhaseLabel(snapshot.session.phase)}</strong>
-              <p>운영 단계가 바뀌면 이 화면도 바로 갱신됩니다.</p>
-            </div>
-            <div className="hero-signal-card">
-              <span className="hero-side-kicker">현재 테이블</span>
-              <strong data-testid="current-table-label">{formatTableName(participant.tableId)}</strong>
-              <p>{currentTableMembers.length}명이 같은 테이블에서 대화를 이어가고 있습니다.</p>
-            </div>
-            <div className="hero-signal-card">
-              <span className="hero-side-kicker">남은 하트</span>
-              <strong>{participant.heartsRemaining}개</strong>
-              <p>추가 하트는 현장에서 운영자를 통해 지급됩니다.</p>
-            </div>
+            <p className="hero-description">{phaseGuideMessage}</p>
           </div>
         </Surface>
 
         <Surface className="customer-sticky-status" data-testid="customer-sticky-status">
           <div className="customer-sticky-status-row">
-            <strong>내 테이블: {formatTableName(participant.tableId)}</strong>
-            <span>현재 단계: {formatOperationalPhaseLabel(snapshot.session.phase)}</span>
+            <strong>현재 단계: {formatOperationalPhaseLabel(snapshot.session.phase)}</strong>
           </div>
         </Surface>
-        {phaseBannerMessage ? (
-          <Surface className="customer-phase-banner">
-            <strong>{phaseBannerMessage}</strong>
-          </Surface>
-        ) : null}
 
         <Surface>
           <div className="segmented">
@@ -520,10 +468,9 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           <div className="compact-row customer-heart-row">
             <strong>남은 하트 {participant.heartsRemaining}개</strong>
             <Button variant="secondary" onClick={() => setCustomerTab("hearts")}>
-              하트 보기
+              콘텐츠 보기
             </Button>
           </div>
-          {heartFeedback ? <p className="heart-feedback-text">{heartFeedback}</p> : null}
         </Surface>
 
         {customerTab === "table" ? (
@@ -636,7 +583,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   <SectionHeader
                     eyebrow="공개"
                     title="결과를 확인할 수 있어요"
-                    description="순서대로 결과를 보여드릴게요."
+                    description="서로 관심이 확인되었습니다"
                     actions={
                       <Button
                         onClick={() => {
@@ -656,8 +603,8 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   <Surface className="reveal-sequence-surface">
                     <SectionHeader
                       eyebrow="공개 완료"
-                      title="결과를 확인할 수 있어요"
-                      description="나에게 하트를 보낸 사람입니다."
+                      title="서로 관심이 확인되었습니다"
+                      description="서로 관심이 확인되었습니다"
                     />
                     {isRevealLoading ? <p className="field-help">결과를 불러오고 있어요...</p> : null}
                     <div className="participant-grid">
@@ -685,7 +632,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   <SectionHeader
                     eyebrow="잠김"
                     title="아직 결과를 확인할 수 없어요"
-                    description={revealConditionMessage}
+                    description={phaseGuideMessage}
                   />
                 </Surface>
               )}
@@ -695,9 +642,9 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   <SectionHeader
                     eyebrow="연락처 교환"
                     title="연락처 교환"
-                    description="서로 하트를 보낸 참가자와만, 쌍방 동의 후 연락처가 공개됩니다."
+                    description="서로 동의해야 공개됩니다"
                   />
-                  <p className="field-help">서로 동의해야 연락처가 공개됩니다.</p>
+                  <p className="field-help">서로 동의해야 공개됩니다</p>
 
                   {mutualMatches.length ? (
                     <>
@@ -774,7 +721,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                           }
                         }}
                       >
-                        연락처 공유 요청하기
+                        연락처 교환 요청
                       </Button>
                       {!contactTargetId ||
                       !(

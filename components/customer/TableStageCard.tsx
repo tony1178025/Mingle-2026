@@ -45,7 +45,7 @@ export function TableStageCard({
         <SectionHeader
           eyebrow="테이블 진행"
           title={`${participant.nickname}님, 지금은 테이블 대화 시간입니다`}
-          description="다음 운영 미션이 열릴 때까지 지금 테이블 대화를 이어가면 됩니다."
+          description=""
         />
         {inboxMessages.length ? (
           <div className="compact-stack">

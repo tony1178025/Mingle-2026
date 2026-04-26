@@ -150,7 +150,6 @@ export function ProfileFormFields({
     (step === 5 && Boolean(selectedIdealTypes.length === MAX_CHIP_SELECTION && consentPrivacy && consentPortrait));
 
   const isReadyToComplete = canGoNext && step === 5;
-  const showStepValidation = showValidationHint && !canGoNext;
 
   useEffect(() => {
     if (!derivedAge || Number.isNaN(derivedAge)) {
@@ -166,7 +165,7 @@ export function ProfileFormFields({
 
         {step === 1 ? (
           <div className="form-grid">
-            <label className={cn("field", showStepValidation && !fullName.trim() && "field-invalid-shake", "floating-field")}>
+            <label className={cn("field", "floating-field")}>
               <span>이름</span>
               <input
                 value={fullName}
@@ -182,7 +181,7 @@ export function ProfileFormFields({
                 placeholder=" "
               />
             </label>
-            <label className={cn("field", showStepValidation && birthYear.trim().length !== 4 && "field-invalid-shake", "floating-field")}>
+            <label className={cn("field", "floating-field")}>
               <span>출생연도</span>
               <input
                 value={birthYear}
@@ -209,7 +208,7 @@ export function ProfileFormFields({
               value={value.photoUrl}
               onChange={(url) => onChange("photoUrl", url)}
             />
-            <label className={cn("field", showStepValidation && !value.nickname.trim() && "field-invalid-shake", "floating-field")}>
+            <label className={cn("field", "floating-field")}>
               <span>닉네임</span>
               <input
                 value={value.nickname}
@@ -220,7 +219,7 @@ export function ProfileFormFields({
                 data-testid={`${testIdPrefix}-nickname`}
               />
             </label>
-            <label className={cn("field", showStepValidation && !value.heightCm.trim() && "field-invalid-shake", "floating-field")}>
+            <label className={cn("field", "floating-field")}>
               <span>키</span>
               <input
                 value={value.heightCm}
