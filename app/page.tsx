@@ -9,55 +9,55 @@ export default function HomePage() {
     <main className="portal-shell">
       <div className="portal-grid">
         <div className="portal-copy">
-          <p className="eyebrow">PREMIUM SOCIAL NIGHT</p>
+          <p className="eyebrow">Mingle · 밍글</p>
           <div className="portal-brand-row">
             <MingleIcon variant="compact" size={48} />
             <MingleLogo variant="full" theme="dark" size="md" />
           </div>
-          <h1 className="portal-title">오늘 밤, 가장 세련된 만남이 시작되는 파티</h1>
+          <h1 className="portal-title">낯설지 않게, 자연스럽게</h1>
           <p className="portal-description">
-            밍글은 현장 테이블 배치와 하트 교환, 프로필 탐색을 통해 자연스럽고 밀도 높은 만남을 연결하는
-            프리미엄 오프라인 소셜 디스커버리 플랫폼입니다.
+            Mingle은 처음 만난 사람들이 편하게 대화하고 서로를 알아갈 수 있도록 흐름이 설계된 오프라인
+            소셜 모임입니다.
           </p>
           <div className="portal-meta-grid">
             <div className="portal-meta-card">
-              <span className="hero-side-kicker">오늘 일정</span>
+              <span className="hero-side-kicker">참여 흐름</span>
               <strong>{MINGLE_CONSTANTS.sessionDateLabel}</strong>
-              <p>{MINGLE_CONSTANTS.sessionTimeLabel}</p>
+              <p>예약 후 현장에서 QR로 입장해요</p>
             </div>
             <div className="portal-meta-card">
-              <span className="hero-side-kicker">장소</span>
+              <span className="hero-side-kicker">진행 방식</span>
               <strong>{MINGLE_CONSTANTS.venueName}</strong>
-              <p>{MINGLE_CONSTANTS.venueAddress}</p>
+              <p>라운드 대화 뒤 마음에 드는 사람에게 하트를 보내요</p>
             </div>
             <div className="portal-meta-card">
-              <span className="hero-side-kicker">참석 신호</span>
-              <strong>{MINGLE_CONSTANTS.attendanceLabel}</strong>
-              <p>{MINGLE_CONSTANTS.attendanceHint}</p>
+              <span className="hero-side-kicker">안전 원칙</span>
+              <strong>서로 동의하면 연락처가 공개됩니다</strong>
+              <p>불편한 상황은 앱에서 바로 신고할 수 있어요</p>
             </div>
           </div>
           <div className="portal-actions">
             <Link href="/customer" className="button button-primary">
-              고객 PWA 열기
+              참여 일정 보기
             </Link>
             <Link href="/admin" className="button button-secondary">
-              운영 콘솔 열기
+              지금 예약하기
             </Link>
           </div>
         </div>
 
         <Surface className="portal-panel">
           <div className="portal-panel-row">
-            <Badge tone="accent">고객</Badge>
-            <span>체크인 뒤 시간과 장소, 참석 분위기를 먼저 보고 테이블 중심으로 자연스럽게 사람을 읽습니다.</span>
+            <Badge tone="accent">문제 공감</Badge>
+            <span>새로운 사람을 만나는 자리는 늘 조금 어색합니다. 밍글은 그 어색함을 줄여줘요.</span>
           </div>
           <div className="portal-panel-row">
-            <Badge tone="warning">운영</Badge>
-            <span>시간, 장소, 체크인 흐름, 열기, 공개 토글, 회전 적용 여부를 몇 초 안에 판단할 수 있게 설계했습니다.</span>
+            <Badge tone="warning">참여 흐름</Badge>
+            <span>원하는 일정 예약 → 현장 입장 → QR 프로필 입력 → 라운드 대화 → 하트 → 연락처 공유</span>
           </div>
           <div className="portal-panel-row">
-            <Badge tone="success">엔진</Badge>
-            <span>A/B/C 티어, E/I 균형, 반복 만남 회피, 보호 배치를 기준으로 구조적인 회전을 설계합니다.</span>
+            <Badge tone="success">FAQ</Badge>
+            <span>혼자 와도 괜찮고, 사진은 선택사항입니다. 기본 이미지로도 참여할 수 있어요.</span>
           </div>
         </Surface>
       </div>

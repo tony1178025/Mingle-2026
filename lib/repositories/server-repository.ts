@@ -21,6 +21,7 @@ import { readFromDbAuthority } from "@/lib/repositories/authority-config";
 import { logHighFrequencyAction, logSuspiciousPattern } from "@/lib/authority-monitoring";
 import { getSessionAuthorityRepository } from "@/lib/repositories/authority-backend";
 import { getSessionContext as getExternalReservationSessionContext } from "@/lib/reservations/external-reservation-adapter";
+import { DEFAULT_AVATAR_BY_GENDER } from "@/types/mingle";
 import type {
   AnonymousMessageRecord,
   BlacklistRecord,
@@ -927,6 +928,34 @@ function ensureProfileFields(draft: {
   }
 }
 
+function normalizeProfilePhotoUrl(photoUrl: string | null | undefined) {
+  const normalized = photoUrl?.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (
+    normalized === "default-profile-placeholder" ||
+    normalized === "placeholder:default-profile" ||
+    normalized === "placeholder://default-profile"
+  ) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function resolveProfilePhotoUrl(
+  photoUrl: string | null | undefined,
+  gender: "M" | "F"
+) {
+  const normalized = normalizeProfilePhotoUrl(photoUrl);
+  if (normalized) {
+    return normalized;
+  }
+  return DEFAULT_AVATAR_BY_GENDER[gender];
+}
+
 function normalizeNickname(nickname: string) {
   return nickname.trim().toLocaleLowerCase("ko-KR");
 }
@@ -1548,7 +1577,7 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         age,
         jobCategory: command.draft.jobCategory,
         job: command.draft.job,
-        photoUrl: command.draft.photoUrl || null,
+        photoUrl: resolveProfilePhotoUrl(command.draft.photoUrl, command.resolution.gender),
         heightCm,
         animalType: command.draft.animalType,
         energyType,
@@ -1633,6 +1662,7 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         participants: updateParticipant(snapshot, participant.id, (currentParticipant) => ({
           ...touchParticipant(currentParticipant, updatedAt),
           ...command.profile,
+          photoUrl: resolveProfilePhotoUrl(command.profile.photoUrl, currentParticipant.gender),
           nickname
         })),
         auditLogs: [audit, ...snapshot.auditLogs],

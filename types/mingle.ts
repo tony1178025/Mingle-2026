@@ -11,6 +11,10 @@ export type CheckinFlowState =
 export type ParticipantStatus = "ACTIVE" | "IDLE" | "GONE" | "BLOCKED";
 export type TableState = "NORMAL" | "LOW_ACTIVITY" | "COLLAPSING";
 export type ParticipantGender = "M" | "F";
+export const DEFAULT_AVATAR_BY_GENDER: Record<ParticipantGender, string> = {
+  M: "/avatars/male-default.png",
+  F: "/avatars/female-default.png"
+};
 export type EnergyType = "E" | "I";
 export type ParticipantTier = "A" | "B" | "C";
 export type ParticipantSubTier = "HIGH" | "MID" | "LOW";
@@ -543,6 +547,21 @@ export interface ProfileDraft {
   animalType: string;
   energyType: EnergyType | "";
 }
+
+export interface ProfileUploadEnabledResponse {
+  uploadEnabled: true;
+  uploadUrl: string;
+  assetUrl: string;
+  key: string;
+  provider: string;
+}
+
+export interface ProfileUploadDisabledResponse {
+  uploadEnabled: false;
+  helperMessage: string;
+}
+
+export type ProfileUploadResponse = ProfileUploadEnabledResponse | ProfileUploadDisabledResponse;
 
 export interface TableVibeMetrics {
   activeUsersRatio: number;

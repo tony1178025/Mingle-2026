@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ProfileFormFields } from "@/components/customer/ProfileFormFields";
 import { RevealProgressCard } from "@/components/customer/RevealProgressCard";
 import { RotationInstructionModal } from "@/components/customer/RotationInstructionModal";
@@ -32,7 +32,7 @@ const PHASE_LABELS: Record<string, string> = {
   ROUND_1: "1라운드",
   BREAK: "휴식",
   ROUND_2: "2라운드",
-  MATCH_END: "매치 결과",
+  MATCH_END: "매칭 결과",
   CLOSED: "종료"
 };
 
@@ -40,10 +40,17 @@ function formatPhaseLabel(phase: string) {
   return PHASE_LABELS[phase] ?? phase;
 }
 
+function formatOperationalPhaseLabel(phase: string) {
+  if (phase === "BREAK") return "이동·정리";
+  if (phase === "ROUND_2") return "2라운드";
+  if (phase === "CLOSED") return "종료";
+  return "1라운드";
+}
+
 function formatContactExchangeStatus(status: "PENDING" | "COMPLETED" | "BLOCKED") {
-  if (status === "COMPLETED") return "완료";
+  if (status === "COMPLETED") return "공유 완료";
   if (status === "BLOCKED") return "운영 제한";
-  return "대기";
+  return "상대 동의 대기";
 }
 
 function LoadingView() {
@@ -65,6 +72,14 @@ function OnboardingView() {
   const verifyCheckin = useMingleStore((state) => state.verifyCheckin);
   const updateProfileDraft = useMingleStore((state) => state.updateProfileDraft);
   const completeProfile = useMingleStore((state) => state.completeProfile);
+  const onboardingProfileUploadSubjectRef = useRef("");
+  if (!onboardingProfileUploadSubjectRef.current) {
+    onboardingProfileUploadSubjectRef.current =
+      globalThis.crypto?.randomUUID?.() ??
+      `temp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+  const profileUploadSubjectId =
+    checkinDraft.resolution?.participantId ?? onboardingProfileUploadSubjectRef.current;
 
   if (!snapshot) {
     return <LoadingView />;
@@ -73,6 +88,11 @@ function OnboardingView() {
   const copy = createCheckinCopy();
   const reservationLabel =
     checkinDraft.resolution?.reservationLabel ?? checkinDraft.resolution?.reservationId ?? null;
+  const branchName = snapshot.session.branchName?.trim() ?? "";
+  const sessionName = snapshot.session.name?.trim() ?? "";
+  const hasSessionContext = Boolean(branchName && sessionName);
+  const profileProgressText =
+    checkinDraft.flowState === "SUCCESS" ? "입장까지 1단계 남았어요" : "기본 정보 입력 중";
 
   return (
     <main className="customer-shell" data-phase="CHECKIN">
@@ -80,11 +100,17 @@ function OnboardingView() {
         <Surface className="customer-hero">
           <div className="hero-copy-stack">
             <p className="eyebrow">입장 확인</p>
-            <h1 className="hero-title">입장 확인을 먼저 완료한 뒤 현장 프로필을 시작합니다.</h1>
-            <p className="hero-description">
-              체크인은 예약과 기존 참가자 연결 기준으로 확인됩니다. 닉네임은 입장 권한이 아니라
-              프로필 표시 정보입니다.
-            </p>
+            {hasSessionContext ? (
+              <>
+                <h1 className="hero-title">
+                  지금은 {branchName} {sessionName}입니다.
+                </h1>
+                <p className="hero-description">자리에 앉아 기본 정보를 입력해주세요.</p>
+              </>
+            ) : (
+              <h1 className="hero-title">입장 정보를 확인하고 있어요.</h1>
+            )}
+            <p className="onboarding-progress-text">{profileProgressText}</p>
           </div>
         </Surface>
 
@@ -164,13 +190,15 @@ function OnboardingView() {
             <Surface>
               <SectionHeader
                 eyebrow="프로필"
-                title="입장 확인 후 프로필을 입력합니다"
-                description="닉네임은 프로필 정보로 저장되며, 중복되면 다른 닉네임을 입력해야 합니다."
+                title="기본 정보를 입력해주세요"
+                description="닉네임은 프로필 정보로 저장되며, 중복되면 다른 닉네임을 입력해야 합니다. 사진은 선택 사항이며, 정사각 중앙 크롭 후 800×800으로 맞추고 약 300KB 전후로 압축한 뒤 미리보기·업로드합니다. 업로드가 불가능하면 기본 이미지로 계속 진행할 수 있습니다."
               />
               <ProfileFormFields
                 value={profileDraft}
                 testIdPrefix="profile"
                 onChange={updateProfileDraft}
+                profileUploadSubjectId={profileUploadSubjectId}
+                avatarGender={checkinDraft.resolution?.gender ?? "M"}
               />
               <Button
                 block
@@ -275,6 +303,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     energyType: participant.energyType
   });
   const [contactTargetId, setContactTargetId] = useState("");
+  const [heartFeedback, setHeartFeedback] = useState<string | null>(null);
   const [contactDraft, setContactDraft] = useState<ContactExchangeMethod>({
     realName: "",
     phone: "",
@@ -304,6 +333,15 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     () => buildMutualMatches(snapshot, participant.id),
     [participant.id, snapshot]
   );
+  const sentHeartRecipientIds = useMemo(
+    () =>
+      new Set(
+        snapshot.hearts
+          .filter((heart) => heart.senderParticipantId === participant.id)
+          .map((heart) => heart.recipientParticipantId)
+      ),
+    [participant.id, snapshot.hearts]
+  );
   const revealConditionMessage = useMemo(() => {
     if (snapshot.session.phase !== "ROUND_2") {
       return "2라운드에서 운영자가 공개를 열면 결과를 확인할 수 있어요.";
@@ -312,9 +350,9 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
       return "운영자가 하트 공개를 열기 전입니다.";
     }
     if (participant.heartsRemaining > 0) {
-      return `남은 하트 ${participant.heartsRemaining}개를 모두 사용하면 결과가 공개됩니다.`;
+      return `남은 하트를 모두 사용하면 결과를 확인할 수 있어요.`;
     }
-    return "공개 조건을 충족했습니다. 보낸 사람 보기를 눌러 확인하세요.";
+    return "결과를 확인할 수 있어요.";
   }, [participant.heartsRemaining, snapshot.session.phase, snapshot.session.revealSenders]);
   const rotationInstruction = getRotationInstructionForParticipant(snapshot, participant.id);
   const showRotationModal = isRotationInstructionActive(rotationInstruction);
@@ -330,6 +368,21 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
       energyType: profileEdit.energyType,
       photoUrl: profileEdit.photoUrl || null
     });
+  };
+
+  const handleSendHeart = async (recipientId: string) => {
+    if (sentHeartRecipientIds.has(recipientId)) {
+      setHeartFeedback("이미 하트를 보낸 사람입니다.");
+      return;
+    }
+    if (participant.heartsRemaining <= 0) {
+      setHeartFeedback("남은 하트가 없어요.");
+      return;
+    }
+    const ok = await sendHeart(recipientId);
+    if (ok) {
+      setHeartFeedback("하트를 보냈어요.");
+    }
   };
 
   return (
@@ -364,6 +417,13 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           </div>
         </Surface>
 
+        <Surface className="customer-sticky-status" data-testid="customer-sticky-status">
+          <div className="customer-sticky-status-row">
+            <strong>내 테이블: {formatTableName(participant.tableId)}</strong>
+            <span>현재 단계: {formatOperationalPhaseLabel(snapshot.session.phase)}</span>
+          </div>
+        </Surface>
+
         <Surface>
           <div className="segmented">
             {(Object.keys(TAB_LABELS) as CustomerTab[]).map((tab) => (
@@ -383,6 +443,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               하트 보기
             </Button>
           </div>
+          {heartFeedback ? <p className="heart-feedback-text">{heartFeedback}</p> : null}
         </Surface>
 
         {customerTab === "table" ? (
@@ -446,7 +507,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                         </div>
                         <div className="badge-row">
                           <Badge tone="neutral">{candidate.animalType}</Badge>
-                          <Button onClick={() => void sendHeart(candidate.id)}>하트 보내기</Button>
+                      <Button onClick={() => void handleSendHeart(candidate.id)}>하트 보내기</Button>
                         </div>
                       </article>
                     ))}
@@ -519,7 +580,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                               </p>
                             </div>
                           </div>
-                          <Button onClick={() => void sendHeart(sender.id)}>하트 보내기</Button>
+                          <Button onClick={() => void handleSendHeart(sender.id)}>하트 보내기</Button>
                         </article>
                       ))}
                     </div>
@@ -529,7 +590,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                 <Surface>
                   <SectionHeader
                     eyebrow="잠김"
-                    title="하트 결과 확인 조건이 아직 충족되지 않았습니다"
+                    title="아직 결과를 확인할 수 없어요"
                     description={revealConditionMessage}
                   />
                 </Surface>
@@ -542,6 +603,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                     title="연락처 교환"
                     description="서로 하트를 보낸 참가자와만, 쌍방 동의 후 연락처가 공개됩니다."
                   />
+                  <p className="field-help">서로 동의해야 연락처가 공개됩니다.</p>
 
                   {mutualMatches.length ? (
                     <>
@@ -616,7 +678,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                           }
                         }}
                       >
-                        연락처 교환 요청/동의 제출
+                        연락처 공유 요청하기
                       </Button>
                       {!contactTargetId ||
                       !(
@@ -634,7 +696,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                             <div key={candidate.id} className="compact-row">
                               <strong>{candidate.nickname}</strong>
                               <span>
-                                {exchange ? formatContactExchangeStatus(exchange.status) : "요청 전"}
+                                {exchange ? formatContactExchangeStatus(exchange.status) : "공유 전"}
                               </span>
                             </div>
                           );
@@ -668,6 +730,8 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   onChange={(field, value) =>
                     setProfileEdit((current) => ({ ...current, [field]: value }))
                   }
+                  profileUploadSubjectId={participant.id}
+                  avatarGender={participant.gender}
                 />
                 <Button block onClick={() => void saveProfile()}>
                   프로필 저장
@@ -700,8 +764,8 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               <Surface>
                 <SectionHeader
                   eyebrow="안전 신고"
-                  title="운영 신고"
-                  description="현장에서 불편하거나 위험한 상황이 있으면 바로 신고할 수 있습니다."
+                  title="불편한 상황 신고하기"
+                  description="불편한 상황이 있으면 바로 알려주세요. 운영자가 확인해요."
                 />
                 <div className="form-grid">
                   <label className="field">
@@ -721,7 +785,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   </label>
 
                   <label className="field">
-                    <span>사유</span>
+                    <span>불편했던 이유</span>
                     <select
                       value={reportReason}
                       onChange={(event) => setReportReason(event.target.value)}
@@ -801,14 +865,23 @@ export function CustomerApp() {
         <div className="customer-stage">
           <Surface>
             <EmptyState
-              title="세션 정보를 불러오지 못했습니다."
-              description="잠시 후 새로고침하거나 관리자에게 문의해 주세요."
+              title="입장 정보를 확인할 수 없어요."
+              description="체크인 코드를 다시 입력해주세요."
             />
             {snapshotLoadErrorCode ? (
               <p className="field-help" style={{ marginTop: "0.5rem" }}>
-                오류 코드: {snapshotLoadErrorCode}
+                문제가 계속되면 운영팀에 코드({snapshotLoadErrorCode})를 전달해주세요.
               </p>
             ) : null}
+            <div className="form-grid" style={{ marginTop: "0.75rem" }}>
+              <label className="field">
+                <span>체크인 코드</span>
+                <input placeholder="코드를 입력해주세요" disabled />
+              </label>
+              <Button block disabled>
+                입장 확인
+              </Button>
+            </div>
           </Surface>
         </div>
       </main>

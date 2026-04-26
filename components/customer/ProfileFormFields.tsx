@@ -7,7 +7,7 @@ import {
   PROFILE_ENERGY_OPTIONS,
   PROFILE_JOB_OPTIONS
 } from "@/features/profile/options";
-import type { EnergyType, ProfileDraft } from "@/types/mingle";
+import type { EnergyType, ParticipantGender, ProfileDraft } from "@/types/mingle";
 
 type ProfileFieldState = Pick<
   ProfileDraft,
@@ -17,11 +17,15 @@ type ProfileFieldState = Pick<
 export function ProfileFormFields({
   value,
   testIdPrefix,
-  onChange
+  onChange,
+  profileUploadSubjectId,
+  avatarGender
 }: {
   value: ProfileFieldState;
   testIdPrefix: string;
   onChange: <K extends keyof ProfileFieldState>(field: K, nextValue: ProfileFieldState[K]) => void;
+  profileUploadSubjectId: string;
+  avatarGender: ParticipantGender;
 }) {
   const jobOptions = value.jobCategory ? PROFILE_JOB_OPTIONS[value.jobCategory] ?? [] : [];
 
@@ -135,7 +139,12 @@ export function ProfileFormFields({
         </div>
       </div>
 
-      <ProfilePhotoUploader value={value.photoUrl} onChange={(url) => onChange("photoUrl", url)} />
+      <ProfilePhotoUploader
+        profileSubjectId={profileUploadSubjectId}
+        avatarGender={avatarGender}
+        value={value.photoUrl}
+        onChange={(url) => onChange("photoUrl", url)}
+      />
     </div>
   );
 }
