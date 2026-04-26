@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useRef, useState } from "react";
@@ -337,8 +338,8 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     () =>
       new Set(
         snapshot.hearts
-          .filter((heart) => heart.senderParticipantId === participant.id)
-          .map((heart) => heart.recipientParticipantId)
+          .filter((heart) => heart.senderId === participant.id)
+          .map((heart) => heart.recipientId)
       ),
     [participant.id, snapshot.hearts]
   );
