@@ -76,7 +76,8 @@ export type AuditAction =
   | "PARTICIPANT_MOVED"
   | "MANUAL_PARTICIPANT_CREATED"
   | "RESERVATION_IMPORT_APPLIED"
-  | "CONTACT_EXCHANGE_UPDATED";
+  | "CONTACT_EXCHANGE_UPDATED"
+  | "SESSION_CONFIG_UPDATED";
 
 export interface SessionRecord {
   id: string;
@@ -99,8 +100,20 @@ export interface SessionRecord {
   updatedAt: string;
   tableCount: number;
   tableCapacity: number;
+  operationalConfig?: SessionOperationalConfig;
   customerSessionVersion: number;
   lifecycleStatus?: SessionLifecycleStatus;
+}
+
+export interface SessionOperationalConfig {
+  initialHearts: number;
+  rotationDeadlineMinutes: number;
+  presenceGoneThresholdMinutes: number;
+  defaultProfileImagePaths: {
+    male: string;
+    female: string;
+    unknown: string;
+  };
 }
 
 export interface ParticipantEncounterRecord {
@@ -1086,6 +1099,27 @@ export type MingleCommand =
   | {
       type: "admin.importReservations";
       rows: ReservationBridgeRecord[];
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.updateSessionConfig";
+      config: {
+        branchName?: string;
+        venueName?: string;
+        venueAddress?: string;
+        sessionDateLabel?: string;
+        sessionTimeLabel?: string;
+        attendanceLabel?: string;
+        attendanceHint?: string;
+        tableCount?: number;
+        tableCapacity?: number;
+        initialHearts?: number;
+        rotationDeadlineMinutes?: number;
+        presenceGoneThresholdMinutes?: number;
+        defaultProfileImageMale?: string;
+        defaultProfileImageFemale?: string;
+        defaultProfileImageUnknown?: string;
+      };
       expectedVersion?: number;
     };
 

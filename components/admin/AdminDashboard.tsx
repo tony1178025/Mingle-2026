@@ -1,6 +1,7 @@
  "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
 import { HeartGrantPanel } from "@/components/admin/HeartGrantPanel";
 import { LiveOpsControls } from "@/components/admin/LiveOpsControls";
@@ -47,6 +48,24 @@ type BranchNode = {
   branchId: string;
   branchName: string;
   sessionName: string;
+};
+
+type SessionConfigDraft = {
+  branchName: string;
+  venueName: string;
+  venueAddress: string;
+  sessionDateLabel: string;
+  sessionTimeLabel: string;
+  attendanceLabel: string;
+  attendanceHint: string;
+  tableCount: number;
+  tableCapacity: number;
+  initialHearts: number;
+  rotationDeadlineMinutes: number;
+  presenceGoneThresholdMinutes: number;
+  defaultProfileImageMale: string;
+  defaultProfileImageFemale: string;
+  defaultProfileImageUnknown: string;
 };
 
 const PHASE_LABELS: Record<string, string> = {
@@ -127,6 +146,24 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
   const [staffGradeMap, setStaffGradeMap] = useState<Record<string, "S" | "A" | "B" | "C" | "">>({});
   const [staffTagsMap, setStaffTagsMap] = useState<Record<string, string[]>>({});
   const [branches, setBranches] = useState<BranchRecord[]>([]);
+  const [sessionConfigDraft, setSessionConfigDraft] = useState<SessionConfigDraft>({
+    branchName: "",
+    venueName: "",
+    venueAddress: "",
+    sessionDateLabel: "",
+    sessionTimeLabel: "",
+    attendanceLabel: "",
+    attendanceHint: "",
+    tableCount: 1,
+    tableCapacity: 1,
+    initialHearts: ADMIN_DEFAULT_CONFIG.initialHearts,
+    rotationDeadlineMinutes: ADMIN_DEFAULT_CONFIG.rotationDeadlineMinutes,
+    presenceGoneThresholdMinutes: ADMIN_DEFAULT_CONFIG.presenceGoneThresholdMinutes,
+    defaultProfileImageMale: ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.male,
+    defaultProfileImageFemale: ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.female,
+    defaultProfileImageUnknown: ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.unknown
+  });
+  const [savingSessionConfig, setSavingSessionConfig] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -173,6 +210,38 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     [snapshot?.reservations]
   );
   const reservationRows = persistedReservationRows.length > 0 ? persistedReservationRows : reservationPreviewRows;
+
+  useEffect(() => {
+    if (!snapshot) return;
+    setSessionConfigDraft({
+      branchName: snapshot.session.branchName,
+      venueName: snapshot.session.venueName,
+      venueAddress: snapshot.session.venueAddress,
+      sessionDateLabel: snapshot.session.sessionDateLabel,
+      sessionTimeLabel: snapshot.session.sessionTimeLabel,
+      attendanceLabel: snapshot.session.attendanceLabel,
+      attendanceHint: snapshot.session.attendanceHint,
+      tableCount: snapshot.session.tableCount,
+      tableCapacity: snapshot.session.tableCapacity,
+      initialHearts:
+        snapshot.session.operationalConfig?.initialHearts ?? ADMIN_DEFAULT_CONFIG.initialHearts,
+      rotationDeadlineMinutes:
+        snapshot.session.operationalConfig?.rotationDeadlineMinutes ??
+        ADMIN_DEFAULT_CONFIG.rotationDeadlineMinutes,
+      presenceGoneThresholdMinutes:
+        snapshot.session.operationalConfig?.presenceGoneThresholdMinutes ??
+        ADMIN_DEFAULT_CONFIG.presenceGoneThresholdMinutes,
+      defaultProfileImageMale:
+        snapshot.session.operationalConfig?.defaultProfileImagePaths?.male ??
+        ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.male,
+      defaultProfileImageFemale:
+        snapshot.session.operationalConfig?.defaultProfileImagePaths?.female ??
+        ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.female,
+      defaultProfileImageUnknown:
+        snapshot.session.operationalConfig?.defaultProfileImagePaths?.unknown ??
+        ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.unknown
+    });
+  }, [snapshot]);
 
   const isHqAdmin = adminSession?.role === "HQ_ADMIN";
   const isBranchScoped = adminSession?.role === "BRANCH_ADMIN" || adminSession?.role === "STAFF";
@@ -434,7 +503,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                     onClick={() => setExpandedTableId(expanded ? null : table.tableId)}
                   >
                     <strong>
-                      {warning ? "⚠ " : ""}
+                      {warning ? <AlertTriangle size={16} strokeWidth={1.8} style={{ transform: "translateY(1px)" }} /> : null}
                       {formatTableName(table.tableId)}
                     </strong>
                     <span>
@@ -1179,10 +1248,10 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
             <thead>
               <tr>
                 <th>이름</th>
-                <th>나이</th>
-                <th>테이블</th>
-                <th>하트 받은 수</th>
-                <th>상태</th>
+                <th data-col-type="number">나이</th>
+                <th data-col-type="number">테이블</th>
+                <th data-col-type="number">하트 받은 수</th>
+                <th data-col-type="status">상태</th>
                 <th>액션</th>
               </tr>
             </thead>
@@ -1192,10 +1261,10 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                 return (
                   <tr key={participant.id}>
                     <td>{participant.nickname}</td>
-                    <td>{participant.age}</td>
-                    <td>T{participant.tableId}</td>
-                    <td>{participant.receivedHearts}</td>
-                    <td>{formatParticipantStatusLabel(status)}</td>
+                    <td data-col-type="number">{participant.age}</td>
+                    <td data-col-type="number">T{participant.tableId}</td>
+                    <td data-col-type="number">{participant.receivedHearts}</td>
+                    <td data-col-type="status">{formatParticipantStatusLabel(status)}</td>
                     <td>
                       <div className="button-row">
                         <Button
@@ -1251,14 +1320,243 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
   const renderBranchSettings = () => (
     <div className="admin-main-column">
       <Surface>
-        <SectionHeader eyebrow="지점 설정" title="기본 설정 (준비 단계)" description="현재는 기본값만 표시됩니다." />
-        <div className="compact-stack">
-          <div className="compact-row"><strong>기본 테이블 수</strong><span>{snapshot.session.tableCount}</span></div>
-          <div className="compact-row"><strong>기본 테이블 정원</strong><span>{ADMIN_DEFAULT_CONFIG.tableCapacity}</span></div>
-          <div className="compact-row"><strong>기본 하트 수</strong><span>{ADMIN_DEFAULT_CONFIG.initialHearts}</span></div>
-          <div className="compact-row"><strong>회차 이동 제한</strong><span>{ADMIN_DEFAULT_CONFIG.rotationDeadlineMinutes}분</span></div>
-          <div className="compact-row"><strong>장시간 미활동 기준</strong><span>{ADMIN_DEFAULT_CONFIG.presenceGoneThresholdMinutes}분</span></div>
-          <div className="compact-row"><strong>기본 프로필 이미지</strong><span>{ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.male}, {ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.female}</span></div>
+        <SectionHeader
+          eyebrow="지점 설정"
+          title="운영 설정"
+          description="저장 즉시 서버 스냅샷에 반영되며 Admin/고객 화면 동기화에 사용됩니다."
+        />
+        <form
+          className="compact-stack"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (savingSessionConfig) {
+              return;
+            }
+            const confirmed = window.confirm("운영 설정을 저장할까요?");
+            if (!confirmed) {
+              return;
+            }
+            setSavingSessionConfig(true);
+            void getMingleRepository()
+              .executeCommand({
+                type: "admin.updateSessionConfig",
+                config: {
+                  branchName: sessionConfigDraft.branchName,
+                  venueName: sessionConfigDraft.venueName,
+                  venueAddress: sessionConfigDraft.venueAddress,
+                  sessionDateLabel: sessionConfigDraft.sessionDateLabel,
+                  sessionTimeLabel: sessionConfigDraft.sessionTimeLabel,
+                  attendanceLabel: sessionConfigDraft.attendanceLabel,
+                  attendanceHint: sessionConfigDraft.attendanceHint,
+                  tableCount: Number(sessionConfigDraft.tableCount),
+                  tableCapacity: Number(sessionConfigDraft.tableCapacity),
+                  initialHearts: Number(sessionConfigDraft.initialHearts),
+                  rotationDeadlineMinutes: Number(sessionConfigDraft.rotationDeadlineMinutes),
+                  presenceGoneThresholdMinutes: Number(sessionConfigDraft.presenceGoneThresholdMinutes),
+                  defaultProfileImageMale: sessionConfigDraft.defaultProfileImageMale,
+                  defaultProfileImageFemale: sessionConfigDraft.defaultProfileImageFemale,
+                  defaultProfileImageUnknown: sessionConfigDraft.defaultProfileImageUnknown
+                },
+                expectedVersion: snapshot.version
+              })
+              .then(async () => {
+                await syncFromRepository();
+                window.alert("운영 설정을 저장했습니다.");
+              })
+              .catch((error) => {
+                const message = error instanceof Error ? error.message : "설정 저장에 실패했습니다.";
+                window.alert(message);
+              })
+              .finally(() => {
+                setSavingSessionConfig(false);
+              });
+          }}
+        >
+          <label className="field">
+            <span>지점명</span>
+            <input
+              value={sessionConfigDraft.branchName}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({ ...current, branchName: event.target.value }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>장소명</span>
+            <input
+              value={sessionConfigDraft.venueName}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({ ...current, venueName: event.target.value }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>장소 주소</span>
+            <input
+              value={sessionConfigDraft.venueAddress}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({ ...current, venueAddress: event.target.value }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>세션 날짜 라벨</span>
+            <input
+              value={sessionConfigDraft.sessionDateLabel}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({ ...current, sessionDateLabel: event.target.value }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>세션 시간 라벨</span>
+            <input
+              value={sessionConfigDraft.sessionTimeLabel}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({ ...current, sessionTimeLabel: event.target.value }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>참여 현황 라벨</span>
+            <input
+              value={sessionConfigDraft.attendanceLabel}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({ ...current, attendanceLabel: event.target.value }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>운영 힌트 문구</span>
+            <textarea
+              rows={3}
+              value={sessionConfigDraft.attendanceHint}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({ ...current, attendanceHint: event.target.value }))
+              }
+            />
+          </label>
+          <div className="admin-two-col">
+            <label className="field">
+              <span>테이블 수</span>
+              <input
+                type="number"
+                min={1}
+                value={sessionConfigDraft.tableCount}
+                onChange={(event) =>
+                  setSessionConfigDraft((current) => ({
+                    ...current,
+                    tableCount: Math.max(1, Number(event.target.value) || 1)
+                  }))
+                }
+              />
+            </label>
+            <label className="field">
+              <span>테이블 정원</span>
+              <input
+                type="number"
+                min={1}
+                value={sessionConfigDraft.tableCapacity}
+                onChange={(event) =>
+                  setSessionConfigDraft((current) => ({
+                    ...current,
+                    tableCapacity: Math.max(1, Number(event.target.value) || 1)
+                  }))
+                }
+              />
+            </label>
+          </div>
+          <div className="admin-two-col">
+            <label className="field">
+              <span>기본 하트 수</span>
+              <input
+                type="number"
+                min={0}
+                value={sessionConfigDraft.initialHearts}
+                onChange={(event) =>
+                  setSessionConfigDraft((current) => ({
+                    ...current,
+                    initialHearts: Math.max(0, Number(event.target.value) || 0)
+                  }))
+                }
+              />
+            </label>
+            <label className="field">
+              <span>회차 이동 제한(분)</span>
+              <input
+                type="number"
+                min={1}
+                value={sessionConfigDraft.rotationDeadlineMinutes}
+                onChange={(event) =>
+                  setSessionConfigDraft((current) => ({
+                    ...current,
+                    rotationDeadlineMinutes: Math.max(1, Number(event.target.value) || 1)
+                  }))
+                }
+              />
+            </label>
+          </div>
+          <label className="field">
+            <span>장시간 미활동 기준(분)</span>
+            <input
+              type="number"
+              min={1}
+              value={sessionConfigDraft.presenceGoneThresholdMinutes}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({
+                  ...current,
+                  presenceGoneThresholdMinutes: Math.max(1, Number(event.target.value) || 1)
+                }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>기본 아바타 경로(남)</span>
+            <input
+              value={sessionConfigDraft.defaultProfileImageMale}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({
+                  ...current,
+                  defaultProfileImageMale: event.target.value
+                }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>기본 아바타 경로(여)</span>
+            <input
+              value={sessionConfigDraft.defaultProfileImageFemale}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({
+                  ...current,
+                  defaultProfileImageFemale: event.target.value
+                }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>기본 아바타 경로(미확인)</span>
+            <input
+              value={sessionConfigDraft.defaultProfileImageUnknown}
+              onChange={(event) =>
+                setSessionConfigDraft((current) => ({
+                  ...current,
+                  defaultProfileImageUnknown: event.target.value
+                }))
+              }
+            />
+          </label>
+          <div className="button-row">
+            <Button type="submit" disabled={savingSessionConfig}>
+              {savingSessionConfig ? "저장 중..." : "운영 설정 저장"}
+            </Button>
+          </div>
+        </form>
+        <div className="compact-stack" style={{ marginTop: 16 }}>
+          <div className="compact-row"><strong>기본 하트 수</strong><span>{snapshot.session.operationalConfig?.initialHearts ?? ADMIN_DEFAULT_CONFIG.initialHearts}</span></div>
+          <div className="compact-row"><strong>회차 이동 제한</strong><span>{snapshot.session.operationalConfig?.rotationDeadlineMinutes ?? ADMIN_DEFAULT_CONFIG.rotationDeadlineMinutes}분</span></div>
+          <div className="compact-row"><strong>장시간 미활동 기준</strong><span>{snapshot.session.operationalConfig?.presenceGoneThresholdMinutes ?? ADMIN_DEFAULT_CONFIG.presenceGoneThresholdMinutes}분</span></div>
+          <div className="compact-row"><strong>기본 프로필 이미지</strong><span>{snapshot.session.operationalConfig?.defaultProfileImagePaths?.male ?? ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.male}, {snapshot.session.operationalConfig?.defaultProfileImagePaths?.female ?? ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.female}</span></div>
         </div>
       </Surface>
     </div>

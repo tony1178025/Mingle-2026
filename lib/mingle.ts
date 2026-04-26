@@ -91,6 +91,8 @@ export function computeParticipantStatusMap(
   snapshot: SessionSnapshot,
   referenceMs = Date.now()
 ): Record<string, ParticipantStatus> {
+  const goneThresholdMs =
+    Math.max(1, snapshot.session.operationalConfig?.presenceGoneThresholdMinutes ?? 60) * 60 * 1000;
   const blockedIds = new Set((snapshot.blacklist ?? []).map((entry) => entry.participantId));
   const result: Record<string, ParticipantStatus> = {};
 
@@ -109,7 +111,7 @@ export function computeParticipantStatusMap(
       continue;
     }
     const elapsed = referenceMs - lastActiveMs;
-    result[participant.id] = elapsed < PARTICIPANT_GONE_THRESHOLD_MS ? "ACTIVE" : "GONE";
+    result[participant.id] = elapsed < goneThresholdMs ? "ACTIVE" : "GONE";
   }
   return result;
 }
@@ -594,6 +596,16 @@ export function createSeedSnapshot(): SessionSnapshot {
       updatedAt: nowIso,
       tableCount: MINGLE_CONSTANTS.tableCount,
       tableCapacity: MINGLE_CONSTANTS.tableCapacity,
+      operationalConfig: {
+        initialHearts: ADMIN_DEFAULT_CONFIG.initialHearts,
+        rotationDeadlineMinutes: ADMIN_DEFAULT_CONFIG.rotationDeadlineMinutes,
+        presenceGoneThresholdMinutes: ADMIN_DEFAULT_CONFIG.presenceGoneThresholdMinutes,
+        defaultProfileImagePaths: {
+          male: ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.male,
+          female: ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.female,
+          unknown: ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.unknown
+        }
+      },
       customerSessionVersion: 1
     },
     participants: applyDerivedParticipantSignals(participants, hearts),

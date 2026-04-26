@@ -625,9 +625,9 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   <SectionHeader
                     eyebrow="연락처 교환"
                     title="연락처 교환"
-                    description="서로 동의해야 공개됩니다"
+                    description="서로 동의해야 연락처가 공개됩니다"
                   />
-                  <p className="field-help">서로 동의해야 공개됩니다</p>
+                  <p className="field-help">서로 동의해야 연락처가 공개됩니다</p>
 
                   {mutualMatches.length ? (
                     <>

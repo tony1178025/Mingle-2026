@@ -7,6 +7,7 @@ import {
 } from "@/features/checkin/model";
 import { getContentTemplate, isTemplateAllowedInPhase } from "@/features/content/library";
 import {
+  ADMIN_DEFAULT_CONFIG,
   computeParticipantStatusMap,
   createAuditLog,
   createSeedSnapshot,
@@ -79,7 +80,8 @@ const ADMIN_COMMAND_ALLOWLIST = new Set<string>([
   "admin.setBlacklistStatus",
   "admin.moveParticipant",
   "admin.createManualParticipant",
-  "admin.importReservations"
+  "admin.importReservations",
+  "admin.updateSessionConfig"
 ]);
 
 export const WEBSITE_ENTRY_REQUIRED_FIELDS = ["branchId", "eventId", "eventDate"] as const;
@@ -970,6 +972,7 @@ function buildReservationImportKey(row: ReservationBridgeRecord) {
 }
 
 function resolveProfilePhotoUrl(
+  snapshot: SessionSnapshot,
   photoUrl: string | null | undefined,
   gender: string
 ) {
@@ -977,10 +980,14 @@ function resolveProfilePhotoUrl(
   if (normalized) {
     return normalized;
   }
+  const defaultProfileImagePaths = snapshot.session.operationalConfig?.defaultProfileImagePaths ??
+    ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths;
   if (gender === "M" || gender === "F") {
-    return DEFAULT_AVATAR_BY_GENDER[gender];
+    return gender === "M"
+      ? defaultProfileImagePaths.male || DEFAULT_AVATAR_BY_GENDER.M
+      : defaultProfileImagePaths.female || DEFAULT_AVATAR_BY_GENDER.F;
   }
-  return "/avatars/default.png";
+  return defaultProfileImagePaths.unknown || "/avatars/default.png";
 }
 
 function normalizeNickname(nickname: string | null | undefined) {
@@ -1520,9 +1527,12 @@ function buildRotationInstruction(
   preview: RotationPreview
 ): RotationInstructionState {
   const previousTableMap = new Map(beforeSnapshot.participants.map((participant) => [participant.id, participant.tableId]));
+  const rotationDeadlineMinutes =
+    beforeSnapshot.session.operationalConfig?.rotationDeadlineMinutes ??
+    ADMIN_DEFAULT_CONFIG.rotationDeadlineMinutes;
   const startsAt = new Date().toISOString();
   const deadlineAt = new Date(
-    Date.now() + MINGLE_CONSTANTS.rotationInstructionDeadlineMs
+    Date.now() + Math.max(1, rotationDeadlineMinutes) * 60 * 1000
   ).toISOString();
   const moveReasonMap = new Map(
     preview.moves.map((move) => [move.participantId, move.reasonTags])
@@ -1720,7 +1730,7 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         age,
         jobCategory: command.draft.jobCategory,
         job: command.draft.job,
-        photoUrl: resolveProfilePhotoUrl(command.draft.photoUrl, command.resolution.gender),
+        photoUrl: resolveProfilePhotoUrl(snapshot, command.draft.photoUrl, command.resolution.gender),
         heightCm,
         animalType: command.draft.animalType,
         energyType,
@@ -1730,7 +1740,8 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         receivedHearts: 0,
         sentHearts: 0,
         profileViews: 0,
-        heartsRemaining: MINGLE_CONSTANTS.initialHearts,
+        heartsRemaining:
+          snapshot.session.operationalConfig?.initialHearts ?? ADMIN_DEFAULT_CONFIG.initialHearts,
         metParticipantIds: [],
         encounterHistory: [],
         likedParticipantIds: [],
@@ -1817,7 +1828,7 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         participants: updateParticipant(snapshot, participant.id, (currentParticipant) => ({
           ...touchParticipant(currentParticipant, updatedAt),
           ...command.profile,
-          photoUrl: resolveProfilePhotoUrl(command.profile.photoUrl, currentParticipant.gender),
+          photoUrl: resolveProfilePhotoUrl(snapshot, command.profile.photoUrl, currentParticipant.gender),
           nickname
         })),
         auditLogs: [audit, ...snapshot.auditLogs],
@@ -2365,6 +2376,111 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
       return { snapshot: nextSnapshot };
     }
 
+    case "admin.updateSessionConfig": {
+      const nextConfig = command.config;
+      const updatedAt = new Date().toISOString();
+      const nextTableCount = nextConfig.tableCount ?? snapshot.session.tableCount;
+      const nextTableCapacity = nextConfig.tableCapacity ?? snapshot.session.tableCapacity;
+      const currentOperationalConfig = snapshot.session.operationalConfig ?? {
+        initialHearts: ADMIN_DEFAULT_CONFIG.initialHearts,
+        rotationDeadlineMinutes: ADMIN_DEFAULT_CONFIG.rotationDeadlineMinutes,
+        presenceGoneThresholdMinutes: ADMIN_DEFAULT_CONFIG.presenceGoneThresholdMinutes,
+        defaultProfileImagePaths: ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths
+      };
+      const nextInitialHearts = nextConfig.initialHearts ?? currentOperationalConfig.initialHearts;
+      const nextRotationDeadlineMinutes =
+        nextConfig.rotationDeadlineMinutes ?? currentOperationalConfig.rotationDeadlineMinutes;
+      const nextPresenceGoneThresholdMinutes =
+        nextConfig.presenceGoneThresholdMinutes ?? currentOperationalConfig.presenceGoneThresholdMinutes;
+
+      if (!Number.isInteger(nextTableCount) || nextTableCount < 1) {
+        throw new Error("테이블 수는 1 이상 정수여야 합니다.");
+      }
+      if (!Number.isInteger(nextTableCapacity) || nextTableCapacity < 1) {
+        throw new Error("테이블 정원은 1 이상 정수여야 합니다.");
+      }
+      if (!Number.isInteger(nextInitialHearts) || nextInitialHearts < 0) {
+        throw new Error("기본 하트 수는 0 이상 정수여야 합니다.");
+      }
+      if (!Number.isInteger(nextRotationDeadlineMinutes) || nextRotationDeadlineMinutes < 1) {
+        throw new Error("회차 이동 제한 시간은 1분 이상 정수여야 합니다.");
+      }
+      if (!Number.isInteger(nextPresenceGoneThresholdMinutes) || nextPresenceGoneThresholdMinutes < 1) {
+        throw new Error("장시간 미활동 기준은 1분 이상 정수여야 합니다.");
+      }
+
+      const maxUsedTableId = snapshot.participants.reduce(
+        (max, participant) => Math.max(max, participant.tableId),
+        1
+      );
+      if (nextTableCount < maxUsedTableId) {
+        throw new Error("현재 참가자가 배치된 테이블보다 작게 설정할 수 없습니다.");
+      }
+
+      const tableOccupancy = new Map<number, number>();
+      for (const participant of snapshot.participants) {
+        tableOccupancy.set(participant.tableId, (tableOccupancy.get(participant.tableId) ?? 0) + 1);
+      }
+      const exceedsCapacity = Array.from(tableOccupancy.values()).some(
+        (occupancy) => occupancy > nextTableCapacity
+      );
+      if (exceedsCapacity) {
+        throw new Error("현재 테이블 인원보다 작은 정원으로 설정할 수 없습니다.");
+      }
+
+      const nextSession = {
+        ...snapshot.session,
+        branchName: nextConfig.branchName?.trim() || snapshot.session.branchName,
+        venueName: nextConfig.venueName?.trim() || snapshot.session.venueName,
+        venueAddress: nextConfig.venueAddress?.trim() || snapshot.session.venueAddress,
+        sessionDateLabel: nextConfig.sessionDateLabel?.trim() || snapshot.session.sessionDateLabel,
+        sessionTimeLabel: nextConfig.sessionTimeLabel?.trim() || snapshot.session.sessionTimeLabel,
+        attendanceLabel: nextConfig.attendanceLabel?.trim() || snapshot.session.attendanceLabel,
+        attendanceHint: nextConfig.attendanceHint?.trim() || snapshot.session.attendanceHint,
+        tableCount: nextTableCount,
+        tableCapacity: nextTableCapacity,
+        operationalConfig: {
+          initialHearts: nextInitialHearts,
+          rotationDeadlineMinutes: nextRotationDeadlineMinutes,
+          presenceGoneThresholdMinutes: nextPresenceGoneThresholdMinutes,
+          defaultProfileImagePaths: {
+            male:
+              nextConfig.defaultProfileImageMale?.trim() ||
+              currentOperationalConfig.defaultProfileImagePaths.male,
+            female:
+              nextConfig.defaultProfileImageFemale?.trim() ||
+              currentOperationalConfig.defaultProfileImagePaths.female,
+            unknown:
+              nextConfig.defaultProfileImageUnknown?.trim() ||
+              currentOperationalConfig.defaultProfileImagePaths.unknown
+          }
+        },
+        updatedAt
+      };
+
+      const audit = createAuditLog(
+        "SESSION_CONFIG_UPDATED",
+        "admin",
+        "ADMIN",
+        "운영 세션 설정을 수정했습니다.",
+        {
+          tableCount: nextTableCount,
+          tableCapacity: nextTableCapacity,
+          initialHearts: nextInitialHearts,
+          rotationDeadlineMinutes: nextRotationDeadlineMinutes,
+          presenceGoneThresholdMinutes: nextPresenceGoneThresholdMinutes
+        },
+        snapshot.session.id
+      );
+
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        session: nextSession,
+        auditLogs: [audit, ...snapshot.auditLogs]
+      });
+      return { snapshot: nextSnapshot };
+    }
+
     case "admin.applyRotation": {
       if (command.preview.baseVersion !== snapshot.version) {
         throw new Error("미리보기가 오래되었습니다.");
@@ -2644,7 +2760,8 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         receivedHearts: 0,
         sentHearts: 0,
         profileViews: 0,
-        heartsRemaining: MINGLE_CONSTANTS.initialHearts,
+        heartsRemaining:
+          snapshot.session.operationalConfig?.initialHearts ?? ADMIN_DEFAULT_CONFIG.initialHearts,
         metParticipantIds: [],
         encounterHistory: [],
         likedParticipantIds: [],

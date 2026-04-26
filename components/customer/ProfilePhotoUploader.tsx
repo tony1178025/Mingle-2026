@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/shared/ui";
 import { DEFAULT_AVATAR_BY_GENDER, type ParticipantGender } from "@/types/mingle";
 import { preprocessProfileSquareImage } from "@/lib/images/preprocess-profile-square";
+import { useMingleStore } from "@/stores/useMingleStore";
 import {
   PROFILE_PHOTO_UPLOAD_FAILED_FALLBACK_MESSAGE,
   PROFILE_PHOTO_UPLOAD_NOT_READY_MESSAGE,
@@ -26,6 +27,7 @@ export function ProfilePhotoUploader({
   const [helperMessage, setHelperMessage] = useState<string | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const snapshot = useMingleStore((state) => state.snapshot);
 
   const revokeObjectPreview = () => {
     if (objectUrlRef.current) {
@@ -44,7 +46,11 @@ export function ProfilePhotoUploader({
     };
   }, []);
 
-  const defaultAvatarUrl = DEFAULT_AVATAR_BY_GENDER[avatarGender];
+  const configuredDefaultAvatar =
+    avatarGender === "M"
+      ? snapshot?.session.operationalConfig?.defaultProfileImagePaths?.male
+      : snapshot?.session.operationalConfig?.defaultProfileImagePaths?.female;
+  const defaultAvatarUrl = configuredDefaultAvatar || DEFAULT_AVATAR_BY_GENDER[avatarGender];
   const hasCustomImage = Boolean(localPreviewUrl || value);
   const displayUrl = localPreviewUrl || value || defaultAvatarUrl;
 

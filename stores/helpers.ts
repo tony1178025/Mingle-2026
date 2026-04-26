@@ -1,5 +1,6 @@
 import { classifyParticipants } from "@/engine/tiering";
 import {
+  ADMIN_DEFAULT_CONFIG,
   findParticipant,
   MINGLE_CONSTANTS,
   setCachedParticipantId
@@ -51,7 +52,28 @@ export function normalizeSnapshot(snapshot: SessionView): SessionSnapshot {
     session: {
       ...snapshot.session,
       tableCount: snapshot.session.tableCount || MINGLE_CONSTANTS.tableCount,
-      tableCapacity: snapshot.session.tableCapacity || MINGLE_CONSTANTS.tableCapacity
+      tableCapacity: snapshot.session.tableCapacity || MINGLE_CONSTANTS.tableCapacity,
+      operationalConfig: {
+        initialHearts:
+          snapshot.session.operationalConfig?.initialHearts ?? ADMIN_DEFAULT_CONFIG.initialHearts,
+        rotationDeadlineMinutes:
+          snapshot.session.operationalConfig?.rotationDeadlineMinutes ??
+          ADMIN_DEFAULT_CONFIG.rotationDeadlineMinutes,
+        presenceGoneThresholdMinutes:
+          snapshot.session.operationalConfig?.presenceGoneThresholdMinutes ??
+          ADMIN_DEFAULT_CONFIG.presenceGoneThresholdMinutes,
+        defaultProfileImagePaths: {
+          male:
+            snapshot.session.operationalConfig?.defaultProfileImagePaths?.male ??
+            ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.male,
+          female:
+            snapshot.session.operationalConfig?.defaultProfileImagePaths?.female ??
+            ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.female,
+          unknown:
+            snapshot.session.operationalConfig?.defaultProfileImagePaths?.unknown ??
+            ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.unknown
+        }
+      }
     }
   };
 }
