@@ -101,7 +101,7 @@ export const createCheckinSlice: StoreSlice<CheckinSlice> = (set, get) => ({
             result.snapshot.participants.find((participant) => participant.id === result.participantId)
               ?.tableId ?? 1;
           applyCommandResult(set, result, {
-            customerTab: "table",
+            customerTab: "all",
             selectedTableId: participantTableId,
             checkinDraft: createEmptyCheckinDraft(),
             toast: createToast("info", CHECKIN_REENTRY_MESSAGE)
@@ -196,7 +196,7 @@ export const createCheckinSlice: StoreSlice<CheckinSlice> = (set, get) => ({
       });
 
       applyCommandResult(set, result, {
-        customerTab: "table",
+        customerTab: "all",
         selectedTableId: result.participantId
           ? result.snapshot.participants.find((item) => item.id === result.participantId)?.tableId ?? 1
           : 1,

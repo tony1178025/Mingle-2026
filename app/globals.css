@@ -861,6 +861,27 @@ img {
   margin-bottom: 1rem;
 }
 
+.customer-app-topbar {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 35;
+}
+
+.customer-bottom-tabs {
+  position: sticky;
+  bottom: 0.5rem;
+  z-index: 35;
+}
+
+.customer-bottom-tabs .segmented {
+  justify-content: space-between;
+}
+
+.customer-bottom-tabs .segmented-item {
+  min-width: 22%;
+  min-height: 44px;
+}
+
 .customer-sticky-status-row {
   display: flex;
   justify-content: space-between;

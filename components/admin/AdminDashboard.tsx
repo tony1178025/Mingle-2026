@@ -40,6 +40,7 @@ type AdminPageKey =
   | "branch-session"
   | "branch-live"
   | "branch-customers"
+  | "branch-reports"
   | "branch-settings";
 
 type BranchNode = {
@@ -79,6 +80,7 @@ function getContextPageLabel(page: AdminPageKey) {
   if (page === "branch-session") return "현재 회차";
   if (page === "branch-live") return "라이브 콘솔";
   if (page === "branch-customers") return "참가자/고객 현황";
+  if (page === "branch-reports") return "신고/제재";
   return "지점 설정";
 }
 
@@ -125,10 +127,6 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
   const [staffGradeMap, setStaffGradeMap] = useState<Record<string, "S" | "A" | "B" | "C" | "">>({});
   const [staffTagsMap, setStaffTagsMap] = useState<Record<string, string[]>>({});
   const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [quickNoticeMessage, setQuickNoticeMessage] = useState("");
-  const [quickActionLoading, setQuickActionLoading] = useState<
-    null | "round2" | "reveal" | "notice" | "close"
-  >(null);
 
   useEffect(() => {
     let active = true;
@@ -306,18 +304,6 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(0, 42);
   }, [reservationRows, selectedDate]);
-
-  async function runQuickAction(
-    action: "round2" | "reveal" | "notice" | "close",
-    fn: () => Promise<void>
-  ) {
-    setQuickActionLoading(action);
-    try {
-      await fn();
-    } finally {
-      setQuickActionLoading(null);
-    }
-  }
 
   if (!hydrated) {
     return (
@@ -1397,6 +1383,14 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     </div>
   );
 
+  const renderBranchReports = () => (
+    <ReportsPanel
+      snapshot={snapshot}
+      onResolve={resolveReport}
+      onSetBlacklistStatus={setBlacklistStatus}
+    />
+  );
+
   const renderSection = () => {
     if (activePage === "hq-dashboard") return renderHqDashboard();
     if (activePage === "hq-customers") return renderCustomerDb();
@@ -1407,6 +1401,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     if (activePage === "branch-session") return renderSessionOverview();
     if (activePage === "branch-live") return renderLiveOps();
     if (activePage === "branch-customers") return renderBranchCustomers();
+    if (activePage === "branch-reports") return renderBranchReports();
     return renderBranchSettings();
   };
 
@@ -1424,6 +1419,8 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                 <p className="admin-console-nav-group-title">본부</p>
                 <div className="admin-console-nav-group-items">
                   <button type="button" className={activePage === "hq-dashboard" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("hq-dashboard")}>본부 대시보드</button>
+                  <button type="button" className={activePage === "hq-reservations" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("hq-reservations")}>전체 예약 현황</button>
+                  <button type="button" className={activePage === "hq-customers" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("hq-customers")}>전체 고객 DB</button>
                   <button type="button" className={activePage === "hq-admin-users" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("hq-admin-users")}>관리자 관리</button>
                 </div>
               </div>
@@ -1445,8 +1442,15 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                   </button>
                   {selectedBranch?.branchId === branch.branchId ? (
                     <div className="admin-branch-tree-children">
+                      <button type="button" className={activePage === "branch-dashboard" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-dashboard")}>지점 대시보드</button>
                       <button type="button" className={activePage === "branch-session" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-session")}>세션</button>
+                      <div className="admin-branch-tree-children">
+                        <button type="button" className={activePage === "branch-live" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-live")}>라이브 콘솔</button>
+                      </div>
                       <button type="button" className={activePage === "branch-reservations" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-reservations")}>예약 현황</button>
+                      <button type="button" className={activePage === "branch-customers" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-customers")}>고객 현황</button>
+                      <button type="button" className={activePage === "branch-reports" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-reports")}>신고/제재</button>
+                      <button type="button" className={activePage === "branch-settings" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-settings")}>지점 설정</button>
                     </div>
                   ) : null}
                 </div>
@@ -1489,58 +1493,11 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                   <span className="badge badge-accent">{formatRoleLabel(adminSession?.role)}</span>
                 </div>
                 <div className="button-row wrap-row">
-                  <Button
-                    variant="secondary"
-                    disabled={quickActionLoading !== null}
-                    onClick={() =>
-                      runQuickAction("round2", async () => {
-                        if (snapshot.session.phase === "ROUND_2") return;
-                        const confirmed = window.confirm("라운드2를 시작할까요?");
-                        if (!confirmed) return;
-                        await setSessionState("ROUND_2");
-                      })
-                    }
-                  >
-                    {quickActionLoading === "round2" ? "처리 중..." : "ROUND_2 시작"}
+                  <Button variant="secondary" onClick={() => void syncFromRepository()}>
+                    새로고침
                   </Button>
-                  <Button
-                    disabled={quickActionLoading !== null}
-                    onClick={() =>
-                      runQuickAction("reveal", async () => {
-                        const confirmed = window.confirm("하트 공개를 실행할까요?");
-                        if (!confirmed) return;
-                        await triggerReveal();
-                      })
-                    }
-                  >
-                    {quickActionLoading === "reveal" ? "처리 중..." : "하트 공개"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    disabled={quickActionLoading !== null}
-                    onClick={() =>
-                      runQuickAction("notice", async () => {
-                        const message = window.prompt("공지 내용을 입력하세요.", quickNoticeMessage || "곧 다음 단계가 시작됩니다.");
-                        if (!message || !message.trim()) return;
-                        setQuickNoticeMessage(message);
-                        await publishAnnouncement(message.trim());
-                      })
-                    }
-                  >
-                    {quickActionLoading === "notice" ? "처리 중..." : "공지"}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    disabled={quickActionLoading !== null}
-                    onClick={() =>
-                      runQuickAction("close", async () => {
-                        const confirmed = window.confirm("세션을 종료하시겠습니까? 종료 후 운영 명령이 제한됩니다.");
-                        if (!confirmed) return;
-                        await setSessionState("CLOSED");
-                      })
-                    }
-                  >
-                    {quickActionLoading === "close" ? "처리 중..." : "세션 종료"}
+                  <Button variant="ghost" onClick={() => (window.location.href = "/customer")}>
+                    고객 화면
                   </Button>
                   <Button variant="ghost" onClick={() => (window.location.href = "/")}>
                     나가기

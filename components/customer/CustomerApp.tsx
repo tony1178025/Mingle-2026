@@ -24,9 +24,10 @@ import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStor
 import type { ContactExchangeMethod, CustomerTab, ParticipantRecord } from "@/types/mingle";
 
 const TAB_LABELS: Record<CustomerTab, string> = {
-  table: "전체",
-  hearts: "콘텐츠",
-  settings: "내 정보"
+  all: "전체",
+  table: "테이블",
+  content: "콘텐츠",
+  me: "내 정보"
 };
 
 const PHASE_LABELS: Record<string, string> = {
@@ -435,6 +436,17 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   return (
     <main className="customer-shell" data-phase={snapshot.session.phase}>
       <div className="customer-stage">
+        <Surface className="customer-app-topbar">
+          <div className="customer-sticky-status-row">
+            <strong>
+              {snapshot.session.branchName} · {snapshot.session.name}
+            </strong>
+            <span>
+              {formatOperationalPhaseLabel(snapshot.session.phase)} · 하트 {participant.heartsRemaining}개
+            </span>
+          </div>
+        </Surface>
+
         <Surface className="customer-hero">
           <div className="hero-copy-stack">
             <p className="eyebrow">테이블 중심 진행</p>
@@ -445,52 +457,14 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           </div>
         </Surface>
 
-        <Surface className="customer-sticky-status" data-testid="customer-sticky-status">
-          <div className="customer-sticky-status-row">
-            <strong>현재 단계: {formatOperationalPhaseLabel(snapshot.session.phase)}</strong>
-          </div>
-        </Surface>
-
-        <Surface>
-          <div className="segmented">
-            {(Object.keys(TAB_LABELS) as CustomerTab[]).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                className={cn("segmented-item", customerTab === tab && "segmented-item-active")}
-                onClick={() => setCustomerTab(tab)}
-                onMouseDown={() => triggerHaptic("light")}
-              >
-                {TAB_LABELS[tab]}
-              </button>
-            ))}
-          </div>
-          <div className="compact-row customer-heart-row">
-            <strong>남은 하트 {participant.heartsRemaining}개</strong>
-            <Button variant="secondary" onClick={() => setCustomerTab("hearts")}>
-              콘텐츠 보기
-            </Button>
-          </div>
-        </Surface>
-
-        {customerTab === "table" ? (
+        {customerTab === "all" ? (
           <div className="customer-grid">
             <div className="customer-main-column">
-              <TableStageCard
-                participant={participant}
-                liveContent={stageContent.liveContent}
-                inboxMessages={stageContent.inboxMessages}
-                responseCount={stageContent.responseCount}
-                alreadyResponded={stageContent.alreadyResponded}
-                encounterParticipants={encounterParticipants}
-                onRespond={respondToContent}
-              />
-
               <Surface>
                 <SectionHeader
-                  eyebrow="현재 테이블"
-                  title={`${formatTableName(participant.tableId)} 참가자`}
-                  description="지금 같은 테이블에 있는 참가자를 바로 확인할 수 있습니다."
+                  eyebrow="참가자"
+                  title="참가자 목록"
+                  description={phaseGuideMessage}
                 />
                 <div className="participant-grid">
                   {currentTableMembers.map((member) => (
@@ -512,42 +486,6 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   ))}
                 </div>
               </Surface>
-
-              <Surface>
-                <SectionHeader
-                  eyebrow="최근 만남"
-                  title="최근 만난 참가자"
-                  description="이전 테이블이나 최근 라운드에서 만난 참가자만 다시 보여줍니다."
-                />
-                {encounterParticipants.length ? (
-                  <div className="participant-grid">
-                    {encounterParticipants.map((candidate) => (
-                      <article key={candidate.id} className="participant-card">
-                        <div className="participant-head">
-                          <UserPhoto photoUrl={candidate.photoUrl} gender={candidate.gender} size={52} />
-                          <div className="participant-copy">
-                            <strong>{candidate.nickname}</strong>
-                            <p>
-                              {candidate.job} · {candidate.energyType}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="badge-row">
-                          <Badge tone="neutral">{candidate.animalType}</Badge>
-                      <Button className="heart-send-button" onClick={() => void handleSendHeart(candidate.id)}>
-                        하트 보내기
-                      </Button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="아직 최근 만난 참가자가 없습니다."
-                    description="라운드가 진행되면 이 영역에 최근 만난 참가자가 표시됩니다."
-                  />
-                )}
-              </Surface>
             </div>
 
             <div className="customer-side-column">
@@ -565,9 +503,54 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           </div>
         ) : null}
 
-        {customerTab === "hearts" ? (
+        {customerTab === "table" ? (
           <div className="customer-grid">
             <div className="customer-main-column">
+              <TableStageCard
+                participant={participant}
+                liveContent={null}
+                inboxMessages={stageContent.inboxMessages}
+                responseCount={stageContent.responseCount}
+                alreadyResponded={stageContent.alreadyResponded}
+                encounterParticipants={encounterParticipants}
+                onRespond={respondToContent}
+              />
+              <Surface>
+                <SectionHeader
+                  eyebrow="내 테이블"
+                  title={`${formatTableName(participant.tableId)} 참가자`}
+                  description="현재 같은 테이블의 참가자입니다."
+                />
+                <div className="participant-grid">
+                  {currentTableMembers.map((member) => (
+                    <article key={member.id} className="participant-card">
+                      <div className="participant-head">
+                        <UserPhoto photoUrl={member.photoUrl} gender={member.gender} size={52} />
+                        <div className="participant-copy">
+                          <strong>{member.nickname}</strong>
+                          <p>{member.job}</p>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </Surface>
+            </div>
+          </div>
+        ) : null}
+
+        {customerTab === "content" ? (
+          <div className="customer-grid">
+            <div className="customer-main-column">
+              <TableStageCard
+                participant={participant}
+                liveContent={stageContent.liveContent}
+                inboxMessages={stageContent.inboxMessages}
+                responseCount={stageContent.responseCount}
+                alreadyResponded={stageContent.alreadyResponded}
+                encounterParticipants={encounterParticipants}
+                onRespond={respondToContent}
+              />
               <RevealProgressCard heartsRemaining={participant.heartsRemaining} />
 
               <Surface>
@@ -758,7 +741,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           </div>
         ) : null}
 
-        {customerTab === "settings" ? (
+        {customerTab === "me" ? (
           <div className="customer-grid">
             <div className="customer-main-column">
               <Surface>
@@ -887,6 +870,22 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
             onConfirm={acknowledgeRotation}
           />
         ) : null}
+
+        <Surface className="customer-bottom-tabs">
+          <div className="segmented">
+            {(Object.keys(TAB_LABELS) as CustomerTab[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                className={cn("segmented-item", customerTab === tab && "segmented-item-active")}
+                onClick={() => setCustomerTab(tab)}
+                onMouseDown={() => triggerHaptic("light")}
+              >
+                {TAB_LABELS[tab]}
+              </button>
+            ))}
+          </div>
+        </Surface>
       </div>
     </main>
   );

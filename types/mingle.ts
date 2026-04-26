@@ -18,7 +18,7 @@ export const DEFAULT_AVATAR_BY_GENDER: Record<ParticipantGender, string> = {
 export type EnergyType = "E" | "I";
 export type ParticipantTier = "A" | "B" | "C";
 export type ParticipantSubTier = "HIGH" | "MID" | "LOW";
-export type CustomerTab = "table" | "hearts" | "settings";
+export type CustomerTab = "all" | "table" | "content" | "me";
 export type AdminPanel =
   | "live"
   | "rotation"

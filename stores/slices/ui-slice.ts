@@ -1,7 +1,7 @@
 import type { StoreSlice, UiSlice } from "@/stores/types";
 
 export const createUiSlice: StoreSlice<UiSlice> = (set) => ({
-  customerTab: "table",
+  customerTab: "all",
   adminPanel: "live",
   selectedTableId: 1,
   toast: null,

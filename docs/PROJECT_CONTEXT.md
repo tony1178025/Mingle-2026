@@ -35,6 +35,8 @@ The paid beta visual baseline is:
 - One branch can have only one OPEN session at the same time.
 - Live Ops is always nested under Session, and Session under Branch.
 - Branch nodes must be data-driven from current branch/session data (no hardcoded branch names).
+- 전역 Top Context Bar는 현재 범위/세션 상태/참가자/테이블/권한을 요약하고,
+  위험 조작(세션 종료/강제 공개)은 라이브 콘솔 내부에서만 처리합니다.
 
 ## Customer DB Readiness Layer
 
@@ -44,6 +46,14 @@ The paid beta visual baseline is:
   - 인기도 지표 (누적 데이터 준비 문구 포함)
   - 스태프 추천 레이어(S/A/B/C, 태그, 메모) placeholder
 - Avoid public ranking tone; use "운영 참고" wording.
+
+## Customer PWA IA (Locked)
+
+- Onboarding 이후 구조는 고정:
+  - 상단 상태 바(지점/회차/단계/남은 하트)
+  - 메인 콘텐츠
+  - 하단 탭(전체/테이블/콘텐츠/내 정보)
+- Customer는 현재 상태만 표시하며 미래 예측/운영 내부 시그널을 노출하지 않습니다.
 
 ## Admin-Customer Synchronization Principle
 
