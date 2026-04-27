@@ -8,8 +8,16 @@ import type { ParticipantGender } from "@/types/mingle";
  * M: cool gray, F: soft neutral rose.
  */
 const AVATAR_COLORS: Record<ParticipantGender, { bg: string; fg: string; ring: string }> = {
-  M: { bg: "#E2E5EA", fg: "#9AA3AD", ring: "rgba(148,163,184,0.4)" },
-  F: { bg: "#F0E2E8", fg: "#B59AA8", ring: "rgba(181,154,168,0.38)" }
+  M: {
+    bg: "var(--avatar-m-bg, var(--pwa-surface-warm))",
+    fg: "var(--avatar-m-fg, var(--pwa-text-secondary))",
+    ring: "var(--avatar-m-ring, var(--pwa-border))"
+  },
+  F: {
+    bg: "var(--avatar-f-bg, var(--pwa-surface-warm))",
+    fg: "var(--avatar-fg, var(--pwa-text-secondary))",
+    ring: "var(--avatar-f-ring, var(--pwa-border))"
+  }
 };
 
 export function Avatar({

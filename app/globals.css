@@ -2277,15 +2277,15 @@ img {
   --s-10: 40px;
   --s-12: 48px;
 
-  --admin-bg: #0E1117;
-  --admin-bg-elevated: #111621;
-  --admin-surface: #171C28;
-  --admin-surface-soft: #1D2331;
-  --admin-surface-hover: #22293A;
-  --admin-border: rgba(180, 190, 220, 0.14);
-  --admin-text: #EEF2FA;
-  --admin-text-secondary: #AEB7CA;
-  --admin-text-muted: #7C8497;
+  --admin-bg: #F6F7FB;
+  --admin-bg-elevated: #FFFFFF;
+  --admin-surface: #FFFFFF;
+  --admin-surface-soft: #F9FAFB;
+  --admin-surface-hover: #F3F4F6;
+  --admin-border: #E5E7EB;
+  --admin-text: #111827;
+  --admin-text-secondary: #6B7280;
+  --admin-text-muted: #6B7280;
 
   --pwa-bg: #F7F3EE;
   --pwa-surface: #FFFFFF;
@@ -2317,6 +2317,16 @@ img {
 
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --bg: var(--admin-bg);
+  --surface: var(--admin-surface);
+  --text: var(--admin-text);
+  --muted: var(--admin-text-secondary);
+  --primary: var(--violet-600);
+  --border: var(--admin-border);
+  --on-primary: var(--admin-text);
+  --disabled-surface: var(--admin-surface-soft);
+  --disabled-text: var(--admin-text-secondary);
+  --disabled-border: var(--admin-border);
 }
 
 body {
@@ -2342,6 +2352,10 @@ body {
 .admin-shell {
   background: var(--admin-bg);
   color: var(--admin-text);
+}
+
+.admin-shell * {
+  color-scheme: light;
 }
 
 .admin-shell .surface,
@@ -2403,6 +2417,16 @@ body {
 .customer-shell {
   background: var(--pwa-bg);
   color: var(--pwa-text);
+  --bg: var(--pwa-bg);
+  --surface: var(--pwa-surface);
+  --text: var(--pwa-text);
+  --muted: var(--pwa-text-secondary);
+  --primary: var(--violet-600);
+  --border: var(--pwa-border);
+  --on-primary: var(--pwa-surface);
+  --disabled-surface: var(--pwa-surface-warm);
+  --disabled-text: var(--pwa-text-secondary);
+  --disabled-border: var(--pwa-border);
 }
 
 .customer-stage {
@@ -2448,12 +2472,19 @@ body {
 .customer-shell .button { min-height: 44px; font-size: 16px; }
 .customer-shell .button-primary { min-height: 52px; border-radius: 16px; box-shadow: var(--brand-glow); }
 
-.button-primary { background: var(--brand-gradient); color: #fff; border-color: transparent; }
+.button-primary { background: var(--brand-gradient); color: var(--on-primary); border-color: transparent; }
 .button-secondary, .button-ghost { background: transparent; border-color: currentColor; }
-.button-danger { background: var(--danger); color: #fff; border-color: transparent; }
+.button-primary { color: var(--on-primary); }
+.button-danger { background: var(--danger); color: var(--on-primary); border-color: transparent; }
 .button:hover { transform: translateY(-1px); }
 .button:active { transform: scale(0.97); }
-.button:disabled { opacity: 0.42; pointer-events: none; }
+.button:disabled {
+  opacity: 1;
+  pointer-events: none;
+  color: var(--disabled-text);
+  background: var(--disabled-surface);
+  border-color: var(--disabled-border);
+}
 .button svg { transform: translateY(1px); }
 .admin-shell .button svg { width: 16px; height: 16px; stroke-width: 1.8; color: var(--admin-text-secondary); }
 .customer-shell .button svg { width: 20px; height: 20px; stroke-width: 2; color: var(--violet-600); }
@@ -2538,6 +2569,58 @@ body {
 .customer-shell .toast {
   bottom: 16px;
   box-shadow: var(--shadow-pwa-float);
+}
+
+/* Contrast-safe state rules */
+.admin-shell input,
+.admin-shell select,
+.admin-shell textarea,
+.admin-shell .rotation-modal-card,
+.admin-shell .admin-simple-table,
+.admin-shell .admin-simple-table th,
+.admin-shell .admin-simple-table td {
+  color: var(--admin-text);
+}
+
+.customer-shell input,
+.customer-shell select,
+.customer-shell textarea,
+.customer-shell .rotation-modal-card,
+.customer-shell .toast {
+  color: var(--pwa-text);
+}
+
+.admin-shell select option {
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.customer-shell select option {
+  background: var(--pwa-surface);
+  color: var(--pwa-text);
+}
+
+.admin-shell .rotation-modal-card {
+  background: var(--admin-bg-elevated);
+  border-color: var(--admin-border);
+  box-shadow: var(--shadow-admin-popover);
+}
+
+.customer-shell .rotation-modal-card {
+  background: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  box-shadow: var(--shadow-pwa-float);
+}
+
+.admin-shell .badge-neutral,
+.admin-shell .badge-success,
+.admin-shell .badge-warning,
+.admin-shell .badge-danger,
+.customer-shell .badge-neutral,
+.customer-shell .badge-success,
+.customer-shell .badge-warning,
+.customer-shell .badge-danger {
+  color: var(--on-primary);
 }
 
 @keyframes toast-enter {

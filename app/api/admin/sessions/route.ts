@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
       return db.response;
     }
 
-    const branchScope = auth.adminSession.role === "HQ_ADMIN" ? null : auth.adminSession.branchId;
+    const requestedBranchId = request.nextUrl.searchParams.get("branchId");
+    const branchScope = auth.adminSession.role === "HQ_ADMIN" ? requestedBranchId : auth.adminSession.branchId;
     const sessions = await db.repository.listManagedSessions(branchScope);
     return NextResponse.json({ sessions });
   } catch (error) {

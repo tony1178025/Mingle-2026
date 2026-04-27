@@ -27,6 +27,7 @@ import type {
   AdminSessionRecord,
   BranchRecord,
   CustomerProfileSummary,
+  ManagedSessionRecord,
   ParticipantGender,
   ReservationBridgeRecord
 } from "@/types/mingle";
@@ -164,6 +165,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     defaultProfileImageUnknown: ADMIN_DEFAULT_CONFIG.defaultProfileImagePaths.unknown
   });
   const [savingSessionConfig, setSavingSessionConfig] = useState(false);
+  const [currentManagedSession, setCurrentManagedSession] = useState<ManagedSessionRecord | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -185,6 +187,67 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!snapshot) {
+      return;
+    }
+    void fetch(`/api/admin/sessions/current?branchId=${snapshot.session.branchId}`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return null;
+        }
+        const payload = (await response.json()) as { session: ManagedSessionRecord | null };
+        return payload.session;
+      })
+      .then((session) => {
+        setCurrentManagedSession(session ?? null);
+      })
+      .catch(() => {
+        setCurrentManagedSession(null);
+      });
+  }, [snapshot?.session.branchId, snapshot?.version]);
+
+  const createSession = async () => {
+    if (!snapshot) return;
+    const title = `${new Date().toISOString().slice(0, 10)} 회차`;
+    await fetch("/api/admin/sessions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        name: title,
+        branchId: snapshot.session.branchId,
+        eventId: snapshot.session.eventId,
+        venueName: snapshot.session.venueName,
+        venueAddress: snapshot.session.venueAddress,
+        sessionDateLabel: snapshot.session.sessionDateLabel,
+        sessionTimeLabel: snapshot.session.sessionTimeLabel,
+        attendanceLabel: snapshot.session.attendanceLabel,
+        attendanceHint: snapshot.session.attendanceHint,
+        code: snapshot.session.code,
+        tableCount: snapshot.session.tableCount,
+        tableCapacity: snapshot.session.tableCapacity,
+        maxCapacity: snapshot.session.tableCount * snapshot.session.tableCapacity,
+        status: "OPEN"
+      })
+    });
+    await syncFromRepository();
+  };
+
+  const postSessionLifecycle = async (action: "start" | "round-2" | "close" | "archive") => {
+    if (!currentManagedSession) return;
+    await fetch(`/api/admin/sessions/${currentManagedSession.id}/${action}`, {
+      method: "POST",
+      headers: { Accept: "application/json" }
+    });
+    await syncFromRepository();
+  };
 
   const persistedReservationRows = useMemo<ManualReservationRow[]>(
     () =>
@@ -391,7 +454,11 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           <Surface>
             <EmptyState
               title="세션 정보를 불러오지 못했습니다."
-              description="잠시 후 새로고침하거나 관리자에게 문의해 주세요."
+              description={
+                snapshotLoadErrorCode === "SESSION_SNAPSHOT_LOAD_FAILED"
+                  ? "열린 세션 없음"
+                  : "새로고침"
+              }
             />
             {snapshotLoadErrorCode ? <p className="field-help admin-error-code">오류 코드: {snapshotLoadErrorCode}</p> : null}
           </Surface>
@@ -838,11 +905,42 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
         <Surface className="metric-card"><strong>신고/주의</strong><p className="metric-value">{unresolvedReports + blacklistCount}</p></Surface>
       </div>
       <Surface>
-        <SectionHeader eyebrow="오늘 회차" title="현재 회차 정보" description="한 지점에서 동시에 OPEN 회차는 1개만 운영됩니다." />
+        <SectionHeader eyebrow="세션" title="현재 세션" description={currentManagedSession ? "" : "열린 세션 없음"} />
         <div className="compact-stack">
           <div className="compact-row"><strong>회차</strong><span>{snapshot.session.name}</span></div>
-          <div className="compact-row"><strong>단계</strong><span>{formatPhaseLabel(snapshot.session.phase)}</span></div>
-          <div className="compact-row"><strong>테이블/정원</strong><span>{snapshot.session.tableCount} / {snapshot.session.tableCapacity}</span></div>
+          <div className="compact-row"><strong>상태</strong><span>{formatPhaseLabel(snapshot.session.phase)}</span></div>
+          <div className="compact-row"><strong>참가자</strong><span>{snapshot.participants.length ? `${snapshot.participants.length}명` : "참가자 없음"}</span></div>
+          <div className="button-row wrap-row">
+            <Button onClick={() => void createSession()}>새 세션 생성</Button>
+            <Button variant="secondary" onClick={() => void postSessionLifecycle("start")}>세션 시작</Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (!window.confirm("ROUND_2로 전환할까요?")) return;
+                void postSessionLifecycle("round-2");
+              }}
+            >
+              ROUND_2 전환
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (!window.confirm("세션을 종료할까요?")) return;
+                void postSessionLifecycle("close");
+              }}
+            >
+              세션 종료
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                if (!window.confirm("세션을 archive 처리할까요?")) return;
+                void postSessionLifecycle("archive");
+              }}
+            >
+              세션 archive
+            </Button>
+          </div>
         </div>
       </Surface>
     </div>

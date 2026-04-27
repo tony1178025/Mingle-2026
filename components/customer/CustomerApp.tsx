@@ -119,9 +119,6 @@ function OnboardingView() {
     return <LoadingView />;
   }
 
-  const branchName = snapshot.session.branchName?.trim() ?? "";
-  const sessionName = snapshot.session.name?.trim() ?? "";
-  const hasSessionContext = Boolean(branchName && sessionName);
   const hasEntryContext = checkinDraft.flowState === "SUCCESS" && Boolean(checkinDraft.resolution);
 
   useEffect(() => {
@@ -167,25 +164,15 @@ function OnboardingView() {
       <div className="customer-stage onboarding-stage">
         <Surface className="customer-hero">
           <div className="hero-copy-stack">
-            <p className="eyebrow">프로필 설정</p>
-            {hasSessionContext ? (
-              <>
-                <h1 className="hero-title">
-                  지금은 {branchName} {sessionName}입니다.
-                </h1>
-                <p className="hero-description">자리에 앉아 기본 정보를 입력해주세요.</p>
-              </>
-            ) : (
-              <h1 className="hero-title">입장 정보를 확인하고 있어요.</h1>
-            )}
+            <h1 className="hero-title">프로필 설정</h1>
           </div>
         </Surface>
 
         {!hasEntryContext ? (
           <Surface>
             <EmptyState
-              title="입장 정보를 확인할 수 없어요."
-              description="QR을 다시 스캔해주세요."
+              title="입장 실패"
+              description="QR 다시 스캔"
             />
             {checkinDraft.error ? <p className="field-error">{checkinDraft.error}</p> : null}
           </Surface>

@@ -28,13 +28,13 @@ const SIZES = {
 function getColors(theme: LogoTheme) {
   switch (theme) {
     case "dark":
-      return { primary: "#F5F0FA", secondary: "#8E7CAA" };
+      return { primary: "var(--admin-text)", secondary: "var(--admin-text-secondary)" };
     case "light":
-      return { primary: "#110D1A", secondary: "#8E7CAA" };
+      return { primary: "var(--pwa-text)", secondary: "var(--pwa-text-secondary)" };
     case "mono-dark":
-      return { primary: "#F5F0FA", secondary: "#F5F0FA" };
+      return { primary: "var(--admin-text)", secondary: "var(--admin-text)" };
     case "mono-light":
-      return { primary: "#110D1A", secondary: "#110D1A" };
+      return { primary: "var(--pwa-text)", secondary: "var(--pwa-text)" };
   }
 }
 

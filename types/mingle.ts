@@ -936,7 +936,7 @@ export interface SessionSnapshotResponse {
   currentParticipantId: string | null;
 }
 
-export type CustomerEntryStatus = "OK" | "NO_OPEN_SESSION" | "INVALID";
+export type CustomerEntryStatus = "OK" | "NO_OPEN_SESSION" | "INVALID" | "INVALID_BRANCH_OR_TABLE";
 
 export interface CustomerEntryResponse {
   status: CustomerEntryStatus;

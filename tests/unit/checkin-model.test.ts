@@ -78,6 +78,18 @@ describe("checkin qr parsing", () => {
     });
   });
 
+  it("does not depend on qrVersion query values", () => {
+    expect(
+      parseCheckinQrValue(
+        "https://mingle.local/customer?branchId=branch_seongsu&tableId=3&qrVersion=legacy&code=1234"
+      )
+    ).toEqual({
+      branchId: "branch_seongsu",
+      tableId: 3,
+      checkinCode: "1234"
+    });
+  });
+
   it("rejects missing tableId path segment", () => {
     expect(parseCheckinQrValue("mingle://table/branch_seongsu?code=1234")).toBeNull();
   });

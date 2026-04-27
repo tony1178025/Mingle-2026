@@ -78,6 +78,18 @@ export const createAdminSlice: StoreSlice<AdminSlice> = (set, get) => ({
   },
 
   async generateRotationPreview() {
+    const snapshot = get().snapshot;
+    const activeParticipants =
+      snapshot?.participants.filter((participant) => {
+        const status = snapshot.participantStatusMap?.[participant.id] ?? "ACTIVE";
+        return status === "ACTIVE";
+      }).length ?? 0;
+    if (activeParticipants < 2) {
+      set({
+        toast: createToast("warning", "ACTIVE 참가자 부족")
+      });
+      return;
+    }
     try {
       const result = await get().executeAdminCommandWithRetry((expectedVersion) => ({
         type: "admin.generateRotationPreview",

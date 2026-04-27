@@ -10,5 +10,5 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     return <AdminGuard configured={configured} />;
   }
 
-  return <>{children}</>;
+  return <div className="admin-shell min-h-screen">{children}</div>;
 }

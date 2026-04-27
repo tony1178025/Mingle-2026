@@ -1,4 +1,5 @@
 import { getServerSessionSnapshot } from "@/lib/repositories/server-repository";
+import { getDbAuthorityRepository } from "@/lib/repositories/authority-backend";
 import type { CustomerEntryResponse } from "@/types/mingle";
 
 type ResolveEntryInput = {
@@ -11,18 +12,54 @@ function isOpenSessionPhase(phase: string) {
 }
 
 export async function resolveCustomerEntry(input: ResolveEntryInput): Promise<CustomerEntryResponse> {
-  const snapshot = await getServerSessionSnapshot();
   const { branchId, tableId } = input;
+  if (!branchId || !Number.isInteger(tableId) || tableId < 1) {
+    return {
+      status: "INVALID_BRANCH_OR_TABLE",
+      message: "입장 정보를 확인할 수 없어요."
+    };
+  }
+
+  const dbRepository = getDbAuthorityRepository();
+  if (dbRepository) {
+    const branch = await dbRepository.getBranch(branchId);
+    if (!branch || tableId > branch.default_table_count) {
+      return {
+        status: "INVALID_BRANCH_OR_TABLE",
+        message: "입장 정보를 확인할 수 없어요."
+      };
+    }
+    const sessions = await dbRepository.listManagedSessions(branchId);
+    const activeSession =
+      sessions.find((session) => session.status === "OPEN" && session.phase !== "CLOSED") ?? null;
+    if (!activeSession) {
+      return {
+        status: "NO_OPEN_SESSION",
+        message: "현재 입장 가능한 세션이 없습니다."
+      };
+    }
+    return {
+      status: "OK",
+      sessionId: activeSession.id,
+      branch: {
+        id: branch.id,
+        name: branch.name
+      },
+      table: {
+        id: `${branch.id}:${tableId}`,
+        tableNumber: tableId
+      }
+    };
+  }
+
+  const snapshot = await getServerSessionSnapshot();
 
   if (
-    !branchId ||
-    !Number.isInteger(tableId) ||
-    tableId < 1 ||
     branchId !== snapshot.session.branchId ||
     tableId > snapshot.session.tableCount
   ) {
     return {
-      status: "INVALID",
+      status: "INVALID_BRANCH_OR_TABLE",
       message: "입장 정보를 확인할 수 없어요."
     };
   }
