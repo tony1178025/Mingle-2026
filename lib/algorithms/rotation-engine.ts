@@ -16,6 +16,18 @@ const TARGET_MIN = 6;
 const TARGET_MAX = 8;
 const HARD_MAX = 10;
 
+function computePopularityCutoff(candidates: Candidate[]) {
+  if (candidates.length === 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const sorted = [...candidates].map((item) => item.receivedHearts).sort((a, b) => a - b);
+  const percentileIndex = Math.max(
+    0,
+    Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * 0.9))
+  );
+  return sorted[percentileIndex] ?? Number.POSITIVE_INFINITY;
+}
+
 function seeded(seed: number) {
   let value = seed >>> 0;
   return () => {
@@ -83,7 +95,7 @@ function buildCandidates(snapshot: SessionSnapshot) {
   return classifyParticipants(candidates) as Candidate[];
 }
 
-function calcTableScore(snapshot: SessionSnapshot, table: TablePlan) {
+function calcTableScore(snapshot: SessionSnapshot, table: TablePlan, popularityCutoff: number) {
   const males = table.members.filter((member) => member.gender === "M").length;
   const females = table.members.filter((member) => member.gender === "F").length;
   const size = table.members.length;
@@ -131,7 +143,8 @@ function calcTableScore(snapshot: SessionSnapshot, table: TablePlan) {
   const hardMax = Math.max(1, Math.min(HARD_MAX, snapshot.session.tableCapacity || HARD_MAX));
   const tableSizeScore = size >= TARGET_MIN && size <= TARGET_MAX ? 1 : size <= hardMax ? 0.4 : -1;
   const reactionSpreadScore = gradeCount.S > 1 || gradeCount["A+"] > 2 ? -1 : 1;
-  const topClusterPenalty = gradeCount.S > 1 ? 1 : 0;
+  const topClusterPenalty =
+    table.members.filter((member) => member.receivedHearts >= popularityCutoff).length > 1 ? 1 : 0;
   const personalityMixScore = iCount === 0 || eCount === 0 ? 0 : 1;
   const noveltyScore = samePrevTable === 0 ? 1 : 0.2;
   const riskSeparationPenalty = risky >= 2 ? 1 : 0;
@@ -193,8 +206,8 @@ function enforceGenderConstraints(plan: TablePlan[], hardMax: number) {
   }
 }
 
-function totalScore(snapshot: SessionSnapshot, plan: TablePlan[]) {
-  return plan.reduce((sum, table) => sum + calcTableScore(snapshot, table).score, 0);
+function totalScore(snapshot: SessionSnapshot, plan: TablePlan[], popularityCutoff: number) {
+  return plan.reduce((sum, table) => sum + calcTableScore(snapshot, table, popularityCutoff).score, 0);
 }
 
 export function generateAdvancedRotationPreview(snapshot: SessionSnapshot, seed = 20260426): RotationPreview {
@@ -206,6 +219,7 @@ export function generateAdvancedRotationPreview(snapshot: SessionSnapshot, seed 
 
   const hardMax = Math.max(1, Math.min(HARD_MAX, snapshot.session.tableCapacity || HARD_MAX));
   const tableCount = snapshot.session.tableCount;
+  const popularityCutoff = computePopularityCutoff(candidates);
   const plan: TablePlan[] = Array.from({ length: tableCount }, (_, idx) => ({ tableId: idx + 1, members: [] }));
   const gradeOrder: ReactionGrade[] = ["S", "A+", "A", "A-", "B"];
   const ordered = gradeOrder.flatMap((grade) => candidates.filter((candidate) => candidate.reactionGrade === grade));
@@ -220,7 +234,7 @@ export function generateAdvancedRotationPreview(snapshot: SessionSnapshot, seed 
   enforceGenderConstraints(plan, hardMax);
 
   let best = plan.map((table) => ({ ...table, members: [...table.members] }));
-  let bestScore = totalScore(snapshot, best);
+  let bestScore = totalScore(snapshot, best, popularityCutoff);
   for (let iter = 0; iter < 1000; iter += 1) {
     const t1 = Math.floor(rng() * tableCount);
     const t2 = Math.floor(rng() * tableCount);
@@ -235,7 +249,7 @@ export function generateAdvancedRotationPreview(snapshot: SessionSnapshot, seed 
     if (!isGenderValid(next[t1]!) || !isGenderValid(next[t2]!)) {
       continue;
     }
-    const score = totalScore(snapshot, next);
+    const score = totalScore(snapshot, next, popularityCutoff);
     if (score >= bestScore || rng() < 0.02) {
       best = next;
       bestScore = score;
@@ -269,7 +283,7 @@ export function generateAdvancedRotationPreview(snapshot: SessionSnapshot, seed 
         });
       }
     }
-    const score = calcTableScore(snapshot, table);
+    const score = calcTableScore(snapshot, table, popularityCutoff);
     return {
       tableId: table.tableId,
       beforeParticipants,
@@ -312,6 +326,7 @@ export function generateAdvancedRotationPreview(snapshot: SessionSnapshot, seed 
   const rotationRound =
     Math.max(0, ...snapshot.seatingAssignments.map((assignment) => assignment.rotationRound)) + 1;
   return {
+    previewId: createId("rotation_preview"),
     generatedAt: new Date().toISOString(),
     rotationRound,
     tableCapacityPlan: best.map((table) => table.members.length),

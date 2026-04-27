@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       snapshot: sanitizeSnapshotForAdmin(snapshot),
       rotationPreview: computed.preview,
-      warnings: computed.warnings
+      warnings: computed.warnings,
+      fallbackUsed: computed.fallbackUsed
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "회전 프리뷰 생성에 실패했습니다.";

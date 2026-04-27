@@ -737,6 +737,7 @@ export interface RotationTablePreview {
 }
 
 export interface RotationPreview {
+  previewId?: string;
   generatedAt: string;
   rotationRound: number;
   tableCapacityPlan: number[];

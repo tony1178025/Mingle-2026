@@ -4,7 +4,7 @@ import { computeRotation } from "@/server/rotation/rotation-engine";
 import type { SessionSnapshot } from "@/types/mingle";
 import type { RotationComputeOutput } from "@/server/rotation/rotation.types";
 
-const ROTATION_TIMEOUT_MS = 50;
+const ROTATION_TIMEOUT_MS = 100;
 
 export async function runRotationPreview(snapshot: SessionSnapshot): Promise<RotationComputeOutput> {
   const workerFile = resolve(process.cwd(), "server/rotation/rotation.worker.ts");

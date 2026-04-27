@@ -171,6 +171,15 @@ create table if not exists public.incidents (
   timestamp timestamptz not null
 );
 
+create table if not exists public.participant_seen_edges (
+  id text primary key,
+  session_id text not null references public.sessions(id) on delete cascade,
+  participant_a_id text not null references public.participants(id) on delete cascade,
+  participant_b_id text not null references public.participants(id) on delete cascade,
+  seen_count integer not null default 0,
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create index if not exists idx_sessions_branch_id on public.sessions(branch_id);
 create index if not exists idx_sessions_event_id on public.sessions(event_id);
 create index if not exists idx_participants_session_id on public.participants(session_id);
@@ -185,6 +194,8 @@ create index if not exists idx_blacklist_session_id on public.blacklist(session_
 create index if not exists idx_blacklist_participant_id on public.blacklist(participant_id);
 create index if not exists idx_incidents_session_id on public.incidents(session_id);
 create index if not exists idx_incidents_target_id on public.incidents(target_id);
+create unique index if not exists uq_participant_seen_edges_pair
+  on public.participant_seen_edges(session_id, participant_a_id, participant_b_id);
 
 create or replace function public.apply_db_authority_projection(projection jsonb)
 returns void
