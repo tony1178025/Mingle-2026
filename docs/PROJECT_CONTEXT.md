@@ -83,3 +83,9 @@ The paid beta visual baseline is:
   - 운영 결과 CSV 내보내기
 - 사진 업로드 실패/미구성 시 기본 아바타로 즉시 대체합니다.
 
+## API Transition Policy (Live)
+
+- New implementation baseline is `customer/*` and admin rotation endpoints.
+- Legacy `session/*` and `reservations/session-context` are compatibility only.
+- Legacy endpoints are explicitly DEPRECATED and must not be expanded with new features.
+

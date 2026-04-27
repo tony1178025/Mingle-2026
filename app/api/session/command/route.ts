@@ -25,6 +25,12 @@ import type { CommandResult, MingleCommand, SessionCommandResponse } from "@/typ
 
 export const runtime = "nodejs";
 
+/**
+ * DEPRECATED: Legacy compatibility endpoint.
+ * New development must use `/api/customer/*` and `/api/admin/sessions/{id}/rotation/*`.
+ * This route is intentionally kept to prevent breaking existing clients.
+ */
+
 function getRequiredEnvErrorCode() {
   const requiresDbAuthority = process.env.USE_DB_AUTHORITY === "true";
   if (!requiresDbAuthority) {

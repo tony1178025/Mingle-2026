@@ -102,8 +102,10 @@ function OnboardingView() {
   const updateCheckinValue = useMingleStore((state) => state.updateCheckinValue);
   const updateProfileDraft = useMingleStore((state) => state.updateProfileDraft);
   const completeProfile = useMingleStore((state) => state.completeProfile);
+  const syncFromRepository = useMingleStore((state) => state.syncFromRepository);
   const onboardingProfileUploadSubjectRef = useRef("");
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
+  const [onboardingDraftParticipantId, setOnboardingDraftParticipantId] = useState<string | null>(null);
   const hasAutoRequestedRef = useRef(false);
   if (!onboardingProfileUploadSubjectRef.current) {
     onboardingProfileUploadSubjectRef.current =
@@ -204,11 +206,56 @@ function OnboardingView() {
                   profileUploadSubjectId={profileUploadSubjectId}
                   avatarGender={checkinDraft.resolution?.gender ?? "M"}
                   checkinPhone={checkinDraft.resolution?.phone ?? ""}
+                  onStepAdvance={async ({ step, data }) => {
+                    if (!checkinDraft.resolution?.sessionId || !checkinDraft.resolution.tableId) {
+                      return;
+                    }
+                    const response = await fetch("/api/customer/profile/step", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json"
+                      },
+                      body: JSON.stringify({
+                        sessionId: checkinDraft.resolution.sessionId,
+                        tableId: checkinDraft.resolution.tableId,
+                        step,
+                        data,
+                        draftParticipantId: onboardingDraftParticipantId ?? undefined
+                      })
+                    });
+                    if (!response.ok) {
+                      const message = await response.text();
+                      throw new Error(message || "임시 저장에 실패했습니다.");
+                    }
+                    const payload = (await response.json()) as { draftParticipantId: string };
+                    setOnboardingDraftParticipantId(payload.draftParticipantId);
+                  }}
                   completeButtonDisabled={isSubmittingProfile}
                   onComplete={() => {
                     triggerHaptic("light");
                     setIsSubmittingProfile(true);
-                    void completeProfile()
+                    const commit = async () => {
+                      if (onboardingDraftParticipantId) {
+                        const response = await fetch("/api/customer/enter", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Accept: "application/json"
+                          },
+                          body: JSON.stringify({
+                            draftParticipantId: onboardingDraftParticipantId
+                          })
+                        });
+                        if (!response.ok) {
+                          throw new Error(await response.text());
+                        }
+                        await syncFromRepository();
+                        return true;
+                      }
+                      return completeProfile();
+                    };
+                    void commit()
                       .then((ok) => {
                         if (ok) {
                           triggerHaptic("success");

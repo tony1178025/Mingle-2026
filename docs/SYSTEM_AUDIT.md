@@ -119,6 +119,14 @@
 - 모든 배치 종료 시:
   - `npm run typecheck`
   - `npm run build`
+  - `npm test`
+
+## 7-1) 2026 Core Refactor Delta
+
+- QR contract is fixed to `branchId + tableId` and session-independent.
+- Onboarding now supports server-side partial save and final enter endpoint.
+- Rotation preview/apply path is separated with worker runner and preview cache bridge.
+- Legacy API routes are kept as compatibility layer and marked DEPRECATED.
 - 회귀 체크:
   - Admin 변경 -> Customer 즉시 반영
   - Customer 행동 -> Admin 즉시 반영

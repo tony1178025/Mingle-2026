@@ -9,6 +9,12 @@ import type { ReservationSessionContextRequest } from "@/types/mingle";
 
 export const runtime = "nodejs";
 
+/**
+ * DEPRECATED: Legacy compatibility endpoint.
+ * New clients should call `/api/customer/entry` and onboarding endpoints.
+ * This route remains to preserve backward compatibility for existing screens.
+ */
+
 function getRequiredEnvErrorCode() {
   const requiresDbAuthority =
     process.env.USE_DB_AUTHORITY === "true" || process.env.READ_FROM_DB === "true";

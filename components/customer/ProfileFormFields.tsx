@@ -81,7 +81,8 @@ export function ProfileFormFields({
   mode = "edit",
   checkinPhone = "",
   onComplete,
-  completeButtonDisabled = false
+  completeButtonDisabled = false,
+  onStepAdvance
 }: {
   value: ProfileFieldState;
   testIdPrefix: string;
@@ -92,6 +93,7 @@ export function ProfileFormFields({
   checkinPhone?: string;
   onComplete?: () => void;
   completeButtonDisabled?: boolean;
+  onStepAdvance?: (payload: { step: number; data: Record<string, unknown> }) => Promise<void> | void;
 }) {
   const showMaxSelectionToast = () => {
     useMingleStore.setState({ toast: createToast("info", "최대 3개까지 선택할 수 있어요") });
@@ -100,6 +102,7 @@ export function ProfileFormFields({
   const [fullName, setFullName] = useState("");
   const [contact, setContact] = useState(checkinPhone);
   const [birthYear, setBirthYear] = useState("");
+  const [selectedGender, setSelectedGender] = useState<ParticipantGender>(avatarGender);
   const [customJob, setCustomJob] = useState("");
   const parsedTraits = useMemo(() => parseTraitValue(value.animalType), [value.animalType]);
   const [selectedAppearanceTraits, setSelectedAppearanceTraits] = useState<string[]>(parsedTraits.appearance);
@@ -192,7 +195,25 @@ export function ProfileFormFields({
             </label>
             <label className="field">
               <span>성별</span>
-              <input value={avatarGender === "M" ? "남성" : "여성"} disabled />
+              <div className="segmented segmented-compact">
+                {[
+                  { id: "M", label: "남성" },
+                  { id: "F", label: "여성" }
+                ].map((genderOption) => (
+                  <button
+                    key={genderOption.id}
+                    type="button"
+                    className={
+                      selectedGender === genderOption.id
+                        ? "segmented-item segmented-item-active"
+                        : "segmented-item"
+                    }
+                    onClick={() => setSelectedGender(genderOption.id as ParticipantGender)}
+                  >
+                    {genderOption.label}
+                  </button>
+                ))}
+              </div>
             </label>
             {derivedAge ? (
               <p className="field-help field-span-2">출생연도를 기준으로 현재 나이는 {derivedAge}세로 적용됩니다.</p>
@@ -471,12 +492,34 @@ export function ProfileFormFields({
           </Button>
           {step < 5 ? (
             <Button
-              onClick={() => {
+              onClick={async () => {
                 triggerHaptic("light");
                 if (!canGoNext) {
                   setShowValidationHint(true);
                   return;
                 }
+                await onStepAdvance?.({
+                  step,
+                  data: {
+                    fullName,
+                    contact,
+                    birthYear: Number(birthYear || "0"),
+                    gender: selectedGender,
+                    nickname: value.nickname,
+                    photoUrl: value.photoUrl,
+                    heightCm: Number(value.heightCm || "0"),
+                    jobCategory: value.jobCategory,
+                    job: value.job,
+                    customJob,
+                    appearanceKeywords: selectedAppearanceTraits,
+                    personalityKeywords: selectedPersonalityTraits,
+                    energyType: value.energyType,
+                    goal,
+                    selectedIdealTypes,
+                    consentPrivacy,
+                    consentPortrait
+                  }
+                });
                 setShowValidationHint(false);
                 setStep((current) => Math.min(5, current + 1));
               }}

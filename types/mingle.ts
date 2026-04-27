@@ -935,6 +935,46 @@ export interface SessionSnapshotResponse {
   currentParticipantId: string | null;
 }
 
+export type CustomerEntryStatus = "OK" | "NO_OPEN_SESSION" | "INVALID";
+
+export interface CustomerEntryResponse {
+  status: CustomerEntryStatus;
+  sessionId?: string;
+  branch?: {
+    id: string;
+    name: string;
+  };
+  table?: {
+    id: string;
+    tableNumber: number;
+  };
+  message?: string;
+}
+
+export interface CustomerProfileStepRequest {
+  sessionId: string;
+  tableId: number;
+  step: 1 | 2 | 3 | 4 | 5;
+  data: Record<string, unknown>;
+  draftParticipantId?: string;
+}
+
+export interface CustomerProfileStepResponse {
+  status: "OK";
+  draftParticipantId: string;
+}
+
+export interface CustomerEnterRequest {
+  draftParticipantId: string;
+}
+
+export interface CustomerEnterResponse {
+  status: "OK";
+  participantId: string;
+  sessionId: string;
+  tableId: number;
+}
+
 export interface SessionSyncEvent {
   type: "snapshot";
   snapshot: SessionView;
