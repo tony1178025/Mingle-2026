@@ -148,6 +148,34 @@ function calcTableScore(snapshot: SessionSnapshot, table: TablePlan, popularityC
   const personalityMixScore = iCount === 0 || eCount === 0 ? 0 : 1;
   const noveltyScore = samePrevTable === 0 ? 1 : 0.2;
   const riskSeparationPenalty = risky >= 2 ? 1 : 0;
+  const pairAffinityBonus = table.members.reduce((sum, member) => {
+    const wantsToKnow = (snapshot.tableImpressionPicks ?? []).some(
+      (pick) =>
+        pick.sessionId === snapshot.session.id &&
+        pick.pickerParticipantId === member.id &&
+        pick.pickType === "WANT_TO_KNOW" &&
+        table.members.some((target) => target.id === pick.targetParticipantId)
+    )
+      ? 25
+      : 0;
+    const funny = (snapshot.tableImpressionPicks ?? []).some(
+      (pick) =>
+        pick.sessionId === snapshot.session.id &&
+        pick.pickerParticipantId === member.id &&
+        pick.pickType === "FUNNY" &&
+        table.members.some((target) => target.id === pick.targetParticipantId)
+    )
+      ? 12
+      : 0;
+    const heart = snapshot.hearts.some(
+      (heart) =>
+        heart.senderId === member.id && table.members.some((target) => target.id === heart.recipientId)
+    )
+      ? 20
+      : 0;
+    return sum + wantsToKnow + funny + heart;
+  }, 0);
+  const affinityBonus = Math.min(80, pairAffinityBonus);
 
   const score =
     (1 - Math.abs(males - females) / Math.max(1, size)) * 4 +
@@ -160,7 +188,8 @@ function calcTableScore(snapshot: SessionSnapshot, table: TablePlan, popularityC
     (heartCollisions + mutualCollisions * 2) * 7 -
     samePrevTable * 8 -
     riskSeparationPenalty * 10 -
-    imbalancePenalty * 10;
+    imbalancePenalty * 10 +
+    affinityBonus;
 
   return {
     score,

@@ -60,10 +60,15 @@ export function buildStageContent(snapshot: SessionSnapshot, participant: Partic
   }
 
   const template = getContentTemplate(liveContent.templateId);
-  const alreadyResponded = snapshot.contentResponses.some(
-    (response) => response.contentId === liveContent.id && response.participantId === participant.id
+  const alreadyResponded =
+    liveContent.kind === "table_impression_pick"
+      ? false
+      : snapshot.contentResponses.some(
+          (response) => response.contentId === liveContent.id && response.participantId === participant.id
+        );
+  const inboxMessages = snapshot.anonymousMessages.filter(
+    (message) => message.receiverParticipantId === participant.id
   );
-  const inboxMessages = snapshot.anonymousMessages.filter((message) => message.recipientId === participant.id);
   const responseCount = snapshot.contentResponses.filter(
     (response) => response.contentId === liveContent.id
   ).length;

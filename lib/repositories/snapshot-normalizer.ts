@@ -41,6 +41,9 @@ export function normalizeAuthoritySnapshot(snapshot: SessionSnapshot): SessionSn
     liveContent: snapshot.liveContent ?? null,
     contentResponses: snapshot.contentResponses ?? [],
     anonymousMessages: snapshot.anonymousMessages ?? [],
+    tableImpressionPicks: snapshot.tableImpressionPicks ?? [],
+    tablePickWindows: snapshot.tablePickWindows ?? [],
+    tableQrCodes: snapshot.tableQrCodes ?? [],
     contactExchanges,
     contactExchangeStats: snapshot.contactExchangeStats ?? {
       totalRequests: contactExchanges.length,

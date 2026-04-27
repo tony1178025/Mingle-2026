@@ -67,3 +67,59 @@ export async function submitCustomerMatchConsent(
     snapshot: sanitizeSnapshotForCustomer(result.snapshot)
   } satisfies SessionCommandResponse;
 }
+
+export async function submitAnonymousMessage(
+  request: NextRequest,
+  input: {
+    sessionId: string;
+    contentBlockId: string;
+    senderParticipantId?: string;
+    receiverParticipantId?: string | null;
+    receiverHint?: string | null;
+    message: string;
+    revealSender?: boolean;
+  }
+) {
+  const participantId = requireParticipantId(request, input.senderParticipantId);
+  const result = await executeServerCommand({
+    type: "customer.submitAnonymousMessage",
+    participantId,
+    sessionId: input.sessionId,
+    contentBlockId: input.contentBlockId,
+    receiverParticipantId: input.receiverParticipantId ?? null,
+    receiverHint: input.receiverHint ?? null,
+    message: input.message,
+    revealSender: input.revealSender ?? false
+  });
+  return {
+    ...result,
+    snapshot: sanitizeSnapshotForCustomer(result.snapshot)
+  } satisfies SessionCommandResponse;
+}
+
+export async function submitTablePick(
+  request: NextRequest,
+  input: {
+    sessionId: string;
+    participantId?: string;
+    rotationIndex: 0 | 1;
+    wantToKnowParticipantId: string;
+    funnyParticipantId: string;
+    contentBlockId?: string | null;
+  }
+) {
+  const participantId = requireParticipantId(request, input.participantId);
+  const result = await executeServerCommand({
+    type: "customer.submitTablePick",
+    participantId,
+    sessionId: input.sessionId,
+    rotationIndex: input.rotationIndex,
+    wantToKnowParticipantId: input.wantToKnowParticipantId,
+    funnyParticipantId: input.funnyParticipantId,
+    contentBlockId: input.contentBlockId ?? null
+  });
+  return {
+    ...result,
+    snapshot: sanitizeSnapshotForCustomer(result.snapshot)
+  } satisfies SessionCommandResponse;
+}

@@ -35,6 +35,17 @@ export const CONTENT_LIBRARY: readonly ContentTemplateRecord[] = [
     allowTargetSelection: true
   },
   {
+    id: "table-impression-pick",
+    kind: "table_impression_pick",
+    title: "테이블 픽",
+    description: "같은 테이블에서 선택해주세요",
+    ctaLabel: "제출",
+    phasePolicy: "ROUND_1",
+    scope: "TABLE",
+    durationSec: 600,
+    allowTargetSelection: true
+  },
+  {
     id: "operator-announcement",
     kind: "announcement",
     title: "운영 공지",

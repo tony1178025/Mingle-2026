@@ -6,18 +6,23 @@ import { generateQrDataUrl } from "@/lib/qr/generate";
 
 export function SessionQrCard({
   branchId,
-  tableCount
+  tableCount,
+  sessionId
 }: {
   branchId: string;
   tableCount: number;
+  sessionId: string;
 }) {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [selectedTableId, setSelectedTableId] = useState(1);
+  const [checkinCode, setCheckinCode] = useState("");
   const tableId = Math.min(Math.max(1, selectedTableId), Math.max(1, tableCount));
   const webCheckinUrl =
     typeof window === "undefined"
-      ? `/customer?branchId=${branchId}&tableId=${tableId}`
-      : `${window.location.origin}/customer?branchId=${branchId}&tableId=${tableId}`;
+      ? `/customer?branchId=${branchId}&tableId=${tableId}${checkinCode ? `&code=${checkinCode}` : ""}`
+      : `${window.location.origin}/customer?branchId=${branchId}&tableId=${tableId}${
+          checkinCode ? `&code=${checkinCode}` : ""
+        }`;
   const nativeContractValue = `mingle://table/${branchId}/${tableId}`;
 
   useEffect(() => {
@@ -32,6 +37,30 @@ export function SessionQrCard({
       alive = false;
     };
   }, [webCheckinUrl]);
+
+  useEffect(() => {
+    let mounted = true;
+    void fetch("/api/session/current", { headers: { Accept: "application/json" }, cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const payload = (await response.json()) as {
+          data?: { tableQrCodes?: Array<{ tableId: number; status: string; code: string }> };
+        };
+        return payload.data?.tableQrCodes ?? [];
+      })
+      .then((codes) => {
+        if (!mounted || !codes) return;
+        const active = codes.find((item) => item.tableId === tableId && item.status === "ACTIVE");
+        setCheckinCode(active?.code ?? "");
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setCheckinCode("");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [tableId]);
 
   return (
     <Surface className="qr-card">
@@ -57,6 +86,28 @@ export function SessionQrCard({
           ))}
         </select>
       </label>
+      <button
+        type="button"
+        className="admin-mini-button"
+        onClick={async () => {
+          const confirmed = window.confirm("선택한 테이블 QR을 재생성할까요?");
+          if (!confirmed) return;
+          const response = await fetch(
+            `/api/admin/sessions/${sessionId}/tables/${tableId}/qr/regenerate`,
+            { method: "POST", headers: { "Content-Type": "application/json" } }
+          );
+          if (!response.ok) return;
+          const payload = (await response.json()) as {
+            snapshot?: { tableQrCodes?: Array<{ tableId: number; status: string; code: string }> };
+          };
+          const active = (payload.snapshot?.tableQrCodes ?? []).find(
+            (item) => item.tableId === tableId && item.status === "ACTIVE"
+          );
+          setCheckinCode(active?.code ?? "");
+        }}
+      >
+        QR 재생성
+      </button>
       {qrDataUrl ? (
         <img src={qrDataUrl} alt="테이블 체크인 QR" className="qr-image" />
       ) : (

@@ -12,6 +12,10 @@ export function normalizeSnapshot(snapshot: SessionView): SessionSnapshot {
   const participants = classifyParticipants(
     snapshot.participants.map((participant) => ({
       ...participant,
+      age: participant.age ?? 0,
+      jobCategory: participant.jobCategory ?? "",
+      job: participant.job ?? "",
+      tableId: participant.tableId ?? 1,
       reservationId: null,
       reservationExternalId: null,
       phone: null,
@@ -23,7 +27,9 @@ export function normalizeSnapshot(snapshot: SessionView): SessionSnapshot {
       engagementScore: 0,
       isVip: false,
       isHighValue: false,
-      checkinMode: "qr"
+      checkinMode: "qr",
+      participantSessionState: "ACTIVE" as const,
+      presenceState: "CHECKED_IN" as const
     }))
   );
   return {
@@ -33,6 +39,9 @@ export function normalizeSnapshot(snapshot: SessionView): SessionSnapshot {
     liveContent: snapshot.liveContent ?? null,
     contentResponses: snapshot.contentResponses ?? [],
     anonymousMessages: snapshot.anonymousMessages ?? [],
+    tableImpressionPicks: snapshot.tableImpressionPicks ?? [],
+    tablePickWindows: snapshot.tablePickWindows ?? [],
+    tableQrCodes: snapshot.tableQrCodes ?? [],
     contactExchanges,
     contactExchangeStats: snapshot.contactExchangeStats ?? {
       totalRequests: contactExchanges.length,

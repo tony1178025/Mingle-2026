@@ -70,6 +70,19 @@ export async function POST(
       type: "rotation:applied",
       sessionId: result.snapshot.session.id
     });
+    if (preview.rotationRound === 1) {
+      publishRotationEvent({
+        type: "table-pick:opened",
+        sessionId: result.snapshot.session.id,
+        rotationIndex: 1
+      });
+    } else if (preview.rotationRound >= 2) {
+      publishRotationEvent({
+        type: "table-pick:closed",
+        sessionId: result.snapshot.session.id,
+        rotationIndex: 1
+      });
+    }
     publishRotationEvent({
       type: "participant:tableChanged",
       sessionId: result.snapshot.session.id,

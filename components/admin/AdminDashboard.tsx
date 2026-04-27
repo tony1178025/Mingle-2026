@@ -166,6 +166,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
   });
   const [savingSessionConfig, setSavingSessionConfig] = useState(false);
   const [currentManagedSession, setCurrentManagedSession] = useState<ManagedSessionRecord | null>(null);
+  const [anonymousMessageBusyId, setAnonymousMessageBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -467,6 +468,39 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     );
   }
 
+  const anonymousMessages = snapshot.anonymousMessages.filter(
+    (message) => message.sessionId === snapshot.session.id
+  );
+  const selectedAnonymousMessages = anonymousMessages.filter((message) => message.isSelected);
+  const tablePickWindows = snapshot.tablePickWindows ?? [];
+  const tablePickSummary = {
+    rotationIndex0: new Set(
+      (snapshot.tableImpressionPicks ?? [])
+        .filter((pick) => pick.rotationIndex === 0 && pick.sessionId === snapshot.session.id)
+        .map((pick) => pick.pickerParticipantId)
+    ).size,
+    rotationIndex1: new Set(
+      (snapshot.tableImpressionPicks ?? [])
+        .filter((pick) => pick.rotationIndex === 1 && pick.sessionId === snapshot.session.id)
+        .map((pick) => pick.pickerParticipantId)
+    ).size
+  };
+
+  const updateAnonymousMessageSelection = async (messageId: string, isSelected: boolean) => {
+    setAnonymousMessageBusyId(messageId);
+    try {
+      await getMingleRepository().executeCommand({
+        type: "admin.updateAnonymousMessageSelection",
+        messageId,
+        isSelected,
+        expectedVersion: snapshot.version
+      });
+      await syncFromRepository();
+    } finally {
+      setAnonymousMessageBusyId(null);
+    }
+  };
+
   const renderLiveOps = () => (
     <div className="admin-grid">
       <LiveOpsControls
@@ -699,12 +733,91 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           <SessionQrCard
             branchId={snapshot.session.branchId}
             tableCount={snapshot.session.tableCount}
+            sessionId={snapshot.session.id}
           />
           <HeartGrantPanel
             snapshot={snapshot}
             onGrantHearts={grantHearts}
             onSetBlacklistStatus={setBlacklistStatus}
           />
+        </Surface>
+        <Surface>
+          <SectionHeader eyebrow="콘텐츠" title="테이블 픽" description="회차별 제출 현황" />
+          <div className="compact-stack">
+            <div className="compact-row">
+              <strong>윈도우 상태</strong>
+              <span>
+                {tablePickWindows.length
+                  ? tablePickWindows.map((window) => `R${window.rotationIndex}:${window.status}`).join(" / ")
+                  : "없음"}
+              </span>
+            </div>
+            <div className="compact-row">
+              <strong>R0 제출</strong>
+              <span>{tablePickSummary.rotationIndex0} / {snapshot.participants.length}</span>
+            </div>
+            <div className="compact-row">
+              <strong>R1 제출</strong>
+              <span>{tablePickSummary.rotationIndex1} / {snapshot.participants.length}</span>
+            </div>
+          </div>
+        </Surface>
+        <Surface>
+          <SectionHeader eyebrow="콘텐츠" title="익명 메시지" description="메시지 수집/선별" />
+          <p className="field-help">메시지는 최대 2개까지 작성할 수 있습니다</p>
+          {anonymousMessages.length ? (
+            <div className="compact-stack">
+              {anonymousMessages.slice(0, 20).map((message) => {
+                const sender = snapshot.participants.find((p) => p.id === message.senderParticipantId);
+                const receiver = message.receiverParticipantId
+                  ? snapshot.participants.find((p) => p.id === message.receiverParticipantId)
+                  : null;
+                const busy = anonymousMessageBusyId === message.id;
+                return (
+                  <div key={message.id} className="compact-stack">
+                    <div className="compact-row"><strong>시간</strong><span>{new Date(message.createdAt).toLocaleTimeString("ko-KR")}</span></div>
+                    <div className="compact-row"><strong>받는 사람</strong><span>{receiver?.nickname ?? "-"}</span></div>
+                    <div className="compact-row"><strong>특징</strong><span>{message.receiverHint ?? "-"}</span></div>
+                    <div className="compact-row"><strong>메시지</strong><span>{message.message}</span></div>
+                    <div className="compact-row"><strong>보낸 사람</strong><span>{message.revealSender ? (sender?.nickname ?? "알 수 없음") : "익명"}</span></div>
+                    <div className="compact-row"><strong>선택 여부</strong><span>{message.isSelected ? "선택됨" : "미선택"}</span></div>
+                    <div className="button-row">
+                      <Button
+                        disabled={busy}
+                        onClick={() => void updateAnonymousMessageSelection(message.id, true)}
+                      >
+                        선택
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() => void updateAnonymousMessageSelection(message.id, false)}
+                      >
+                        해제
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState title="도착한 메시지가 없습니다." description="새 메시지는 여기에 실시간으로 누적됩니다." />
+          )}
+        </Surface>
+        <Surface>
+          <SectionHeader eyebrow="MC 큐" title="선택된 메시지" description="오프라인 진행용 읽기 리스트" />
+          {selectedAnonymousMessages.length ? (
+            <div className="compact-stack">
+              {selectedAnonymousMessages.map((message, index) => (
+                <div key={message.id} className="compact-row">
+                  <strong>{index + 1}</strong>
+                  <span>{message.message}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="선택된 메시지가 없습니다." description="메시지를 선택하면 MC 큐에 추가됩니다." />
+          )}
         </Surface>
       </div>
     </div>

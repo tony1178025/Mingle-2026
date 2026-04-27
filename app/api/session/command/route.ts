@@ -21,6 +21,7 @@ import {
   sanitizeSnapshotForAdmin,
   sanitizeSnapshotForCustomer
 } from "@/lib/repositories/server-repository";
+import { publishRotationEvent } from "@/server/rotation/rotation.socket";
 import type { CommandResult, MingleCommand, SessionCommandResponse } from "@/types/mingle";
 
 export const runtime = "nodejs";
@@ -62,6 +63,9 @@ function getRequiredAdminRoles(command: MingleCommand) {
     case "admin.clearContent":
     case "admin.publishAnnouncement":
     case "admin.setBlacklistStatus":
+    case "admin.updateAnonymousMessageSelection":
+    case "admin.openTablePickWindow":
+    case "admin.closeTablePickWindow":
       return ["BRANCH_ADMIN"] as const;
     default:
       return [] as const;
@@ -88,6 +92,8 @@ function validateCustomerCommandRequest(
     case "customer.respondContent":
     case "customer.ackRotation":
     case "customer.submitContactExchangeConsent":
+    case "customer.submitAnonymousMessage":
+    case "customer.submitTablePick":
       return validateCustomerSession(request, {
         participantId: command.participantId,
         sessionId: snapshot.session.id,
@@ -136,6 +142,41 @@ function attachCustomerSession(
         sessionVersion: result.snapshot.session.customerSessionVersion
       })
     );
+  }
+}
+
+function publishLiveEvents(command: MingleCommand, result: CommandResult) {
+  const sessionId = result.snapshot.session.id;
+  if (command.type === "admin.setSessionState") {
+    publishRotationEvent({ type: "session:phaseChanged", sessionId, phase: command.state });
+  } else if (command.type === "customer.sendHeart") {
+    publishRotationEvent({
+      type: "heart:sent",
+      sessionId,
+      senderId: command.participantId,
+      recipientId: command.recipientId
+    });
+  } else if (command.type === "customer.updateProfile") {
+    publishRotationEvent({
+      type: "participant:updated",
+      sessionId,
+      participantId: command.participantId
+    });
+  } else if (command.type === "customer.submitReport") {
+    const newest = result.snapshot.reports[0];
+    if (newest) {
+      publishRotationEvent({ type: "report:created", sessionId, reportId: newest.id });
+    }
+  } else if (
+    command.type === "admin.activateContent" ||
+    command.type === "admin.clearContent" ||
+    command.type === "admin.publishAnnouncement"
+  ) {
+    publishRotationEvent({
+      type: "content:updated",
+      sessionId,
+      contentKind: result.snapshot.liveContent?.kind
+    });
   }
 }
 
@@ -225,6 +266,7 @@ export async function POST(request: NextRequest) {
       snapshot: responseSnapshot
     };
     const response = NextResponse.json(payload);
+    publishLiveEvents(command, result);
     attachCustomerSession(response, command, result);
     return response;
   } catch (error) {

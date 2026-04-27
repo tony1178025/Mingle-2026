@@ -174,6 +174,14 @@ export function ProfileFormFields({
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
                 placeholder=" "
+                enterKeyHint="next"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    const next = document.querySelector<HTMLInputElement>('input[inputmode="tel"], input[name="contact"]');
+                    next?.focus();
+                  }
+                }}
               />
             </label>
             <label className={cn("field", "floating-field")}>
@@ -182,6 +190,8 @@ export function ProfileFormFields({
                 value={contact}
                 onChange={(event) => setContact(event.target.value)}
                 placeholder=" "
+                inputMode="tel"
+                enterKeyHint="next"
               />
             </label>
             <label className={cn("field", "floating-field")}>
@@ -191,6 +201,13 @@ export function ProfileFormFields({
                 onChange={(event) => setBirthYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
                 placeholder=" "
                 inputMode="numeric"
+                enterKeyHint="done"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && canGoNext) {
+                    event.preventDefault();
+                    setStep(2);
+                  }
+                }}
               />
             </label>
             <label className="field">
@@ -238,6 +255,7 @@ export function ProfileFormFields({
                 autoComplete="nickname"
                 placeholder=" "
                 data-testid={`${testIdPrefix}-nickname`}
+                enterKeyHint="next"
               />
             </label>
             <label className={cn("field", "floating-field")}>
@@ -249,6 +267,7 @@ export function ProfileFormFields({
                 maxLength={3}
                 placeholder=" "
                 data-testid={`${testIdPrefix}-height`}
+                enterKeyHint="done"
               />
             </label>
           </div>

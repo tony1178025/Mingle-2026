@@ -3,9 +3,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProfileFormFields } from "@/components/customer/ProfileFormFields";
+import { ParticipantCard } from "@/components/customer/participants/ParticipantCard";
+import { ParticipantDetailSheet } from "@/components/customer/participants/ParticipantDetailSheet";
+import { ParticipantFilterTabs } from "@/components/customer/participants/ParticipantFilterTabs";
+import { ParticipantPagination } from "@/components/customer/participants/ParticipantPagination";
 import { RevealProgressCard } from "@/components/customer/RevealProgressCard";
 import { RotationInstructionModal } from "@/components/customer/RotationInstructionModal";
 import { TableStageCard } from "@/components/customer/TableStageCard";
+import { MgScrollTopButton } from "@/components/customer/ui/MgScrollTopButton";
 import { UserPhoto } from "@/components/shared/Avatar";
 import { Badge, Button, EmptyState, SectionHeader, Surface } from "@/components/shared/ui";
 import {
@@ -20,6 +25,12 @@ import { buildRevealState } from "@/engine/reveal";
 import { cn, createToast, formatTableName, REPORT_REASONS } from "@/lib/mingle";
 import { triggerHaptic } from "@/lib/haptics";
 import { parseCheckinQrValue } from "@/features/checkin/model";
+import { track } from "@/lib/analytics/track";
+import type { ParticipantFilter } from "@/lib/customer-ui/filterParticipants";
+import { filterParticipants } from "@/lib/customer-ui/filterParticipants";
+import { paginate } from "@/lib/customer-ui/paginate";
+import { useDesignQA } from "@/lib/ux/design-qa";
+import { useScrollTopButton } from "@/hooks/useScrollTopButton";
 import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStore";
 import type { ContactExchangeMethod, CustomerTab, ParticipantRecord } from "@/types/mingle";
 
@@ -95,6 +106,7 @@ function LoadingView() {
 }
 
 function OnboardingView() {
+  useDesignQA();
   const snapshot = useMingleStore((state) => state.snapshot);
   const checkinDraft = useMingleStore((state) => state.checkinDraft);
   const profileDraft = useMingleStore((state) => state.profileDraft);
@@ -149,6 +161,7 @@ function OnboardingView() {
       return;
     }
     hasAutoRequestedRef.current = true;
+    track("ENTRY", { source: "qr" });
     void verifyCheckin();
   }, [
     checkinDraft.flowState,
@@ -182,8 +195,8 @@ function OnboardingView() {
               <Surface>
                 <SectionHeader
                   eyebrow="온보딩"
-                  title="기본 정보를 입력해주세요"
-                  description="긴 한 장짜리 폼 대신 단계별로 차근차근 입력하면 됩니다."
+                  title="기본 정보"
+                  description=""
                 />
                 <ProfileFormFields
                   mode="onboarding"
@@ -244,6 +257,7 @@ function OnboardingView() {
                     };
                     void commit()
                       .then((ok) => {
+                        track("ONBOARD", { success: ok });
                         if (ok) {
                           triggerHaptic("success");
                         } else {
@@ -324,6 +338,7 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
 }
 
 function CustomerView({ participant }: { participant: ParticipantRecord }) {
+  useDesignQA();
   const snapshot = useMingleStore((state) => state.snapshot)!;
   const customerTab = useMingleStore((state) => state.customerTab);
   const setCustomerTab = useMingleStore((state) => state.setCustomerTab);
@@ -356,6 +371,9 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     energyType: participant.energyType
   });
   const [contactTargetId, setContactTargetId] = useState("");
+  const [participantFilter, setParticipantFilter] = useState<ParticipantFilter>("OPPOSITE");
+  const [participantPage, setParticipantPage] = useState(1);
+  const [selectedParticipant, setSelectedParticipant] = useState<ParticipantRecord | null>(null);
   const [contactDraft, setContactDraft] = useState<ContactExchangeMethod>({
     realName: "",
     phone: "",
@@ -372,6 +390,64 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     [participant, snapshot]
   );
   const stageContent = useMemo(() => buildStageContent(snapshot, participant), [participant, snapshot]);
+  const openTablePickWindow = useMemo(
+    () =>
+      (snapshot.tablePickWindows ?? []).find(
+        (window) => window.sessionId === snapshot.session.id && window.status === "OPEN"
+      ) ?? null,
+    [snapshot.session.id, snapshot.tablePickWindows]
+  );
+  const tablePickCandidates = useMemo(
+    () =>
+      snapshot.participants.filter(
+        (candidate) =>
+          candidate.id !== participant.id &&
+          candidate.sessionId === snapshot.session.id &&
+          candidate.tableId === participant.tableId &&
+          candidate.gender !== participant.gender &&
+          ["ACTIVE", "IDLE"].includes(snapshot.participantStatusMap?.[candidate.id] ?? "ACTIVE")
+      ),
+    [participant.gender, participant.id, participant.tableId, snapshot.participantStatusMap, snapshot.participants, snapshot.session.id]
+  );
+  const myTablePicks = useMemo(() => {
+    if (!openTablePickWindow) {
+      return { wantToKnowParticipantId: null, funnyParticipantId: null };
+    }
+    const mine = (snapshot.tableImpressionPicks ?? []).filter(
+      (pick) =>
+        pick.sessionId === snapshot.session.id &&
+        pick.rotationIndex === openTablePickWindow.rotationIndex &&
+        pick.pickerParticipantId === participant.id
+    );
+    return {
+      wantToKnowParticipantId:
+        mine.find((pick) => pick.pickType === "WANT_TO_KNOW")?.targetParticipantId ?? null,
+      funnyParticipantId: mine.find((pick) => pick.pickType === "FUNNY")?.targetParticipantId ?? null
+    };
+  }, [openTablePickWindow, participant.id, snapshot.session.id, snapshot.tableImpressionPicks]);
+  const effectiveLiveContent = useMemo(() => {
+    if (stageContent.liveContent) {
+      return stageContent.liveContent;
+    }
+    if (!openTablePickWindow) {
+      return null;
+    }
+    return {
+      id: `table-pick-window-${openTablePickWindow.rotationIndex}`,
+      templateId: "table-impression-pick",
+      kind: "table_impression_pick" as const,
+      title: "테이블 픽",
+      description: "같은 테이블에서 선택해주세요",
+      ctaLabel: "제출",
+      scope: "TABLE" as const,
+      targetTableId: participant.tableId,
+      createdAt: openTablePickWindow.openedAt,
+      expiresAt: null,
+      status: "LIVE" as const,
+      options: [],
+      message: null
+    };
+  }, [openTablePickWindow, participant.tableId, stageContent.liveContent]);
   const heartInbox = useMemo(
     () => buildRevealState(snapshot.session, participant, snapshot.hearts, snapshot.participants),
     [participant, snapshot]
@@ -397,6 +473,25 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   const rotationInstruction = getRotationInstructionForParticipant(snapshot, participant.id);
   const showRotationModal = isRotationInstructionActive(rotationInstruction);
   const phaseGuideMessage = getPhaseSingleMessage(snapshot.session.phase, stagedRevealOpen && heartInbox.canReveal);
+  const filteredParticipants = useMemo(
+    () =>
+      filterParticipants(
+        snapshot.participants,
+        participant,
+        participantFilter,
+        snapshot.participantStatusMap ?? {}
+      ),
+    [participant, participantFilter, snapshot.participantStatusMap, snapshot.participants]
+  );
+  const participantPageResult = useMemo(
+    () => paginate(filteredParticipants, participantPage, 10),
+    [filteredParticipants, participantPage]
+  );
+  const { visible: showScrollTop, scrollToTop } = useScrollTopButton();
+
+  useEffect(() => {
+    setParticipantPage(1);
+  }, [participantFilter]);
 
   const saveProfile = async () => {
     await updateParticipantProfile({
@@ -425,6 +520,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
     }
     const ok = await sendHeart(recipientId);
     if (ok) {
+      track("HEART", { recipientId });
       useMingleStore.setState({ toast: createToast("success", "하트를 보냈어요") });
       triggerHaptic("success");
     }
@@ -500,25 +596,27 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   title="참가자 목록"
                   description={phaseGuideMessage}
                 />
+                <ParticipantFilterTabs value={participantFilter} onChange={setParticipantFilter} />
                 <div className="participant-grid">
-                  {currentTableMembers.map((member) => (
-                    <article key={member.id} className="participant-card">
-                      <div className="participant-head">
-                        <UserPhoto photoUrl={member.photoUrl} gender={member.gender} size={52} />
-                        <div className="participant-copy">
-                          <strong>{member.nickname}</strong>
-                          <p>
-                            {member.job} · {member.energyType}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="badge-row">
-                        <Badge tone="neutral">{member.animalType}</Badge>
-                        {member.id === participant.id ? <Badge tone="accent">나</Badge> : null}
-                      </div>
-                    </article>
+                  {participantPageResult.items.map((member) => (
+                    <ParticipantCard
+                      key={member.id}
+                      phase={snapshot.session.phase}
+                      participant={member}
+                      canSendHeart={!sentHeartRecipientIds.has(member.id) && participant.heartsRemaining > 0}
+                      onOpen={() => setSelectedParticipant(member)}
+                      onSendHeart={() => void handleSendHeart(member.id)}
+                    />
                   ))}
                 </div>
+                <ParticipantPagination
+                  page={participantPageResult.page}
+                  totalPages={participantPageResult.totalPages}
+                  onPrev={() => setParticipantPage((prev) => Math.max(1, prev - 1))}
+                  onNext={() =>
+                    setParticipantPage((prev) => Math.min(participantPageResult.totalPages, prev + 1))
+                  }
+                />
               </Surface>
             </div>
 
@@ -543,9 +641,19 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               <TableStageCard
                 participant={participant}
                 liveContent={null}
-                inboxMessages={stageContent.inboxMessages}
                 responseCount={stageContent.responseCount}
                 alreadyResponded={stageContent.alreadyResponded}
+                anonymousMessageCount={
+                  snapshot.anonymousMessages.filter(
+                    (message) =>
+                      message.senderParticipantId === participant.id &&
+                      message.sessionId === participant.sessionId
+                  ).length
+                }
+                tablePickWindowOpen={Boolean(openTablePickWindow)}
+                tablePickRotationIndex={openTablePickWindow?.rotationIndex ?? null}
+                tablePickCandidates={tablePickCandidates}
+                tablePickExisting={myTablePicks}
                 encounterParticipants={encounterParticipants}
                 onRespond={respondToContent}
               />
@@ -578,10 +686,20 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
             <div className="customer-main-column">
               <TableStageCard
                 participant={participant}
-                liveContent={stageContent.liveContent}
-                inboxMessages={stageContent.inboxMessages}
+                liveContent={effectiveLiveContent}
                 responseCount={stageContent.responseCount}
                 alreadyResponded={stageContent.alreadyResponded}
+                anonymousMessageCount={
+                  snapshot.anonymousMessages.filter(
+                    (message) =>
+                      message.senderParticipantId === participant.id &&
+                      message.sessionId === participant.sessionId
+                  ).length
+                }
+                tablePickWindowOpen={Boolean(openTablePickWindow)}
+                tablePickRotationIndex={openTablePickWindow?.rotationIndex ?? null}
+                tablePickCandidates={tablePickCandidates}
+                tablePickExisting={myTablePicks}
                 encounterParticipants={encounterParticipants}
                 onRespond={respondToContent}
               />
@@ -921,6 +1039,14 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           </div>
         </Surface>
       </div>
+      <ParticipantDetailSheet
+        open={Boolean(selectedParticipant)}
+        phase={snapshot.session.phase}
+        participant={selectedParticipant}
+        onClose={() => setSelectedParticipant(null)}
+        onSendHeart={(participantId) => void handleSendHeart(participantId)}
+      />
+      <MgScrollTopButton show={showScrollTop && (customerTab === "all" || customerTab === "table" || customerTab === "content")} onClick={scrollToTop} />
     </main>
   );
 }

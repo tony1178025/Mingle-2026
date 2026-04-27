@@ -1,4 +1,6 @@
 export type SessionPhase = "CHECKIN" | "ROUND_1" | "BREAK" | "ROUND_2" | "CLOSED" | "MATCH_END";
+export type ParticipantSessionState = "ACTIVE" | "LOGGED_OUT" | "LEFT" | "BLOCKED";
+export type PresenceState = "CHECKED_IN" | "TEMP_AWAY" | "NO_SHOW" | "RE_ENTERED";
 export type SessionOperationalState = "ROUND_1" | "BREAK" | "ROUND_2" | "CLOSED";
 export type CheckinMode = "qr" | "code" | "staff";
 export type CheckinFlowState =
@@ -49,7 +51,13 @@ export type IncidentType =
   | "BLACKLIST_BLOCKED"
   | "HIGH_FREQUENCY_ACTION"
   | "SUSPICIOUS_PATTERN";
-export type ContentKind = "prompt" | "vote" | "announcement" | "anonymous" | "nudge";
+export type ContentKind =
+  | "prompt"
+  | "vote"
+  | "announcement"
+  | "anonymous"
+  | "nudge"
+  | "table_impression_pick";
 export type ContentScope = "ALL" | "TABLE";
 export type ContentStatus = "LIVE" | "COMPLETED";
 export type ContentPhasePolicy = "ROUND_1" | "ROUND_2" | "ALL";
@@ -160,6 +168,8 @@ export interface ParticipantRecord {
   isHighValue: boolean;
   joinedAt: string;
   lastActiveAt: string | null;
+  participantSessionState?: ParticipantSessionState;
+  presenceState?: PresenceState;
 }
 
 export interface HeartRecord {
@@ -265,11 +275,54 @@ export interface ContentResponseRecord {
 
 export interface AnonymousMessageRecord {
   id: string;
-  contentId: string;
-  senderId: string;
-  recipientId: string;
+  sessionId: string;
+  contentBlockId: string;
+  senderParticipantId: string;
+  receiverParticipantId: string | null;
+  receiverHint: string | null;
   message: string;
+  revealSender: boolean;
+  isSelected: boolean;
+  selectedAt: string | null;
+  moderationStatus: "PENDING" | "APPROVED" | "HIDDEN";
   createdAt: string;
+  updatedAt: string;
+}
+
+export type TablePickType = "WANT_TO_KNOW" | "FUNNY";
+export type TablePickWindowStatus = "OPEN" | "CLOSED";
+
+export interface TableImpressionPickRecord {
+  id: string;
+  sessionId: string;
+  contentBlockId: string | null;
+  pickerParticipantId: string;
+  targetParticipantId: string;
+  tableId: number;
+  rotationIndex: 0 | 1;
+  pickType: TablePickType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TablePickWindowRecord {
+  id: string;
+  sessionId: string;
+  rotationIndex: 0 | 1;
+  status: TablePickWindowStatus;
+  openedAt: string;
+  closedAt: string | null;
+}
+
+export interface TableQrCodeRecord {
+  id: string;
+  branchId: string;
+  sessionId: string;
+  tableId: number;
+  code: string;
+  status: "ACTIVE" | "REVOKED";
+  createdAt: string;
+  revokedAt: string | null;
 }
 
 export interface ContactExchangeMethod {
@@ -336,6 +389,9 @@ export interface SessionSnapshot {
   liveContent: LiveContentRecord | null;
   contentResponses: ContentResponseRecord[];
   anonymousMessages: AnonymousMessageRecord[];
+  tableImpressionPicks?: TableImpressionPickRecord[];
+  tablePickWindows?: TablePickWindowRecord[];
+  tableQrCodes?: TableQrCodeRecord[];
   contactExchanges?: ContactExchangeRecord[];
   contactExchangeStats?: ContactExchangeStats;
   outboxEvents?: OutboxEventRecord[];
@@ -352,14 +408,15 @@ export interface CustomerParticipantView {
   branchId: string;
   nickname: string;
   gender: ParticipantGender;
-  age: number;
-  jobCategory: string;
-  job: string;
+  age?: number;
+  jobCategory?: string;
+  job?: string;
   photoUrl: string | null;
   heightCm: number;
   animalType: string;
   energyType: EnergyType;
-  tableId: number;
+  tableId?: number;
+  tableLabel?: string;
   round2Attendance: Round2Attendance;
   receivedHearts: number;
   sentHearts: number;
@@ -381,6 +438,9 @@ export interface CustomerSessionView {
   liveContent: LiveContentRecord | null;
   contentResponses: ContentResponseRecord[];
   anonymousMessages: AnonymousMessageRecord[];
+  tableImpressionPicks?: TableImpressionPickRecord[];
+  tablePickWindows?: TablePickWindowRecord[];
+  tableQrCodes?: TableQrCodeRecord[];
   contactExchanges?: ContactExchangeRecord[];
   contactExchangeStats?: ContactExchangeStats;
   announcements: AnnouncementRecord[];
@@ -1063,6 +1123,25 @@ export type MingleCommand =
       recipientId?: string | null;
     }
   | {
+      type: "customer.submitAnonymousMessage";
+      participantId: string;
+      sessionId: string;
+      contentBlockId: string;
+      receiverParticipantId?: string | null;
+      receiverHint?: string | null;
+      message: string;
+      revealSender: boolean;
+    }
+  | {
+      type: "customer.submitTablePick";
+      participantId: string;
+      sessionId: string;
+      rotationIndex: 0 | 1;
+      wantToKnowParticipantId: string;
+      funnyParticipantId: string;
+      contentBlockId?: string | null;
+    }
+  | {
       type: "customer.ackRotation";
       participantId: string;
     }
@@ -1115,6 +1194,27 @@ export type MingleCommand =
   | {
       type: "admin.resolveReport";
       reportId: string;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.updateAnonymousMessageSelection";
+      messageId: string;
+      isSelected: boolean;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.openTablePickWindow";
+      rotationIndex: 0 | 1;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.closeTablePickWindow";
+      rotationIndex: 0 | 1;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.regenerateTableQr";
+      tableId: number;
       expectedVersion?: number;
     }
   | {

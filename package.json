@@ -6,7 +6,7 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next typegen && tsc --noEmit --incremental false",
     "typecheck": "next typegen && tsc --noEmit --incremental false",
     "diagnose:production": "node ./scripts/diagnose-production.mjs",
     "diagnose:prod": "node ./scripts/diagnose-production.mjs",

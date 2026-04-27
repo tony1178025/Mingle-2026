@@ -6,6 +6,8 @@ import {
   parseCheckinQrValue
 } from "@/features/checkin/model";
 import { getContentTemplate, isTemplateAllowedInPhase } from "@/features/content/library";
+import { isEligibleForInteraction } from "@/lib/policies/participant-state-policy";
+import { serializeParticipantForCustomer } from "@/lib/policies/participant-visibility-policy";
 import {
   ADMIN_DEFAULT_CONFIG,
   computeParticipantStatusMap,
@@ -76,6 +78,9 @@ const ADMIN_COMMAND_ALLOWLIST = new Set<string>([
   "admin.activateContent",
   "admin.clearContent",
   "admin.publishAnnouncement",
+  "admin.openTablePickWindow",
+  "admin.closeTablePickWindow",
+  "admin.regenerateTableQr",
   "admin.resolveReport",
   "admin.setBlacklistStatus",
   "admin.moveParticipant",
@@ -855,6 +860,9 @@ export function applyHeartSend(
 ) {
   const sender = getParticipant(snapshot, senderId);
   const recipient = getParticipant(snapshot, recipientId);
+  if (!isEligibleForInteraction(sender) || !isEligibleForInteraction(recipient)) {
+    throw new Error("현재 상태에서는 하트를 보낼 수 없습니다.");
+  }
 
   if (sender.id === recipient.id) {
     throw new Error("본인에게는 하트를 보낼 수 없습니다.");
@@ -1044,35 +1052,6 @@ function buildContactExchangeStats(contactExchanges: ContactExchangeRecord[]) {
   };
 }
 
-function toCustomerParticipantView(participant: ParticipantRecord): CustomerParticipantView {
-  return {
-    id: participant.id,
-    sessionId: participant.sessionId,
-    branchId: participant.branchId,
-    nickname: participant.nickname,
-    gender: participant.gender,
-    age: participant.age,
-    jobCategory: participant.jobCategory,
-    job: participant.job,
-    photoUrl: participant.photoUrl,
-    heightCm: participant.heightCm,
-    animalType: participant.animalType,
-    energyType: participant.energyType,
-    tableId: participant.tableId,
-    round2Attendance: participant.round2Attendance,
-    receivedHearts: participant.receivedHearts,
-    sentHearts: participant.sentHearts,
-    profileViews: participant.profileViews,
-    heartsRemaining: participant.heartsRemaining,
-    metParticipantIds: participant.metParticipantIds,
-    encounterHistory: participant.encounterHistory,
-    likedParticipantIds: participant.likedParticipantIds,
-    likedByParticipantIds: participant.likedByParticipantIds,
-    joinedAt: participant.joinedAt,
-    lastActiveAt: participant.lastActiveAt
-  };
-}
-
 export function sanitizeSnapshotForClient(snapshot: SessionSnapshot): CustomerSessionView {
   return sanitizeSnapshotForCustomer(snapshot);
 }
@@ -1091,12 +1070,17 @@ export function sanitizeSnapshotForCustomer(snapshot: SessionSnapshot): Customer
 
   return {
     session: snapshot.session,
-    participants: snapshot.participants.map(toCustomerParticipantView),
+    participants: snapshot.participants.map((participant) =>
+      serializeParticipantForCustomer(participant, snapshot.session.phase)
+    ),
     hearts: snapshot.hearts,
     activeContentIds: snapshot.activeContentIds,
     liveContent: snapshot.liveContent,
     contentResponses: snapshot.contentResponses,
     anonymousMessages: snapshot.anonymousMessages,
+    tableImpressionPicks: snapshot.tableImpressionPicks ?? [],
+    tablePickWindows: snapshot.tablePickWindows ?? [],
+    tableQrCodes: snapshot.tableQrCodes ?? [],
     participantStatusMap: snapshot.participantStatusMap ?? {},
     contactExchanges: normalizedExchanges,
     contactExchangeStats: buildContactExchangeStats(normalizedExchanges),
@@ -1521,6 +1505,49 @@ function ensureContentVisibility(snapshot: SessionSnapshot, participant: Partici
   return liveContent;
 }
 
+function getTablePickWindow(snapshot: SessionSnapshot, rotationIndex: 0 | 1) {
+  return (
+    (snapshot.tablePickWindows ?? []).find(
+      (window) => window.sessionId === snapshot.session.id && window.rotationIndex === rotationIndex
+    ) ?? null
+  );
+}
+
+function upsertTablePickWindow(
+  snapshot: SessionSnapshot,
+  rotationIndex: 0 | 1,
+  status: "OPEN" | "CLOSED",
+  now: string
+) {
+  const windows = [...(snapshot.tablePickWindows ?? [])];
+  const index = windows.findIndex(
+    (window) => window.sessionId === snapshot.session.id && window.rotationIndex === rotationIndex
+  );
+  if (index < 0) {
+    windows.push({
+      id: createId("table_pick_window"),
+      sessionId: snapshot.session.id,
+      rotationIndex,
+      status,
+      openedAt: now,
+      closedAt: status === "CLOSED" ? now : null
+    });
+    return windows;
+  }
+  const current = windows[index]!;
+  windows[index] = {
+    ...current,
+    status,
+    openedAt: status === "OPEN" ? now : current.openedAt,
+    closedAt: status === "CLOSED" ? now : null
+  };
+  return windows;
+}
+
+function createCheckinCode() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
 function buildRotationInstruction(
   beforeSnapshot: SessionSnapshot,
   afterSnapshot: SessionSnapshot,
@@ -1653,6 +1680,28 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         };
       }
 
+      const activeTableQr = (snapshot.tableQrCodes ?? []).find(
+        (item) =>
+          item.branchId === parsedQr.branchId &&
+          item.sessionId === snapshot.session.id &&
+          item.tableId === parsedQr.tableId &&
+          item.status === "ACTIVE"
+      );
+      if (activeTableQr) {
+        if (!parsedQr.checkinCode || parsedQr.checkinCode !== activeTableQr.code) {
+          return {
+            snapshot,
+            participantId: null,
+            checkinResolution: createBlockedCheckinResolution(
+              snapshot.session.id,
+              snapshot.session.branchId,
+              "",
+              "만료되었거나 교체된 QR입니다. 새 QR로 다시 시도해 주세요."
+            )
+          };
+        }
+      }
+
       return getReservationSessionContext({
         branchId: parsedQr.branchId,
         tableId: parsedQr.tableId,
@@ -1737,6 +1786,8 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         checkinMode: command.checkinMode,
         tableId,
         round2Attendance: "UNDECIDED",
+        participantSessionState: "ACTIVE",
+        presenceState: "CHECKED_IN",
         receivedHearts: 0,
         sentHearts: 0,
         profileViews: 0,
@@ -2016,24 +2067,7 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
       const anonymousMessages: AnonymousMessageRecord[] = [...snapshot.anonymousMessages];
 
       if (liveContent.kind === "anonymous") {
-        if (!command.recipientId) {
-          throw new Error("?듬챸 硫붿떆吏 ??곸씠 ?꾩슂?⑸땲??");
-        }
-
-        requireSessionParticipant(snapshot, command.recipientId);
-
-        if (!participant.metParticipantIds.includes(command.recipientId)) {
-          throw new Error("理쒓렐 留뚮궃 李멸??먯뿉寃뚮쭔 ?듬챸 硫붿떆吏瑜?蹂대궪 ???덉뒿?덈떎.");
-        }
-
-        anonymousMessages.unshift({
-          id: createId("anonymous"),
-          contentId: liveContent.id,
-          senderId: participant.id,
-          recipientId: command.recipientId,
-          message: command.value.trim(),
-          createdAt
-        });
+        throw new Error("익명 메시지는 전용 API를 사용하세요.");
       }
 
       const audit = createAuditLog(
@@ -2056,6 +2090,236 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         session: { ...snapshot.session, updatedAt: createdAt }
       });
 
+      return { snapshot: nextSnapshot };
+    }
+
+    case "customer.submitAnonymousMessage": {
+      const participant = await requireCustomerParticipant(
+        snapshot,
+        command.participantId,
+        "submit-anonymous-message"
+      );
+      if (participant.sessionId !== command.sessionId) {
+        throw new Error("세션 정보가 일치하지 않습니다.");
+      }
+      const liveContent = ensureContentVisibility(snapshot, participant);
+      if (liveContent.kind !== "anonymous" || liveContent.id !== command.contentBlockId) {
+        throw new Error("현재 메시지 작성이 가능한 콘텐츠가 아닙니다.");
+      }
+      const trimmedMessage = command.message.trim();
+      if (!trimmedMessage) {
+        throw new Error("메시지를 입력해 주세요.");
+      }
+      if (trimmedMessage.length > 120) {
+        throw new Error("메시지는 120자 이하로 입력해 주세요.");
+      }
+      const trimmedHint = command.receiverHint?.trim() ?? "";
+      if (trimmedHint.length > 40) {
+        throw new Error("특징은 40자 이하로 입력해 주세요.");
+      }
+      const bannedWords = ["씨발", "병신", "좆", "fuck", "shit"];
+      const normalized = trimmedMessage.toLowerCase();
+      if (bannedWords.some((word) => normalized.includes(word))) {
+        throw new Error("표현을 순화해 다시 입력해 주세요.");
+      }
+      const senderMessageCount = snapshot.anonymousMessages.filter(
+        (message) =>
+          message.sessionId === command.sessionId && message.senderParticipantId === participant.id
+      ).length;
+      if (senderMessageCount >= 2) {
+        throw new Error("메시지는 최대 2개까지 작성할 수 있습니다.");
+      }
+      if (command.receiverParticipantId) {
+        if (command.receiverParticipantId === participant.id) {
+          throw new Error("본인에게는 보낼 수 없습니다.");
+        }
+        const receiver = requireSessionParticipant(snapshot, command.receiverParticipantId);
+        if (receiver.sessionId !== command.sessionId || receiver.gender === participant.gender) {
+          throw new Error("받는 사람 조건이 유효하지 않습니다.");
+        }
+        const receiverStatus = snapshot.participantStatusMap?.[receiver.id] ?? "ACTIVE";
+        if (receiverStatus !== "ACTIVE") {
+          throw new Error("현재 선택할 수 없는 참가자입니다.");
+        }
+      }
+      const now = new Date().toISOString();
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        anonymousMessages: [
+          {
+            id: createId("anonymous"),
+            sessionId: command.sessionId,
+            contentBlockId: command.contentBlockId,
+            senderParticipantId: participant.id,
+            receiverParticipantId: command.receiverParticipantId ?? null,
+            receiverHint: trimmedHint || null,
+            message: trimmedMessage,
+            revealSender: command.revealSender,
+            isSelected: false,
+            selectedAt: null,
+            moderationStatus: "PENDING",
+            createdAt: now,
+            updatedAt: now
+          },
+          ...snapshot.anonymousMessages
+        ],
+        participants: updateParticipant(snapshot, participant.id, (current) => touchParticipant(current, now)),
+        session: { ...snapshot.session, updatedAt: now }
+      });
+      return { snapshot: nextSnapshot };
+    }
+
+    case "customer.submitTablePick": {
+      const picker = await requireCustomerParticipant(snapshot, command.participantId, "submit-table-pick");
+      if (picker.sessionId !== command.sessionId) {
+        throw new Error("세션 정보가 일치하지 않습니다.");
+      }
+      if (command.rotationIndex !== 0 && command.rotationIndex !== 1) {
+        throw new Error("유효하지 않은 회차입니다.");
+      }
+      const window = getTablePickWindow(snapshot, command.rotationIndex);
+      if (!window || window.status !== "OPEN") {
+        throw new Error("마감되었습니다.");
+      }
+      if (command.wantToKnowParticipantId === command.funnyParticipantId) {
+        throw new Error("같은 사람을 중복 선택할 수 없습니다.");
+      }
+      const targetIds = [command.wantToKnowParticipantId, command.funnyParticipantId];
+      const statusMap = snapshot.participantStatusMap ?? {};
+      for (const targetId of targetIds) {
+        if (targetId === picker.id) {
+          throw new Error("본인을 선택할 수 없습니다.");
+        }
+        const target = requireSessionParticipant(snapshot, targetId);
+        if (target.sessionId !== command.sessionId || target.tableId !== picker.tableId) {
+          throw new Error("같은 테이블 참가자만 선택할 수 있습니다.");
+        }
+        if (target.gender === picker.gender) {
+          throw new Error("이성 참가자만 선택할 수 있습니다.");
+        }
+        const status = statusMap[target.id] ?? "ACTIVE";
+        if (!["ACTIVE", "IDLE"].includes(status) || !isEligibleForInteraction(target)) {
+          throw new Error("선택 가능한 참가자가 없습니다.");
+        }
+      }
+      const now = new Date().toISOString();
+      const remained = (snapshot.tableImpressionPicks ?? []).filter(
+        (pick) =>
+          !(
+            pick.sessionId === command.sessionId &&
+            pick.pickerParticipantId === picker.id &&
+            pick.rotationIndex === command.rotationIndex
+          )
+      );
+      const nextPicks = [
+        {
+          id: createId("table_pick"),
+          sessionId: command.sessionId,
+          contentBlockId: command.contentBlockId ?? snapshot.liveContent?.id ?? null,
+          pickerParticipantId: picker.id,
+          targetParticipantId: command.wantToKnowParticipantId,
+          tableId: picker.tableId,
+          rotationIndex: command.rotationIndex,
+          pickType: "WANT_TO_KNOW" as const,
+          createdAt: now,
+          updatedAt: now
+        },
+        {
+          id: createId("table_pick"),
+          sessionId: command.sessionId,
+          contentBlockId: command.contentBlockId ?? snapshot.liveContent?.id ?? null,
+          pickerParticipantId: picker.id,
+          targetParticipantId: command.funnyParticipantId,
+          tableId: picker.tableId,
+          rotationIndex: command.rotationIndex,
+          pickType: "FUNNY" as const,
+          createdAt: now,
+          updatedAt: now
+        },
+        ...remained
+      ];
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        tableImpressionPicks: nextPicks,
+        session: { ...snapshot.session, updatedAt: now }
+      });
+      return { snapshot: nextSnapshot };
+    }
+
+    case "admin.updateAnonymousMessageSelection": {
+      if (typeof command.expectedVersion === "number" && command.expectedVersion !== snapshot.version) {
+        throw new Error("세션이 갱신되었습니다. 다시 시도해 주세요.");
+      }
+      const index = snapshot.anonymousMessages.findIndex((message) => message.id === command.messageId);
+      if (index < 0) {
+        throw new Error("메시지를 찾을 수 없습니다.");
+      }
+      const now = new Date().toISOString();
+      const updated = [...snapshot.anonymousMessages];
+      const current = updated[index];
+      updated[index] = {
+        ...current,
+        isSelected: command.isSelected,
+        selectedAt: command.isSelected ? now : null,
+        updatedAt: now
+      };
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        anonymousMessages: updated,
+        session: { ...snapshot.session, updatedAt: now }
+      });
+      return { snapshot: nextSnapshot };
+    }
+
+    case "admin.openTablePickWindow": {
+      const now = new Date().toISOString();
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        tablePickWindows: upsertTablePickWindow(snapshot, command.rotationIndex, "OPEN", now),
+        session: { ...snapshot.session, updatedAt: now }
+      });
+      return { snapshot: nextSnapshot };
+    }
+
+    case "admin.closeTablePickWindow": {
+      const now = new Date().toISOString();
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        tablePickWindows: upsertTablePickWindow(snapshot, command.rotationIndex, "CLOSED", now),
+        session: { ...snapshot.session, updatedAt: now }
+      });
+      return { snapshot: nextSnapshot };
+    }
+
+    case "admin.regenerateTableQr": {
+      if (command.tableId < 1 || command.tableId > snapshot.session.tableCount) {
+        throw new Error("유효하지 않은 테이블입니다.");
+      }
+      const now = new Date().toISOString();
+      const revoked = (snapshot.tableQrCodes ?? []).map((item) =>
+        item.tableId === command.tableId &&
+        item.sessionId === snapshot.session.id &&
+        item.status === "ACTIVE"
+          ? { ...item, status: "REVOKED" as const, revokedAt: now }
+          : item
+      );
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        tableQrCodes: [
+          {
+            id: createId("table_qr"),
+            branchId: snapshot.session.branchId,
+            sessionId: snapshot.session.id,
+            tableId: command.tableId,
+            code: createCheckinCode(),
+            status: "ACTIVE",
+            createdAt: now,
+            revokedAt: null
+          },
+          ...revoked
+        ],
+        session: { ...snapshot.session, updatedAt: now }
+      });
       return { snapshot: nextSnapshot };
     }
 
@@ -2256,8 +2520,13 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         snapshot.session.id
       );
 
+      const nextTablePickWindows =
+        toState === "ROUND_1"
+          ? upsertTablePickWindow(snapshot, 0, "OPEN", transitionedAt)
+          : (snapshot.tablePickWindows ?? []);
       const nextSnapshot = await persistSnapshot({
         ...snapshot,
+        tablePickWindows: nextTablePickWindows,
         session: { ...snapshot.session, phase: toState, updatedAt: transitionedAt },
         auditLogs: [audit, ...snapshot.auditLogs]
       });
@@ -2487,6 +2756,33 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
       }
 
       const rotated = applyRotationPreview(snapshot, command.preview);
+      const nextTablePickWindows = [...(snapshot.tablePickWindows ?? [])];
+      const appliedRound = command.preview.rotationRound;
+      const now = new Date().toISOString();
+      if (appliedRound === 1) {
+        const closed = upsertTablePickWindow(
+          { ...snapshot, tablePickWindows: nextTablePickWindows },
+          0,
+          "CLOSED",
+          now
+        );
+        const opened = upsertTablePickWindow(
+          { ...snapshot, tablePickWindows: closed },
+          1,
+          "OPEN",
+          now
+        );
+        nextTablePickWindows.splice(0, nextTablePickWindows.length, ...opened);
+      } else if (appliedRound >= 2) {
+        const closed = upsertTablePickWindow(
+          { ...snapshot, tablePickWindows: nextTablePickWindows },
+          1,
+          "CLOSED",
+          now
+        );
+        nextTablePickWindows.splice(0, nextTablePickWindows.length, ...closed);
+      }
+
       const nextSnapshot = await persistSnapshot({
         ...rotated,
         liveContent: null,
@@ -2494,6 +2790,8 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         activeContentIds: snapshot.activeContentIds,
         contentResponses: snapshot.contentResponses,
         anonymousMessages: snapshot.anonymousMessages,
+        tableImpressionPicks: snapshot.tableImpressionPicks ?? [],
+        tablePickWindows: nextTablePickWindows,
         announcements: snapshot.announcements
       });
       return { snapshot: nextSnapshot };
@@ -2757,6 +3055,8 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
         photoUrl: null,
         tableId: command.tableId,
         round2Attendance: "UNDECIDED",
+        participantSessionState: "ACTIVE",
+        presenceState: "CHECKED_IN",
         receivedHearts: 0,
         sentHearts: 0,
         profileViews: 0,
