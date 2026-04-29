@@ -1279,6 +1279,12 @@ export type MingleCommand =
       expectedVersion?: number;
     }
   | {
+      type: "admin.revokeTableQr";
+      sessionId: string;
+      tableId: number;
+      expectedVersion?: number;
+    }
+  | {
       type: "admin.setBlacklistStatus";
       participantId: string;
       blocked: boolean;

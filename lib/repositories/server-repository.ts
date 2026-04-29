@@ -81,6 +81,7 @@ const ADMIN_COMMAND_ALLOWLIST = new Set<string>([
   "admin.openTablePickWindow",
   "admin.closeTablePickWindow",
   "admin.regenerateTableQr",
+  "admin.revokeTableQr",
   "admin.resolveReport",
   "admin.setBlacklistStatus",
   "admin.moveParticipant",
@@ -2348,6 +2349,28 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
           },
           ...revoked
         ],
+        session: { ...snapshot.session, updatedAt: now }
+      });
+      return { snapshot: nextSnapshot };
+    }
+
+    case "admin.revokeTableQr": {
+      if (command.sessionId !== snapshot.session.id) {
+        throw new Error("현재 운영 중인 세션과 요청 세션이 일치하지 않습니다.");
+      }
+      if (command.tableId < 1 || command.tableId > snapshot.session.tableCount) {
+        throw new Error("유효하지 않은 테이블입니다.");
+      }
+      const now = new Date().toISOString();
+      const nextSnapshot = await persistSnapshot({
+        ...snapshot,
+        tableQrCodes: (snapshot.tableQrCodes ?? []).map((item) =>
+          item.tableId === command.tableId &&
+          item.sessionId === snapshot.session.id &&
+          item.status === "ACTIVE"
+            ? { ...item, status: "REVOKED" as const, revokedAt: now }
+            : item
+        ),
         session: { ...snapshot.session, updatedAt: now }
       });
       return { snapshot: nextSnapshot };
