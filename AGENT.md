@@ -114,6 +114,7 @@ Stop immediately if:
   - `PROJECT_STATE.md`
   - `TASKS.md`
 - Do not defer markdown state updates to a later turn.
+- 문서 업데이트는 의미 있는 변경에 한해 수행한다. (UI 텍스트 변경, 단순 리팩토링은 제외)
 - Run verification (`lint`, `typecheck`, `test`, `build`) when feasible.
 - If blocked, log:
   - exact blocker

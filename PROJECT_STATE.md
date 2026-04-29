@@ -2,7 +2,7 @@
 
 ## Updated
 
-- 2026-04-29 (16:14 UTC)
+- 2026-04-29 (16:20 UTC)
 
 ## Current Branch
 
@@ -58,6 +58,12 @@
   - tableLabel visibility behavior assertions
 - Hardened serializer contract for ROUND_2 by removing `tableLabel` exposure.
 - Adjusted client normalize path to avoid restoring removed ROUND_1 fields.
+- Added QR lifecycle contract unit tests for:
+  - revoke 정상 작동
+  - regenerate 후 이전 QR 차단
+  - 세션 종료 시 체크인 차단 + 중복 참가자 생성 방지
+- Added E2E core-flow scenario spec skeleton to cover:
+  - QR 입장, 프로필, 참가자 탐색, 하트, 라운드 전환, 콘텐츠 참여, 신고, 관리자 조작
 - Preserved existing architecture and business rules.
 
 ## Verification Baseline
@@ -71,4 +77,5 @@
 ## Remaining Blockers
 
 - No hard technical blocker at this moment.
+- E2E core-flow scenario needs environment-stable selectors and runtime fixtures for full deterministic execution.
 - Next work should prioritize `Admin Live Ops 스모크 체크리스트 자동화` in `TASKS.md`.
