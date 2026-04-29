@@ -1,14 +1,36 @@
 import { describe, expect, it } from "vitest";
 import { serializeParticipantForCustomer } from "@/lib/policies/participant-visibility-policy";
 import { createSeedSnapshot } from "@/lib/mingle";
+import { normalizeSnapshot } from "@/stores/helpers";
 
 describe("participant visibility policy", () => {
-  it("hides age and job in ROUND_1", () => {
+  it("exposes only the minimal field set in ROUND_1", () => {
     const snapshot = createSeedSnapshot();
     const serialized = serializeParticipantForCustomer(snapshot.participants[0]!, "ROUND_1");
-    expect(serialized.age).toBeUndefined();
-    expect(serialized.job).toBeUndefined();
+    expect(Object.keys(serialized).sort()).toEqual(
+      [
+        "appearanceSummary",
+        "heartStatus",
+        "id",
+        "nickname",
+        "personalitySummary",
+        "preferenceSummary",
+        "profileImage",
+        "tableLabel"
+      ].sort()
+    );
     expect(serialized.tableLabel).toBeTruthy();
+    expect(serialized.heartStatus).toEqual({ heartsRemaining: expect.any(Number) });
+    expect(serialized.heightCm).toBeUndefined();
+    expect(serialized.animalType).toBeUndefined();
+    expect(serialized.energyType).toBeUndefined();
+    expect(serialized.receivedHearts).toBeUndefined();
+    expect(serialized.sentHearts).toBeUndefined();
+    expect(serialized.profileViews).toBeUndefined();
+    expect(serialized.encounterHistory).toBeUndefined();
+    expect(serialized.metParticipantIds).toBeUndefined();
+    expect(serialized.likedParticipantIds).toBeUndefined();
+    expect(serialized.likedByParticipantIds).toBeUndefined();
   });
 
   it("exposes age and job in ROUND_2", () => {
@@ -16,6 +38,28 @@ describe("participant visibility policy", () => {
     const serialized = serializeParticipantForCustomer(snapshot.participants[0]!, "ROUND_2");
     expect(typeof serialized.age).toBe("number");
     expect(typeof serialized.job).toBe("string");
-    expect(serialized.tableLabel).toBeUndefined();
+    expect(serialized.tableLabel).toBeTruthy();
+  });
+
+  it("does not regenerate removed fields after client normalize in ROUND_1", () => {
+    const snapshot = createSeedSnapshot();
+    const normalized = normalizeSnapshot({
+      ...snapshot,
+      session: { ...snapshot.session, phase: "ROUND_1" },
+      participants: snapshot.participants.map((participant) =>
+        serializeParticipantForCustomer(participant, "ROUND_1")
+      )
+    });
+    const participant = normalized.participants[0] as Record<string, unknown>;
+    expect(participant.heightCm).toBeUndefined();
+    expect(participant.animalType).toBeUndefined();
+    expect(participant.energyType).toBeUndefined();
+    expect(participant.receivedHearts).toBeUndefined();
+    expect(participant.sentHearts).toBeUndefined();
+    expect(participant.profileViews).toBeUndefined();
+    expect(participant.encounterHistory).toBeUndefined();
+    expect(participant.metParticipantIds).toBeUndefined();
+    expect(participant.likedParticipantIds).toBeUndefined();
+    expect(participant.likedByParticipantIds).toBeUndefined();
   });
 });

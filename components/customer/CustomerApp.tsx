@@ -61,6 +61,10 @@ function formatOperationalPhaseLabel(phase: string) {
   return "1라운드";
 }
 
+function resolveTableLabel(participant: ParticipantRecord) {
+  return participant.tableLabel ?? "테이블 정보 없음";
+}
+
 function formatContactExchangeStatus(status: "PENDING" | "COMPLETED" | "BLOCKED") {
   if (status === "COMPLETED") return "공유 완료";
   if (status === "BLOCKED") return "운영 제한";
@@ -309,12 +313,14 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
                   {matches.map((match) => (
                     <article key={match.id} className="participant-card match-card">
                       <div className="participant-head">
-                        <UserPhoto photoUrl={match.photoUrl} gender={match.gender} size={56} />
+                        <UserPhoto
+                          photoUrl={match.photoUrl ?? match.profileImage ?? null}
+                          gender={match.gender}
+                          size={56}
+                        />
                         <div className="participant-copy">
                           <strong>{match.nickname}</strong>
-                          <p>
-                            {match.job} · {match.animalType}
-                          </p>
+                          <p>{match.job}</p>
                         </div>
                       </div>
                       <Button block disabled>
@@ -382,8 +388,11 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   });
 
   const currentTableMembers = useMemo(
-    () => snapshot.participants.filter((candidate) => candidate.tableId === participant.tableId),
-    [participant.tableId, snapshot.participants]
+    () =>
+      snapshot.participants.filter(
+        (candidate) => candidate.tableLabel && candidate.tableLabel === participant.tableLabel
+      ),
+    [participant.tableLabel, snapshot.participants]
   );
   const encounterParticipants = useMemo(
     () => getEncounterParticipants(snapshot, participant),
@@ -403,11 +412,19 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
         (candidate) =>
           candidate.id !== participant.id &&
           candidate.sessionId === snapshot.session.id &&
-          candidate.tableId === participant.tableId &&
+          candidate.tableLabel &&
+          candidate.tableLabel === participant.tableLabel &&
           candidate.gender !== participant.gender &&
           ["ACTIVE", "IDLE"].includes(snapshot.participantStatusMap?.[candidate.id] ?? "ACTIVE")
       ),
-    [participant.gender, participant.id, participant.tableId, snapshot.participantStatusMap, snapshot.participants, snapshot.session.id]
+    [
+      participant.gender,
+      participant.id,
+      participant.tableLabel,
+      snapshot.participantStatusMap,
+      snapshot.participants,
+      snapshot.session.id
+    ]
   );
   const myTablePicks = useMemo(() => {
     if (!openTablePickWindow) {
@@ -440,14 +457,14 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
       description: "같은 테이블에서 선택해주세요",
       ctaLabel: "제출",
       scope: "TABLE" as const,
-      targetTableId: participant.tableId,
+      targetTableId: null,
       createdAt: openTablePickWindow.openedAt,
       expiresAt: null,
       status: "LIVE" as const,
       options: [],
       message: null
     };
-  }, [openTablePickWindow, participant.tableId, stageContent.liveContent]);
+  }, [openTablePickWindow, stageContent.liveContent]);
   const heartInbox = useMemo(
     () => buildRevealState(snapshot.session, participant, snapshot.hearts, snapshot.participants),
     [participant, snapshot]
@@ -581,7 +598,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           <div className="hero-copy-stack">
             <p className="eyebrow">테이블 중심 진행</p>
             <h1 className="hero-title">
-              {participant.nickname}님, 지금은 {formatTableName(participant.tableId)} 라운드입니다.
+              {participant.nickname}님, 지금은 {resolveTableLabel(participant)} 라운드입니다.
             </h1>
             <p className="hero-description">{phaseGuideMessage}</p>
           </div>
@@ -660,7 +677,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               <Surface>
                 <SectionHeader
                   eyebrow="내 테이블"
-                  title={`${formatTableName(participant.tableId)} 참가자`}
+                  title={`${resolveTableLabel(participant)} 참가자`}
                   description="현재 같은 테이블의 참가자입니다."
                 />
                 <div className="participant-grid">
@@ -750,7 +767,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                             <div className="participant-copy">
                               <strong>{sender.nickname}</strong>
                               <p>
-                                {sender.job} · {sender.animalType}
+                                {sender.job}
                               </p>
                             </div>
                           </div>

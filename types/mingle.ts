@@ -404,30 +404,34 @@ export interface SessionSnapshot {
 
 export interface CustomerParticipantView {
   id: string;
-  sessionId: string;
-  branchId: string;
   nickname: string;
-  gender: ParticipantGender;
+  profileImage: string | null;
+  tableLabel: string;
+  appearanceSummary: string;
+  personalitySummary: string;
+  preferenceSummary: string;
+  heartStatus: {
+    heartsRemaining: number;
+  };
+  sessionId?: string;
+  branchId?: string;
+  gender?: ParticipantGender;
   age?: number;
   jobCategory?: string;
   job?: string;
-  photoUrl: string | null;
-  heightCm: number;
-  animalType: string;
-  energyType: EnergyType;
+  photoUrl?: string | null;
   tableId?: number;
-  tableLabel?: string;
-  round2Attendance: Round2Attendance;
-  receivedHearts: number;
-  sentHearts: number;
-  profileViews: number;
-  heartsRemaining: number;
-  metParticipantIds: string[];
-  encounterHistory: ParticipantEncounterRecord[];
-  likedParticipantIds: string[];
-  likedByParticipantIds: string[];
-  joinedAt: string;
-  lastActiveAt: string | null;
+  round2Attendance?: Round2Attendance;
+  receivedHearts?: number;
+  sentHearts?: number;
+  profileViews?: number;
+  heartsRemaining?: number;
+  metParticipantIds?: string[];
+  encounterHistory?: ParticipantEncounterRecord[];
+  likedParticipantIds?: string[];
+  likedByParticipantIds?: string[];
+  joinedAt?: string;
+  lastActiveAt?: string | null;
 }
 
 export interface CustomerSessionView {

@@ -2,7 +2,6 @@
 
 import { UserPhoto } from "@/components/shared/Avatar";
 import { Button } from "@/components/shared/ui";
-import { formatTableName } from "@/lib/mingle";
 import type { ParticipantRecord } from "@/types/mingle";
 
 export function ParticipantCard({
@@ -29,7 +28,7 @@ export function ParticipantCard({
               {participant.age} · {participant.job}
             </p>
           ) : (
-            <p>{formatTableName(participant.tableId)}</p>
+            <p>{participant.tableLabel ?? "테이블 정보 없음"}</p>
           )}
         </div>
       </button>

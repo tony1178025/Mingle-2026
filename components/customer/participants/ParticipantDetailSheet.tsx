@@ -32,10 +32,12 @@ export function ParticipantDetailSheet({
             ) : null}
           </div>
         </div>
-        <div className="badge-row">
-          <span className="badge badge-neutral">{participant.animalType}</span>
-          <span className="badge badge-neutral">{participant.energyType}</span>
-        </div>
+        {phase === "ROUND_2" ? (
+          <div className="badge-row">
+            <span className="badge badge-neutral">{participant.animalType}</span>
+            <span className="badge badge-neutral">{participant.energyType}</span>
+          </div>
+        ) : null}
         <Button block onClick={() => onSendHeart(participant.id)}>
           하트 보내기
         </Button>
