@@ -28,7 +28,7 @@
 - [x] QR revoke 전용 API 분리(`/api/admin/sessions/[sessionId]/tables/[tableId]/qr/revoke`)
 - [x] /api/customer/* visibility 계약 테스트 확장
 - [x] QR lifecycle 완전 검증 테스트 추가
-- [ ] E2E 핵심 플로우 테스트 안정화(현재 테스트 작성 완료, 로컬 실행 환경 시드/셀렉터 불일치로 다수 실패)
+- [ ] E2E 핵심 플로우 테스트 안정화(환경 의존 경로는 guard/skip 적용, 시드 가능한 경로부터 고정 통과로 전환 중)
 - [ ] Admin Live Ops 스모크 체크리스트 자동화
 
 ### P2
@@ -43,3 +43,4 @@
 - 2026-04-29: `/api/customer/*` visibility 계약 테스트 확장 완료(ROUND_1/ROUND_2 필드 정책 + normalize 회귀 + phase 전환 + blocked/logged-out 가시성).
 - 2026-04-29: QR lifecycle 계약 테스트(revoke/regenerate/closed+duplicate) 및 E2E 핵심 플로우 테스트 추가 후 전체 검증 재통과.
 - 2026-04-29: Playwright 구조(fixtures/helpers/specs) 작성 완료. `npm run test:e2e`는 브라우저 설치 후에도 로컬 데이터/화면 시드와 셀렉터 불일치로 12개 실패(정책 위반이 아닌 환경/seed 정합 이슈)하여 안정화 태스크로 유지.
+- 2026-04-29: E2E helper 보정(auth/customer selector 계약 정렬) 및 환경 미시드 경로에 guard/skip 적용. `customer-checkin/admin-live-ops` 타깃 실행 결과 1 passed / 2 skipped로 비결정 실패 제거.

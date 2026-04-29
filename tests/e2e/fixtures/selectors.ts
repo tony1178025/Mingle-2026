@@ -16,7 +16,7 @@ export const customerSelectors = {
 } as const;
 
 export const adminSelectors = {
-  dashboardTitle: "text=현장 운영 대시보드",
+  dashboardTitle: "현장 운영 대시보드",
   sessionPanel: "section:has-text('세션')",
   tablesPanel: "section:has-text('테이블')",
   participantsPanel: "section:has-text('참가자')",

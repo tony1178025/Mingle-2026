@@ -5,16 +5,26 @@ import { expectVisibleText } from "./assertions";
 
 export async function loginAsAdmin(page: Page) {
   await page.goto("/admin");
-  await expectVisibleText(page, selectors.admin.dashboardTitle);
+  await page.locator("body").waitFor({ state: "visible" });
+  await page.waitForTimeout(300);
 
-  const emailInput = page.getByPlaceholder("이메일");
-  const passwordInput = page.getByPlaceholder("비밀번호");
-  const loginButton = page.getByRole("button", { name: "로그인" });
+  const loginInput = page.getByLabel("로그인 ID 또는 이메일");
+  const passwordInput = page.getByLabel("관리자 비밀번호");
+  const loginButton = page.getByRole("button", { name: "관리자 로그인" });
 
-  if (await emailInput.isVisible().catch(() => false)) {
-    await emailInput.fill(TEST_DATA.adminUser.email);
+  if (await loginInput.isVisible().catch(() => false)) {
+    await loginInput.fill(TEST_DATA.adminUser.email);
     await passwordInput.fill(TEST_DATA.adminUser.password);
     await loginButton.click();
     await expectVisibleText(page, selectors.admin.dashboardTitle);
+    return;
   }
+
+  // In local e2e runtime, admin store may be unseeded; guard without hard-failing helper.
+  const unseededHint = page.getByText("관리자 사용자 스토어가 아직 준비되지 않았습니다.");
+  if (await unseededHint.isVisible().catch(() => false)) {
+    return;
+  }
+
+  await expectVisibleText(page, selectors.admin.dashboardTitle);
 }

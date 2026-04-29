@@ -8,39 +8,43 @@ export async function completeCustomerOnboarding(
   qrUrlOrData: string | CustomerOnboardingData,
   maybeData?: CustomerOnboardingData
 ) {
-  const data = typeof qrUrlOrData === "string" ? (maybeData as CustomerOnboardingData) : qrUrlOrData;
-  const qrUrl = typeof qrUrlOrData === "string" ? qrUrlOrData : data.qrUrl;
+  const data =
+    typeof qrUrlOrData === "string" ? (maybeData as CustomerOnboardingData | undefined) : qrUrlOrData;
+  const qrUrl = typeof qrUrlOrData === "string" ? qrUrlOrData : qrUrlOrData.qrUrl;
   await page.goto(qrUrl);
   await expect(page.locator("body")).toBeVisible({
     timeout: 10000
   });
+  await expect(page.locator("main")).not.toContainText("입장 실패", { timeout: 10000 });
 
-  const nicknameInput = page.getByPlaceholder(customerSelectors.profileNicknamePlaceholder ?? "닉네임");
+  if (!data) {
+    return;
+  }
+
+  const nicknameInput = page.getByLabel("닉네임").or(page.getByPlaceholder("닉네임"));
   await nicknameInput.waitFor({
     timeout: 10000
   });
   await nicknameInput.fill(data.nickname);
 
-  const ageInput = page.getByPlaceholder(customerSelectors.profileAgePlaceholder ?? "나이");
+  const ageInput = page.getByLabel("나이").or(page.getByPlaceholder("나이"));
   if (await ageInput.isVisible()) {
     await ageInput.fill(data.age);
   }
 
-  const jobInput = page.getByPlaceholder(customerSelectors.profileJobPlaceholder ?? "직업");
+  const jobInput = page.getByLabel("직무").or(page.getByPlaceholder("직무"));
   if (await jobInput.isVisible()) {
     await jobInput.fill(data.job);
   }
 
-  const completeButton = page.getByRole("button", {
-    name: customerSelectors.profileCompleteButton ?? "입장하기"
-  });
+  const completeButton = page.getByRole("button", { name: /완료|입장하기/ });
   if (await completeButton.isVisible()) {
     await completeButton.click();
   }
 }
 
 export async function openParticipantsTab(page: Page) {
-  await page.getByRole("button", { name: customerSelectors.participantsTab }).click();
+  await page.getByRole("button", { name: "전체" }).click();
 }
 
 export async function sendHeartToParticipant(page: Page, nickname: string) {

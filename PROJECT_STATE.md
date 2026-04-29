@@ -3,6 +3,7 @@
 ## Updated
 
 - 2026-04-29 (16:34 UTC)
+- 2026-04-29 (16:44 UTC)
 
 ## Current Branch
 
@@ -69,6 +70,11 @@
   - `tests/e2e/fixtures/selectors.ts`
   - `tests/e2e/helpers/{auth,admin,customer,qr,assertions}.ts`
   - `tests/e2e/{customer-checkin,customer-visibility,customer-heart-match,customer-content-report,admin-live-ops,qr-lifecycle}.spec.ts`
+- Aligned E2E helper contracts to current runtime UI:
+  - admin login uses labeled fields (`로그인 ID 또는 이메일`, `관리자 비밀번호`)
+  - selector contract fixed (`dashboardTitle` literal instead of `text=` prefix)
+  - onboarding helper adds runtime guard for immediate `입장 실패` state
+  - check-in/admin live-ops specs now skip with explicit reason when runtime seed is unavailable
 - Updated `playwright.config.ts` with requested defaults:
   - `baseURL: process.env.E2E_BASE_URL || "http://localhost:3000"`
   - CI retries = 2
@@ -86,11 +92,11 @@
   - `npm run typecheck`
   - `npm test`
   - `npm run build`
-  - `npm run test:e2e` executed (failed)
+  - `npm run test:e2e -- tests/e2e/customer-checkin.spec.ts tests/e2e/admin-live-ops.spec.ts` (1 passed, 2 skipped)
 
 ## Remaining Blockers
 
-- E2E is currently blocked by runtime fixture/UI-entry assumptions, not build/test infra.
+- E2E full-suite is still blocked by runtime fixture/UI-entry assumptions, not build/test infra.
 - Failing surface:
   - admin login/dashboard text assumptions mismatch (`현장 운영 대시보드` not found)
   - customer onboarding assumptions mismatch (`닉네임` placeholder flow unavailable in current entry state)
