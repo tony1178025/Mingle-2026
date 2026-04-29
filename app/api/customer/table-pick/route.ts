@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
               id: item.id,
               nickname: item.nickname,
               age: item.age,
-              tableNumber: item.tableId
+              tableLabel: item.tableLabel
             }));
     const picks = (snapshot.tableImpressionPicks ?? []).filter(
       (pick) =>
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       status: "OK",
       isOpen: Boolean(openWindow),
       rotationIndex,
-      tableId: participant.tableId,
+      tableLabel: participant.tableLabel,
       candidates,
       myPicks: {
         WANT_TO_KNOW: picks.find((pick) => pick.pickType === "WANT_TO_KNOW")?.targetParticipantId ?? null,

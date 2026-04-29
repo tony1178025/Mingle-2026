@@ -2,7 +2,7 @@
 
 import { UserPhoto } from "@/components/shared/Avatar";
 import { Button, Surface } from "@/components/shared/ui";
-import type { ParticipantRecord } from "@/types/mingle";
+import type { CustomerParticipantView, ParticipantRecord } from "@/types/mingle";
 
 export function ParticipantDetailSheet({
   open,
@@ -13,7 +13,7 @@ export function ParticipantDetailSheet({
 }: {
   open: boolean;
   phase: string;
-  participant: ParticipantRecord | null;
+  participant: ParticipantRecord | CustomerParticipantView | null;
   onClose: () => void;
   onSendHeart: (participantId: string) => void;
 }) {
@@ -22,20 +22,24 @@ export function ParticipantDetailSheet({
     <div className="rotation-modal-backdrop" onClick={onClose}>
       <Surface className="rotation-modal" onClick={(event) => event.stopPropagation()}>
         <div className="participant-head">
-          <UserPhoto photoUrl={participant.photoUrl} gender={participant.gender} size={72} />
+          <UserPhoto
+            photoUrl={participant.profileImage ?? null}
+            gender={participant.gender ?? "M"}
+            size={72}
+          />
           <div className="participant-copy">
             <strong>{participant.nickname}</strong>
             {phase === "ROUND_2" ? (
               <p>
-                {participant.age} · {participant.job}
+                {participant.age ?? "-"} · {participant.job ?? "-"}
               </p>
             ) : null}
           </div>
         </div>
         {phase === "ROUND_2" ? (
           <div className="badge-row">
-            <span className="badge badge-neutral">{participant.animalType}</span>
-            <span className="badge badge-neutral">{participant.energyType}</span>
+            <span className="badge badge-neutral">{participant.animalType ?? "-"}</span>
+            <span className="badge badge-neutral">{participant.energyType ?? "-"}</span>
           </div>
         ) : null}
         <Button block onClick={() => onSendHeart(participant.id)}>

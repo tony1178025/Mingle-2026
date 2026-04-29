@@ -1,12 +1,19 @@
 import { formatTableName } from "@/lib/mingle";
-import type { CustomerParticipantView, ParticipantRecord, SessionPhase } from "@/types/mingle";
-
-function baseCustomerParticipant(participant: ParticipantRecord): Omit<
+import type {
   CustomerParticipantView,
+  ParticipantRecord,
+  Round1CustomerParticipantView,
+  Round2CustomerParticipantView,
+  SessionPhase
+} from "@/types/mingle";
+
+function baseRound2CustomerParticipant(
+  participant: ParticipantRecord
+): Omit<
+  Round2CustomerParticipantView,
   | "age"
   | "jobCategory"
   | "job"
-  | "tableId"
   | "tableLabel"
   | "appearanceSummary"
   | "personalitySummary"
@@ -20,7 +27,6 @@ function baseCustomerParticipant(participant: ParticipantRecord): Omit<
     nickname: participant.nickname,
     gender: participant.gender,
     profileImage: participant.photoUrl,
-    photoUrl: participant.photoUrl,
     heightCm: participant.heightCm,
     animalType: participant.animalType,
     energyType: participant.energyType,
@@ -38,7 +44,9 @@ function baseCustomerParticipant(participant: ParticipantRecord): Omit<
   };
 }
 
-export function serializeParticipantForRound1(participant: ParticipantRecord): CustomerParticipantView {
+export function serializeParticipantForRound1(
+  participant: ParticipantRecord
+): Round1CustomerParticipantView {
   return {
     id: participant.id,
     nickname: participant.nickname,
@@ -58,9 +66,11 @@ export function serializeParticipantForRound1(participant: ParticipantRecord): C
   };
 }
 
-export function serializeParticipantForRound2(participant: ParticipantRecord): CustomerParticipantView {
+export function serializeParticipantForRound2(
+  participant: ParticipantRecord
+): Round2CustomerParticipantView {
   return {
-    ...baseCustomerParticipant(participant),
+    ...baseRound2CustomerParticipant(participant),
     tableLabel: formatTableName(participant.tableId),
     appearanceSummary: `${participant.heightCm}cm · ${participant.animalType}`,
     personalitySummary: participant.energyType === "E" ? "외향형(E)" : "내향형(I)",

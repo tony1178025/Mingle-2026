@@ -413,12 +413,12 @@ export interface SessionSnapshot {
 export interface CustomerParticipantView {
   id: string;
   nickname: string;
-  profileImage: string | null;
-  tableLabel: string;
-  appearanceSummary: string;
-  personalitySummary: string;
-  preferenceSummary: string;
-  heartStatus: {
+  profileImage?: string | null;
+  tableLabel?: string;
+  appearanceSummary?: string;
+  personalitySummary?: string;
+  preferenceSummary?: string;
+  heartStatus?: {
     heartsRemaining: number;
   };
   sessionId?: string;
@@ -427,7 +427,6 @@ export interface CustomerParticipantView {
   age?: number;
   jobCategory?: string;
   job?: string;
-  photoUrl?: string | null;
   heightCm?: number;
   animalType?: string;
   energyType?: EnergyType;
@@ -443,6 +442,52 @@ export interface CustomerParticipantView {
   likedByParticipantIds?: string[];
   joinedAt?: string;
   lastActiveAt?: string | null;
+}
+
+export interface Round1CustomerParticipantView
+  extends Pick<
+    CustomerParticipantView,
+    | "id"
+    | "nickname"
+    | "profileImage"
+    | "tableLabel"
+    | "appearanceSummary"
+    | "personalitySummary"
+    | "preferenceSummary"
+    | "heartStatus"
+  > {}
+
+export interface Round2CustomerParticipantView extends CustomerParticipantView {
+  id: string;
+  sessionId: string;
+  branchId: string;
+  nickname: string;
+  gender: ParticipantGender;
+  age: number;
+  jobCategory: string;
+  job: string;
+  profileImage: string | null;
+  tableLabel: string;
+  appearanceSummary: string;
+  personalitySummary: string;
+  preferenceSummary: string;
+  heartStatus: {
+    heartsRemaining: number;
+  };
+  heightCm: number;
+  animalType: string;
+  energyType: EnergyType;
+  round2Attendance: Round2Attendance;
+  receivedHearts: number;
+  sentHearts: number;
+  profileViews: number;
+  heartsRemaining: number;
+  metParticipantIds: string[];
+  encounterHistory: ParticipantEncounterRecord[];
+  likedParticipantIds: string[];
+  likedByParticipantIds: string[];
+  joinedAt: string;
+  lastActiveAt: string | null;
 }
 
 export interface CustomerSessionView {
@@ -1229,6 +1274,7 @@ export type MingleCommand =
     }
   | {
       type: "admin.regenerateTableQr";
+      sessionId: string;
       tableId: number;
       expectedVersion?: number;
     }

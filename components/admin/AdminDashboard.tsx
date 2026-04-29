@@ -41,6 +41,7 @@ type AdminPageKey =
   | "branch-reservations"
   | "branch-session"
   | "branch-live"
+  | "branch-automation-center"
   | "branch-customers"
   | "branch-reports"
   | "branch-settings";
@@ -99,6 +100,7 @@ function getContextPageLabel(page: AdminPageKey) {
   if (page === "branch-reservations") return "예약 현황";
   if (page === "branch-session") return "현재 회차";
   if (page === "branch-live") return "라이브 콘솔";
+  if (page === "branch-automation-center") return "AI Automation Center";
   if (page === "branch-customers") return "참가자/고객 현황";
   if (page === "branch-reports") return "신고/제재";
   return "지점 설정";
@@ -1911,6 +1913,23 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     if (activePage === "branch-live") return renderLiveOps();
     if (activePage === "branch-customers") return renderBranchCustomers();
     if (activePage === "branch-reports") return renderBranchReports();
+    if (activePage === "branch-automation-center") {
+      return (
+        <Surface>
+          <SectionHeader
+            eyebrow="AI Automation Center"
+            title="설계 구조 등록 완료"
+            description="이번 주는 설계 등록만 수행합니다. OpenClaw/AI 자동응답/자동발송/환불 자동화는 구현하지 않습니다."
+          />
+          <p className="field-help">
+            문서: docs/ai-automation/README.md, docs/ai-automation/architecture.md
+          </p>
+          <p className="field-help">
+            스키마 초안: db/automation-schema-draft.sql
+          </p>
+        </Surface>
+      );
+    }
     return renderBranchSettings();
   };
 
@@ -1959,6 +1978,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                       <button type="button" className={activePage === "branch-reservations" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-reservations")}>예약 현황</button>
                       <button type="button" className={activePage === "branch-customers" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-customers")}>고객 현황</button>
                       <button type="button" className={activePage === "branch-reports" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-reports")}>신고/제재</button>
+                      <button type="button" className={activePage === "branch-automation-center" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-automation-center")}>AI Automation Center</button>
                       <button type="button" className={activePage === "branch-settings" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-settings")}>지점 설정</button>
                     </div>
                   ) : null}

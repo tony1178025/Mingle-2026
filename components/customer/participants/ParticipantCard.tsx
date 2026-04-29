@@ -4,6 +4,10 @@ import { UserPhoto } from "@/components/shared/Avatar";
 import { Button } from "@/components/shared/ui";
 import type { CustomerParticipantView, ParticipantRecord } from "@/types/mingle";
 
+function resolveProfileImage(participant: ParticipantRecord | CustomerParticipantView) {
+  return "photoUrl" in participant ? participant.photoUrl : participant.profileImage;
+}
+
 export function ParticipantCard({
   phase,
   participant,
@@ -21,7 +25,7 @@ export function ParticipantCard({
     <article className={phase === "ROUND_2" ? "mg-participant-card round2" : "mg-participant-card round1"}>
       <button type="button" className="participant-head" onClick={onOpen}>
         <UserPhoto
-          photoUrl={participant.photoUrl ?? participant.profileImage ?? null}
+          photoUrl={resolveProfileImage(participant) ?? null}
           gender={participant.gender ?? "M"}
           size={48}
         />
@@ -29,7 +33,7 @@ export function ParticipantCard({
           <strong>{participant.nickname}</strong>
           {phase === "ROUND_2" ? (
             <p>
-              {participant.age} · {participant.job}
+              {participant.age ?? "-"} · {participant.job ?? "-"}
             </p>
           ) : (
             <p>{participant.tableLabel ?? "테이블 정보 없음"}</p>

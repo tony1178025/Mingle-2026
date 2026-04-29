@@ -35,8 +35,8 @@ import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStor
 import type {
   ContactExchangeMethod,
   CustomerParticipantView,
-  CustomerTab,
-  ParticipantRecord
+  ParticipantRecord,
+  CustomerTab
 } from "@/types/mingle";
 
 const TAB_LABELS: Record<CustomerTab, string> = {
@@ -66,8 +66,18 @@ function formatOperationalPhaseLabel(phase: string) {
   return "1라운드";
 }
 
-function resolveTableLabel(participant: ParticipantRecord | CustomerParticipantView) {
+function resolveTableLabel(participant: CustomerParticipantView) {
   return participant.tableLabel ?? "테이블 정보 없음";
+}
+
+function isRound2ParticipantView(participant: CustomerParticipantView) {
+  return Boolean(
+    participant &&
+      typeof participant === "object" &&
+      "sessionId" in participant &&
+      "tableLabel" in participant &&
+      "gender" in participant
+  );
 }
 
 function formatContactExchangeStatus(status: "PENDING" | "COMPLETED" | "BLOCKED") {
@@ -318,11 +328,7 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
                   {matches.map((match) => (
                     <article key={match.id} className="participant-card match-card">
                       <div className="participant-head">
-                        <UserPhoto
-                          photoUrl={match.photoUrl ?? match.profileImage ?? null}
-                          gender={match.gender}
-                          size={56}
-                        />
+                        <UserPhoto photoUrl={match.profileImage ?? null} gender={match.gender} size={56} />
                         <div className="participant-copy">
                           <strong>{match.nickname}</strong>
                           <p>{match.job}</p>
@@ -351,6 +357,9 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
 function CustomerView({ participant }: { participant: ParticipantRecord }) {
   useDesignQA();
   const snapshot = useMingleStore((state) => state.snapshot)!;
+  if (!isRound2ParticipantView(participant)) {
+    return <LoadingView />;
+  }
   const customerTab = useMingleStore((state) => state.customerTab);
   const setCustomerTab = useMingleStore((state) => state.setCustomerTab);
   const toast = useMingleStore((state) => state.toast);
@@ -689,7 +698,11 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                   {currentTableMembers.map((member) => (
                     <article key={member.id} className="participant-card">
                       <div className="participant-head">
-                        <UserPhoto photoUrl={member.photoUrl} gender={member.gender} size={52} />
+                        <UserPhoto
+                          photoUrl={member.profileImage ?? null}
+                          gender={member.gender ?? "M"}
+                          size={52}
+                        />
                         <div className="participant-copy">
                           <strong>{member.nickname}</strong>
                           <p>{member.job}</p>
@@ -768,7 +781,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                       {heartInbox.visibleSenders.slice(0, revealVisibleCount).map((sender) => (
                         <article key={sender.id} className="participant-card">
                           <div className="participant-head">
-                            <UserPhoto photoUrl={sender.photoUrl} gender={sender.gender} size={52} />
+                            <UserPhoto photoUrl={sender.profileImage ?? null} gender={sender.gender ?? "M"} size={52} />
                             <div className="participant-copy">
                               <strong>{sender.nickname}</strong>
                               <p>

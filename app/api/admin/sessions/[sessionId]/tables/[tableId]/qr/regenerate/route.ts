@@ -13,13 +13,17 @@ export async function POST(
     if ("response" in auth) {
       return auth.response;
     }
-    const { tableId } = await context.params;
+    const { sessionId, tableId } = await context.params;
     const parsedTableId = Number(tableId);
     if (!Number.isInteger(parsedTableId) || parsedTableId < 1) {
       return new NextResponse("유효한 tableId가 필요합니다.", { status: 400 });
     }
+    if (!sessionId || typeof sessionId !== "string") {
+      return new NextResponse("유효한 sessionId가 필요합니다.", { status: 400 });
+    }
     const result = await executeServerCommand({
       type: "admin.regenerateTableQr",
+      sessionId,
       tableId: parsedTableId
     });
     return NextResponse.json({ status: "OK", snapshot: result.snapshot });

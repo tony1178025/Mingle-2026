@@ -402,4 +402,24 @@ describe("stable checkin authority", () => {
       })
     ).rejects.toThrow();
   }, 30000);
+
+  it("blocks check-in when session lifecycle is disabled", async () => {
+    const base = createSnapshot([]);
+    const boot = await bootRepository(
+      {
+        ...base,
+        session: {
+          ...base.session,
+          lifecycleStatus: "DISABLED"
+        }
+      },
+      [createReservation("2001", "reservation_m_001")]
+    );
+    tempDirs.push(boot.tempDir);
+    const repository = await import("@/lib/repositories/server-repository");
+    const result = await verifyCheckin(repository, "2001");
+
+    expect(result.checkinResolution?.flowState).toBe("BLOCKED");
+    expect(result.checkinResolution?.customerSecondaryMessage).toContain("비활성화된 세션");
+  }, 30000);
 });

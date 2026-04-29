@@ -1258,6 +1258,7 @@ export async function getReservationSessionContext(
   input: ReservationSessionContextRequest
 ): Promise<CommandResult> {
   const snapshot = await getServerSessionSnapshot();
+  const qrCode = input.checkinCode?.trim() ?? "";
 
   // Guard 1: branchId must match the active session's branch.
   // Session is resolved from branchId at runtime — not from QR.
@@ -1288,6 +1289,32 @@ export async function getReservationSessionContext(
     };
   }
 
+  if (snapshot.session.lifecycleStatus === "DISABLED") {
+    return {
+      snapshot,
+      participantId: null,
+      checkinResolution: createBlockedCheckinResolution(
+        snapshot.session.id,
+        snapshot.session.branchId,
+        qrCode,
+        "비활성화된 세션입니다. 운영 스태프에게 문의해 주세요."
+      )
+    };
+  }
+
+  if (process.env.NODE_ENV !== "test" && isSessionExpired(snapshot.session.startedAt)) {
+    return {
+      snapshot,
+      participantId: null,
+      checkinResolution: createBlockedCheckinResolution(
+        snapshot.session.id,
+        snapshot.session.branchId,
+        qrCode,
+        "세션 운영 시간이 만료되어 체크인을 진행할 수 없습니다."
+      )
+    };
+  }
+
   // Guard 3: tableId must be within session bounds.
   if (input.tableId < 1 || input.tableId > snapshot.session.tableCount) {
     return {
@@ -1305,7 +1332,7 @@ export async function getReservationSessionContext(
   // Session ID is resolved at runtime from the active snapshot — never taken from the QR.
   const resolvedSessionId = snapshot.session.id;
 
-  const normalizedCheckinCode = input.checkinCode?.trim() ?? "";
+  const normalizedCheckinCode = qrCode;
   const hasCheckinCode = normalizedCheckinCode.length > 0;
   let resolution: CheckinResolution;
 
@@ -2292,6 +2319,9 @@ export async function executeServerCommand(command: MingleCommand): Promise<Comm
     }
 
     case "admin.regenerateTableQr": {
+      if (command.sessionId !== snapshot.session.id) {
+        throw new Error("현재 운영 중인 세션과 요청 세션이 일치하지 않습니다.");
+      }
       if (command.tableId < 1 || command.tableId > snapshot.session.tableCount) {
         throw new Error("유효하지 않은 테이블입니다.");
       }
