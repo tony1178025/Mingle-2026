@@ -467,13 +467,6 @@ export interface Round2CustomerParticipantView extends CustomerParticipantView {
   jobCategory: string;
   job: string;
   profileImage: string | null;
-  tableLabel: string;
-  appearanceSummary: string;
-  personalitySummary: string;
-  preferenceSummary: string;
-  heartStatus: {
-    heartsRemaining: number;
-  };
   heightCm: number;
   animalType: string;
   energyType: EnergyType;

@@ -9,26 +9,34 @@ import type { SessionCommandResponse, SessionSnapshot, SessionView } from "@/typ
 
 export function normalizeSnapshot(snapshot: SessionView): SessionSnapshot {
   const contactExchanges = snapshot.contactExchanges ?? [];
-  const normalizedParticipants = snapshot.participants.map((participant) => ({
-    ...participant,
-    age: participant.age ?? 0,
-    jobCategory: participant.jobCategory ?? "",
-    job: participant.job ?? "",
-    reservationId: null,
-    reservationExternalId: null,
-    phone: null,
-    popularityScore: 0,
-    tier: "C",
-    subTier: "LOW",
-    score: 0,
-    attractionScore: 0,
-    engagementScore: 0,
-    isVip: false,
-    isHighValue: false,
-    checkinMode: "qr",
-    participantSessionState: "ACTIVE" as const,
-    presenceState: "CHECKED_IN" as const
-  }));
+  const normalizedParticipants = snapshot.participants.map((participant) => {
+    const base = {
+      ...participant,
+      reservationId: null,
+      reservationExternalId: null,
+      phone: null,
+      popularityScore: 0,
+      tier: "C",
+      subTier: "LOW",
+      score: 0,
+      attractionScore: 0,
+      engagementScore: 0,
+      isVip: false,
+      isHighValue: false,
+      checkinMode: "qr",
+      participantSessionState: "ACTIVE" as const,
+      presenceState: "CHECKED_IN" as const
+    };
+    if (snapshot.session.phase === "ROUND_1") {
+      return base;
+    }
+    return {
+      ...base,
+      age: participant.age ?? 0,
+      jobCategory: participant.jobCategory ?? "",
+      job: participant.job ?? ""
+    };
+  });
   const participants =
     snapshot.session.phase === "ROUND_1"
       ? (normalizedParticipants as SessionSnapshot["participants"])

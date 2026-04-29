@@ -26,7 +26,7 @@
 - [x] QR regenerate 세션 경계 검증(sessionId 명시 계약)
 - [x] 체크인 차단 가드 강화: CLOSED/MATCH_END/DISABLED/만료(운영 런타임)
 - [x] QR revoke 전용 API 분리(`/api/admin/sessions/[sessionId]/tables/[tableId]/qr/revoke`)
-- [ ] /api/customer/* visibility 계약 테스트 확장
+- [x] /api/customer/* visibility 계약 테스트 확장
 - [ ] Admin Live Ops 스모크 체크리스트 자동화
 
 ### P2
@@ -38,3 +38,4 @@
 ## 마지막 업데이트
 - 2026-04-29: 문서 부재 복구 + 자동화 정책/Safety Gate 반영 + 현재 브랜치 상태 기준 진행 계획 동기화.
 - 2026-04-29: P1 우선 이슈로 QR revoke 전용 API 추가, 전체 검증(lint/typecheck/test/build) 재통과.
+- 2026-04-29: `/api/customer/*` visibility 계약 테스트 확장 완료(ROUND_1/ROUND_2 필드 정책 + normalize 회귀 + phase 전환 + blocked/logged-out 가시성).

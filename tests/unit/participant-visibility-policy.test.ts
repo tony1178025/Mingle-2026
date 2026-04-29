@@ -37,9 +37,28 @@ describe("participant visibility policy", () => {
   it("exposes age and job in ROUND_2", () => {
     const snapshot = createSeedSnapshot();
     const serialized = serializeParticipantForCustomer(snapshot.participants[0]!, "ROUND_2");
+    expect(Object.keys(serialized)).toEqual(
+      expect.arrayContaining([
+        "id",
+        "nickname",
+        "profileImage",
+        "appearanceSummary",
+        "personalitySummary",
+        "preferenceSummary",
+        "heartStatus",
+        "age",
+        "job",
+        "jobCategory"
+      ])
+    );
     expect(typeof serialized.age).toBe("number");
     expect(typeof serialized.job).toBe("string");
-    expect(serialized.tableLabel).toBeTruthy();
+    expect(serialized.tableLabel).toBeUndefined();
+    const serializedRecord = serialized as unknown as Record<string, unknown>;
+    expect(serializedRecord.tableId).toBeUndefined();
+    expect(serializedRecord.phone).toBeUndefined();
+    expect(serializedRecord.contact).toBeUndefined();
+    expect(serializedRecord.birthYear).toBeUndefined();
   });
 
   it("does not regenerate removed fields after client normalize in ROUND_1", () => {

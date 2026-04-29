@@ -2,7 +2,7 @@
 
 ## Updated
 
-- 2026-04-29 (16:03 UTC)
+- 2026-04-29 (16:14 UTC)
 
 ## Current Branch
 
@@ -50,6 +50,14 @@
 - Added policy: every meaningful code/config change must be followed by markdown state updates.
 - Implemented high-priority QR lifecycle gap fix: explicit revoke API/command path.
 - Added Mingle Master Specification v1.0 placeholder spec doc for agent read order continuity.
+- Expanded `/api/customer/*` visibility contract coverage with phase-aware unit tests:
+  - ROUND_1 allowed/blocked field enforcement
+  - ROUND_2 allowed/blocked field enforcement
+  - phase transition visibility assertions
+  - blocked/logged-out participant list visibility assertions
+  - tableLabel visibility behavior assertions
+- Hardened serializer contract for ROUND_2 by removing `tableLabel` exposure.
+- Adjusted client normalize path to avoid restoring removed ROUND_1 fields.
 - Preserved existing architecture and business rules.
 
 ## Verification Baseline
@@ -63,4 +71,4 @@
 ## Remaining Blockers
 
 - No hard technical blocker at this moment.
-- Next work should prioritize roadmap P0/P1 sequence in `TASKS.md`.
+- Next work should prioritize `Admin Live Ops 스모크 체크리스트 자동화` in `TASKS.md`.

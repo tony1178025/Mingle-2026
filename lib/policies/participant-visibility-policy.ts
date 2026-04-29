@@ -71,7 +71,6 @@ export function serializeParticipantForRound2(
 ): Round2CustomerParticipantView {
   return {
     ...baseRound2CustomerParticipant(participant),
-    tableLabel: formatTableName(participant.tableId),
     appearanceSummary: `${participant.heightCm}cm · ${participant.animalType}`,
     personalitySummary: participant.energyType === "E" ? "외향형(E)" : "내향형(I)",
     preferenceSummary:
