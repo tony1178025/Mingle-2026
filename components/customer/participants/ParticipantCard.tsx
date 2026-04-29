@@ -2,7 +2,7 @@
 
 import { UserPhoto } from "@/components/shared/Avatar";
 import { Button } from "@/components/shared/ui";
-import type { ParticipantRecord } from "@/types/mingle";
+import type { CustomerParticipantView, ParticipantRecord } from "@/types/mingle";
 
 export function ParticipantCard({
   phase,
@@ -12,7 +12,7 @@ export function ParticipantCard({
   onSendHeart
 }: {
   phase: string;
-  participant: ParticipantRecord;
+  participant: ParticipantRecord | CustomerParticipantView;
   canSendHeart: boolean;
   onOpen: () => void;
   onSendHeart: () => void;
@@ -20,7 +20,11 @@ export function ParticipantCard({
   return (
     <article className={phase === "ROUND_2" ? "mg-participant-card round2" : "mg-participant-card round1"}>
       <button type="button" className="participant-head" onClick={onOpen}>
-        <UserPhoto photoUrl={participant.photoUrl} gender={participant.gender} size={48} />
+        <UserPhoto
+          photoUrl={participant.photoUrl ?? participant.profileImage ?? null}
+          gender={participant.gender ?? "M"}
+          size={48}
+        />
         <div className="participant-copy">
           <strong>{participant.nickname}</strong>
           {phase === "ROUND_2" ? (

@@ -21,16 +21,17 @@ describe("participant visibility policy", () => {
     );
     expect(serialized.tableLabel).toBeTruthy();
     expect(serialized.heartStatus).toEqual({ heartsRemaining: expect.any(Number) });
-    expect(serialized.heightCm).toBeUndefined();
-    expect(serialized.animalType).toBeUndefined();
-    expect(serialized.energyType).toBeUndefined();
-    expect(serialized.receivedHearts).toBeUndefined();
-    expect(serialized.sentHearts).toBeUndefined();
-    expect(serialized.profileViews).toBeUndefined();
-    expect(serialized.encounterHistory).toBeUndefined();
-    expect(serialized.metParticipantIds).toBeUndefined();
-    expect(serialized.likedParticipantIds).toBeUndefined();
-    expect(serialized.likedByParticipantIds).toBeUndefined();
+    const serializedRecord = serialized as unknown as Record<string, unknown>;
+    expect(serializedRecord.heightCm).toBeUndefined();
+    expect(serializedRecord.animalType).toBeUndefined();
+    expect(serializedRecord.energyType).toBeUndefined();
+    expect(serializedRecord.receivedHearts).toBeUndefined();
+    expect(serializedRecord.sentHearts).toBeUndefined();
+    expect(serializedRecord.profileViews).toBeUndefined();
+    expect(serializedRecord.encounterHistory).toBeUndefined();
+    expect(serializedRecord.metParticipantIds).toBeUndefined();
+    expect(serializedRecord.likedParticipantIds).toBeUndefined();
+    expect(serializedRecord.likedByParticipantIds).toBeUndefined();
   });
 
   it("exposes age and job in ROUND_2", () => {
@@ -50,7 +51,7 @@ describe("participant visibility policy", () => {
         serializeParticipantForCustomer(participant, "ROUND_1")
       )
     });
-    const participant = normalized.participants[0] as Record<string, unknown>;
+    const participant = normalized.participants[0] as unknown as Record<string, unknown>;
     expect(participant.heightCm).toBeUndefined();
     expect(participant.animalType).toBeUndefined();
     expect(participant.energyType).toBeUndefined();

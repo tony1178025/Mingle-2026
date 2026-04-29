@@ -170,6 +170,14 @@ export interface ParticipantRecord {
   lastActiveAt: string | null;
   participantSessionState?: ParticipantSessionState;
   presenceState?: PresenceState;
+  tableLabel?: string;
+  profileImage?: string | null;
+  appearanceSummary?: string;
+  personalitySummary?: string;
+  preferenceSummary?: string;
+  heartStatus?: {
+    heartsRemaining: number;
+  };
 }
 
 export interface HeartRecord {
@@ -420,6 +428,9 @@ export interface CustomerParticipantView {
   jobCategory?: string;
   job?: string;
   photoUrl?: string | null;
+  heightCm?: number;
+  animalType?: string;
+  energyType?: EnergyType;
   tableId?: number;
   round2Attendance?: Round2Attendance;
   receivedHearts?: number;

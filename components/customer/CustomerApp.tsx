@@ -32,7 +32,12 @@ import { paginate } from "@/lib/customer-ui/paginate";
 import { useDesignQA } from "@/lib/ux/design-qa";
 import { useScrollTopButton } from "@/hooks/useScrollTopButton";
 import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStore";
-import type { ContactExchangeMethod, CustomerTab, ParticipantRecord } from "@/types/mingle";
+import type {
+  ContactExchangeMethod,
+  CustomerParticipantView,
+  CustomerTab,
+  ParticipantRecord
+} from "@/types/mingle";
 
 const TAB_LABELS: Record<CustomerTab, string> = {
   all: "전체",
@@ -61,7 +66,7 @@ function formatOperationalPhaseLabel(phase: string) {
   return "1라운드";
 }
 
-function resolveTableLabel(participant: ParticipantRecord) {
+function resolveTableLabel(participant: ParticipantRecord | CustomerParticipantView) {
   return participant.tableLabel ?? "테이블 정보 없음";
 }
 
