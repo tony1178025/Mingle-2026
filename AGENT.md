@@ -109,9 +109,11 @@ Stop immediately if:
 
 ## Working Rules
 
-- After every meaningful code change, update:
+- On every task iteration, if there is any file change (code/docs/config), update markdown state docs in the same iteration.
+- Minimum required updates when changes exist:
   - `PROJECT_STATE.md`
   - `TASKS.md`
+- Do not defer markdown state updates to a later turn.
 - Run verification (`lint`, `typecheck`, `test`, `build`) when feasible.
 - If blocked, log:
   - exact blocker

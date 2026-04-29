@@ -47,6 +47,7 @@
 - Restored missing agent control documents.
 - Synced current known status and next actions into TASKS/ROADMAP.
 - Added autonomous execution policy + safety gate decisions to top-level docs.
+- Added policy: every meaningful code/config change must be followed by markdown state updates.
 - Implemented high-priority QR lifecycle gap fix: explicit revoke API/command path.
 - Added Mingle Master Specification v1.0 placeholder spec doc for agent read order continuity.
 - Preserved existing architecture and business rules.

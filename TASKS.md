@@ -6,6 +6,7 @@
 - Korean-first UI 유지.
 - Admin은 밝고 단순한 운영 콘솔 유지.
 - Customer PWA는 모바일 우선 안정성 유지.
+- 코드/문서/설정 변경이 발생할 때마다 `PROJECT_STATE.md`와 `TASKS.md`를 즉시 업데이트.
 
 ## 자동화 정책 변경
 - 개발 자동화 에이전트는 즉시 허용.
