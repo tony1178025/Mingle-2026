@@ -2,7 +2,7 @@
 
 ## Updated
 
-- 2026-04-29 (16:20 UTC)
+- 2026-04-29 (16:34 UTC)
 
 ## Current Branch
 
@@ -64,6 +64,19 @@
   - 세션 종료 시 체크인 차단 + 중복 참가자 생성 방지
 - Added E2E core-flow scenario spec skeleton to cover:
   - QR 입장, 프로필, 참가자 탐색, 하트, 라운드 전환, 콘텐츠 참여, 신고, 관리자 조작
+- Added Playwright finish-phase structure:
+  - `tests/e2e/fixtures/test-data.ts`
+  - `tests/e2e/fixtures/selectors.ts`
+  - `tests/e2e/helpers/{auth,admin,customer,qr,assertions}.ts`
+  - `tests/e2e/{customer-checkin,customer-visibility,customer-heart-match,customer-content-report,admin-live-ops,qr-lifecycle}.spec.ts`
+- Updated `playwright.config.ts` with requested defaults:
+  - `baseURL: process.env.E2E_BASE_URL || "http://localhost:3000"`
+  - CI retries = 2
+  - trace/screenshot/video failure retention
+- Updated package scripts:
+  - `test:e2e`
+  - `test:e2e:ui`
+  - `test:e2e:headed`
 - Preserved existing architecture and business rules.
 
 ## Verification Baseline
@@ -73,9 +86,25 @@
   - `npm run typecheck`
   - `npm test`
   - `npm run build`
+  - `npm run test:e2e` executed (failed)
 
 ## Remaining Blockers
 
-- No hard technical blocker at this moment.
-- E2E core-flow scenario needs environment-stable selectors and runtime fixtures for full deterministic execution.
-- Next work should prioritize `Admin Live Ops 스모크 체크리스트 자동화` in `TASKS.md`.
+- E2E is currently blocked by runtime fixture/UI-entry assumptions, not build/test infra.
+- Failing surface:
+  - admin login/dashboard text assumptions mismatch (`현장 운영 대시보드` not found)
+  - customer onboarding assumptions mismatch (`닉네임` placeholder flow unavailable in current entry state)
+  - legacy deploy/paid-beta e2e expectations mismatch with current customer entry messaging
+- Affected files:
+  - `tests/e2e/helpers/auth.ts`
+  - `tests/e2e/helpers/customer.ts`
+  - `tests/e2e/customer-admin-core-flow.spec.ts`
+  - `tests/e2e/customer-checkin.spec.ts`
+  - `tests/e2e/customer-content-report.spec.ts`
+  - `tests/e2e/customer-heart-match.spec.ts`
+  - `tests/e2e/customer-visibility.spec.ts`
+  - `tests/e2e/qr-lifecycle.spec.ts`
+  - `tests/e2e/deploy-smoke.spec.ts`
+  - `tests/e2e/paid-beta-smoke.spec.ts`
+- Next required command after selector/fixture alignment:
+  - `npm run test:e2e`
