@@ -137,6 +137,7 @@ function OnboardingView() {
   const onboardingProfileUploadSubjectRef = useRef("");
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [onboardingDraftParticipantId, setOnboardingDraftParticipantId] = useState<string | null>(null);
+  const verifyInFlightRef = useRef(false);
   if (!onboardingProfileUploadSubjectRef.current) {
     onboardingProfileUploadSubjectRef.current =
       globalThis.crypto?.randomUUID?.() ??
@@ -172,6 +173,9 @@ function OnboardingView() {
   }, [checkinDraft.value, updateCheckinValue, verifyCheckin]);
 
   useEffect(() => {
+    if (verifyInFlightRef.current) {
+      return;
+    }
     const hasQrValue = Boolean(checkinDraft.value.trim());
     const shouldAttemptVerify =
       hasQrValue &&
@@ -181,8 +185,11 @@ function OnboardingView() {
     if (!shouldAttemptVerify) {
       return;
     }
+    verifyInFlightRef.current = true;
     track("ENTRY", { source: "qr" });
-    void verifyCheckin();
+    void verifyCheckin().finally(() => {
+      verifyInFlightRef.current = false;
+    });
   }, [checkinDraft.flowState, checkinDraft.isSubmitting, checkinDraft.value, hasEntryContext, verifyCheckin]);
 
   return (
@@ -223,26 +230,31 @@ function OnboardingView() {
                     if (!checkinDraft.resolution?.sessionId || !checkinDraft.resolution.tableId) {
                       return;
                     }
-                    const response = await fetch("/api/customer/profile/step", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json"
-                      },
-                      body: JSON.stringify({
-                        sessionId: checkinDraft.resolution.sessionId,
-                        tableId: checkinDraft.resolution.tableId,
-                        step,
-                        data,
-                        draftParticipantId: onboardingDraftParticipantId ?? undefined
-                      })
-                    });
-                    if (!response.ok) {
-                      const message = await response.text();
-                      throw new Error(message || "임시 저장에 실패했습니다.");
+                    try {
+                      const response = await fetch("/api/customer/profile/step", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Accept: "application/json"
+                        },
+                        body: JSON.stringify({
+                          sessionId: checkinDraft.resolution.sessionId,
+                          tableId: checkinDraft.resolution.tableId,
+                          step,
+                          data,
+                          draftParticipantId: onboardingDraftParticipantId ?? undefined
+                        })
+                      });
+                      if (!response.ok) {
+                        return;
+                      }
+                      const payload = (await response.json()) as { draftParticipantId?: string };
+                      if (payload.draftParticipantId) {
+                        setOnboardingDraftParticipantId(payload.draftParticipantId);
+                      }
+                    } catch {
+                      // Onboarding step persistence is best-effort; completion still commits final profile.
                     }
-                    const payload = (await response.json()) as { draftParticipantId: string };
-                    setOnboardingDraftParticipantId(payload.draftParticipantId);
                   }}
                   completeButtonDisabled={isSubmittingProfile}
                   onComplete={() => {
