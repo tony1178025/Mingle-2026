@@ -1,10 +1,14 @@
+import { getE2eBootstrapState } from "@/tests/e2e/fixtures/bootstrap";
+
+const bootstrap = getE2eBootstrapState();
+
 export const testBranch = {
-  id: "branch_seongsu",
+  id: bootstrap.branchId,
   name: "성수"
 } as const;
 
 export const testSession = {
-  id: "session_signature_20260412",
+  id: bootstrap.sessionId,
   round1Phase: "ROUND_1",
   round2Phase: "ROUND_2"
 } as const;
@@ -21,21 +25,25 @@ export const round1Participant = {
 } as const;
 
 export const round2Participant = {
-  nickname: "참가자",
+  nickname: "민수",
   age: "29",
   job: "Engineer",
   jobCategory: "IT"
 } as const;
 
 export const adminUser = {
-  email: "hq_admin@mingle.local",
-  password: "bootstrap-password"
+  email: bootstrap.admin.email,
+  password: bootstrap.admin.password,
+  cookieValue: bootstrap.admin.cookieValue
 } as const;
 
 export const qrUrls = {
-  valid: "/customer?branchId=branch_seongsu&tableId=1&code=1111",
-  revoked: "/customer?branchId=branch_seongsu&tableId=1&code=revoked-1111",
-  regenerated: "/customer?branchId=branch_seongsu&tableId=1&code=new-2222"
+  valid: bootstrap.qrUrls.tableA,
+  revoked: bootstrap.qrUrls.revokedTableA,
+  regenerated: bootstrap.qrUrls.regeneratedTableA,
+  validTableLabel: "테이블 1",
+  revokedTableLabel: "테이블 1",
+  regeneratedTableLabel: "테이블 1"
 } as const;
 
 export type CustomerOnboardingData = {

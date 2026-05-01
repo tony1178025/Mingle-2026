@@ -5,6 +5,7 @@
 - 2026-04-29 (16:34 UTC)
 - 2026-04-29 (16:44 UTC)
 - 2026-05-01 (07:43 UTC)
+- 2026-05-01 (08:10 UTC)
 
 ## Current Branch
 
@@ -89,6 +90,14 @@
   - `test:e2e`
   - `test:e2e:ui`
   - `test:e2e:headed`
+- Added deterministic E2E seed/bootstrap pipeline:
+  - `POST /api/test/e2e/bootstrap` (test-only guard)
+  - Playwright `globalSetup` integration (`tests/e2e/global-setup.ts`)
+  - bootstrap state file contract (`tests/e2e/.state/e2e-seed.json`)
+  - fixture loader (`tests/e2e/fixtures/bootstrap.ts`) and `test-data.ts` bootstrap binding
+  - targeted helper rewiring (`helpers/auth.ts`, `helpers/customer.ts`, `helpers/qr.ts`)
+- Added bootstrap guard unit test:
+  - `tests/unit/e2e-bootstrap-route.test.ts`
 - Preserved existing architecture and business rules.
 
 ## Verification Baseline
@@ -98,18 +107,23 @@
   - `npm run typecheck`
   - `npm test`
   - `npm run build`
-  - `npm run test:e2e -- tests/e2e/customer-checkin.spec.ts tests/e2e/admin-live-ops.spec.ts` (1 passed, 2 skipped)
+  - `E2E_SEED_ENABLED=true npm run test:e2e -- --workers=1 tests/e2e/customer-checkin.spec.ts tests/e2e/admin-live-ops.spec.ts` (2 passed, 2 failed / no skip)
 
 ## Remaining Blockers
 
-- E2E full-suite is still blocked by runtime fixture/UI-entry assumptions, not build/test infra.
+- E2E skip는 제거했지만 deterministic pass 전환은 아직 미완료.
 - Failing surface:
-  - admin login/dashboard text assumptions mismatch (`현장 운영 대시보드` not found)
-  - customer onboarding assumptions mismatch (`닉네임` placeholder flow unavailable in current entry state)
-  - legacy deploy/paid-beta e2e expectations mismatch with current customer entry messaging
+  - admin panel title assertion mismatch (`현장 운영 대시보드` 대신 현재 렌더는 `운영 콘솔`)
+  - customer onboarding fail state remains (`입장 실패`), indicating QR/context binding이 여전히 런타임에서 깨짐
+  - full-suite legacy deploy/paid-beta e2e expectations mismatch remains
 - Affected files:
+  - `app/api/test/e2e/bootstrap/route.ts`
+  - `tests/e2e/global-setup.ts`
+  - `tests/e2e/fixtures/bootstrap.ts`
+  - `tests/e2e/fixtures/test-data.ts`
   - `tests/e2e/helpers/auth.ts`
   - `tests/e2e/helpers/customer.ts`
+  - `tests/e2e/helpers/qr.ts`
   - `tests/e2e/customer-admin-core-flow.spec.ts`
   - `tests/e2e/customer-checkin.spec.ts`
   - `tests/e2e/customer-content-report.spec.ts`

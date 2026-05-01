@@ -18,3 +18,5 @@ yarn-error.log*
 pnpm-debug.log*
 dev.stdout.log
 dev.stderr.log
+tests/e2e/.state/
+.mingle-data/e2e/

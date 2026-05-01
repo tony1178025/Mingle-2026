@@ -14,6 +14,15 @@ If any fails:
 - apply fix
 - rerun from lint
 
+## E2E Deterministic Bootstrap Checks
+
+- [ ] `E2E_SEED_ENABLED=true`에서 `/api/test/e2e/bootstrap` 호출이 200으로 성공한다.
+- [ ] `E2E_SEED_ENABLED=false` 또는 production 환경에서는 bootstrap endpoint가 차단된다.
+- [ ] bootstrap 결과에 admin 로그인 정보/QR URL/세션 식별자가 기록된다.
+- [ ] bootstrap 이후 세션 phase는 `ROUND_1`, lifecycleStatus는 `OPEN`으로 고정된다.
+- [ ] bootstrap 이후 최소 2개 table QR가 `ACTIVE` 상태로 존재한다.
+- [ ] bootstrap 기반 타깃 E2E는 skip 없이 pass/fail로 판정된다.
+
 ## Customer PWA Checks (Korean-first, mobile-first)
 
 - [ ] QR check-in succeeds with valid code

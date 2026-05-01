@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { customerSelectors } from "@/tests/e2e/fixtures/selectors";
 import type { CustomerOnboardingData } from "@/tests/e2e/fixtures/test-data";
+import { testBranch } from "@/tests/e2e/fixtures/test-data";
 
 export async function completeCustomerOnboarding(
   page: Page,
@@ -11,6 +12,17 @@ export async function completeCustomerOnboarding(
   const data =
     typeof qrUrlOrData === "string" ? (maybeData as CustomerOnboardingData | undefined) : qrUrlOrData;
   const qrUrl = typeof qrUrlOrData === "string" ? qrUrlOrData : qrUrlOrData.qrUrl;
+  const entryProbe = await page.request.get(
+    `/api/customer/entry?branchId=${encodeURIComponent(testBranch.id)}&tableId=1`
+  );
+  const entryPayload = (await entryProbe.json()) as {
+    checkinResolution?: { flowState?: string; customerSecondaryMessage?: string | null };
+  };
+  if (entryPayload.checkinResolution?.flowState === "BLOCKED") {
+    throw new Error(
+      `E2E bootstrap check-in precondition failed: ${entryPayload.checkinResolution?.customerSecondaryMessage ?? "unknown"}`
+    );
+  }
   await page.goto(qrUrl);
   await expect(page.locator("body")).toBeVisible({
     timeout: 10000

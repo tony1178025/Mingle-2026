@@ -56,3 +56,11 @@ System supports operator.
 - 문서 업데이트
 
 단, DB 삭제/운영 배포/외부 API는 Safety Gate 통과 필수.
+
+## 8. E2E deterministic bootstrap 경계
+
+- 테스트 전용 bootstrap은 `/api/test/e2e/bootstrap` 경로에서만 허용한다.
+- `E2E_SEED_ENABLED !== "true"` 이면 bootstrap 요청을 차단한다.
+- production 환경에서는 bootstrap을 항상 차단한다(404).
+- bootstrap은 운영 DB를 변경하지 않고 파일 기반 테스트 데이터(`.mingle-data`)만 갱신한다.
+- bootstrap 응답에는 테스트 실행에 필요한 최소 정보만 포함하고 운영 민감정보는 포함하지 않는다.
