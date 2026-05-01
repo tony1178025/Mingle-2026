@@ -504,7 +504,8 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
   };
 
   const renderLiveOps = () => (
-    <div className="admin-grid">
+    <div className="admin-grid" data-testid="admin-live-ops-grid">
+      <div data-testid="admin-live-ops-session-panel">
       <LiveOpsControls
         snapshot={snapshot}
         revealReadyCount={revealReadyCount}
@@ -512,8 +513,9 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
         onTriggerReveal={triggerReveal}
         onPublishAnnouncement={publishAnnouncement}
       />
+      </div>
       <div className="admin-side-column">
-        <Surface>
+        <Surface data-testid="admin-live-ops-tables-panel">
           <SectionHeader eyebrow="위험 경고" title="운영 위험 경고" description="주의/위험 신호를 먼저 확인합니다." />
           {recommendations.length ? (
             <div className="compact-stack">
@@ -529,7 +531,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           )}
         </Surface>
 
-        <Surface>
+        <Surface data-testid="admin-live-ops-participants-panel">
           <SectionHeader
             eyebrow="테이블 상태"
             title="테이블 상태"
@@ -708,7 +710,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           ) : null}
         </Surface>
 
-        <Surface>
+        <Surface data-testid="admin-live-ops-content-panel">
           <SectionHeader
             eyebrow="하트/연락처 통계"
             title="하트 공개와 연락처 공유"
@@ -730,7 +732,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           ) : null}
         </Surface>
 
-        <Surface>
+        <Surface data-testid="admin-live-ops-content-picks-panel">
           <SectionHeader eyebrow="QR/보조 도구" title="현장 보조 기능" description="QR과 수동 하트 지급 도구입니다." />
           <SessionQrCard
             branchId={snapshot.session.branchId}
@@ -743,7 +745,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
             onSetBlacklistStatus={setBlacklistStatus}
           />
         </Surface>
-        <Surface>
+        <Surface data-testid="admin-live-ops-content-messages-panel">
           <SectionHeader eyebrow="콘텐츠" title="테이블 픽" description="회차별 제출 현황" />
           <div className="compact-stack">
             <div className="compact-row">
@@ -764,7 +766,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
             </div>
           </div>
         </Surface>
-        <Surface>
+        <Surface data-testid="admin-live-ops-content-selected-messages-panel">
           <SectionHeader eyebrow="콘텐츠" title="익명 메시지" description="메시지 수집/선별" />
           <p className="field-help">메시지는 최대 2개까지 작성할 수 있습니다</p>
           {anonymousMessages.length ? (

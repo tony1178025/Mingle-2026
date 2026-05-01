@@ -4,6 +4,7 @@ import { TEST_DATA } from "../fixtures/test-data";
 import { expectVisibleText } from "./assertions";
 
 export async function loginAsAdmin(page: Page) {
+  await page.context().clearCookies();
   await page.context().addCookies([
     {
       name: "mingle_admin_session",
@@ -29,5 +30,5 @@ export async function loginAsAdmin(page: Page) {
     await loginButton.click();
   }
 
-  await expectVisibleText(page, selectors.admin.dashboardTitle);
+  await page.locator(selectors.admin.topbar).first().waitFor({ state: "visible" });
 }

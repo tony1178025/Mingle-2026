@@ -21,7 +21,9 @@ If any fails:
 - [ ] bootstrap 결과에 admin 로그인 정보/QR URL/세션 식별자가 기록된다.
 - [ ] bootstrap 이후 세션 phase는 `ROUND_1`, lifecycleStatus는 `OPEN`으로 고정된다.
 - [ ] bootstrap 이후 최소 2개 table QR가 `ACTIVE` 상태로 존재한다.
-- [ ] bootstrap 기반 타깃 E2E는 skip 없이 pass/fail로 판정된다.
+- [x] bootstrap 기반 타깃 E2E는 skip 없이 pass/fail로 판정된다.
+- [ ] `tests/e2e/customer-checkin.spec.ts`의 valid QR 온보딩 경로는 `"입장 확인 중"` 상태를 벗어나 닉네임 입력으로 진입한다.
+- [ ] `tests/e2e/admin-live-ops.spec.ts`는 브랜치 기본 랜딩(`지점 대시보드`)에서 라이브 콘솔 전환 후 패널 smoke를 통과한다.
 
 ## Customer PWA Checks (Korean-first, mobile-first)
 

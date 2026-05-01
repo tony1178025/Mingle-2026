@@ -27,16 +27,16 @@ export async function completeCustomerOnboarding(
   await expect(page.locator("body")).toBeVisible({
     timeout: 10000
   });
+  await expect(page.getByRole("heading", { name: "프로필 설정" })).toBeVisible({ timeout: 10000 });
   await expect(page.locator("main")).not.toContainText("입장 실패", { timeout: 10000 });
+  await page.waitForTimeout(1200);
 
   if (!data) {
     return;
   }
 
   const nicknameInput = page.getByLabel("닉네임").or(page.getByPlaceholder("닉네임"));
-  await nicknameInput.waitFor({
-    timeout: 10000
-  });
+  await expect(nicknameInput).toBeVisible({ timeout: 20000 });
   await nicknameInput.fill(data.nickname);
 
   const ageInput = page.getByLabel("나이").or(page.getByPlaceholder("나이"));

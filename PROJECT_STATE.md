@@ -6,6 +6,7 @@
 - 2026-04-29 (16:44 UTC)
 - 2026-05-01 (07:43 UTC)
 - 2026-05-01 (08:10 UTC)
+- 2026-05-01 (08:45 UTC)
 
 ## Current Branch
 
@@ -99,6 +100,19 @@
 - Added bootstrap guard unit test:
   - `tests/unit/e2e-bootstrap-route.test.ts`
 - Preserved existing architecture and business rules.
+- Admin E2E selector contract alignment (text fragile selector → structure selector):
+  - `tests/e2e/fixtures/selectors.ts`, `tests/e2e/admin-live-ops.spec.ts`, `tests/e2e/helpers/auth.ts`
+  - topbar/live-nav/panel smoke assertions were moved to role/locator 기반 검증
+- Admin Dashboard minimal readability pass (no architecture/API/state changes):
+  - `components/admin/AdminDashboard.tsx` live-ops 영역에 안정적 test hook 추가
+  - `components/admin/HeartGrantPanel.tsx` nickname null-safe 정렬 처리(운영 콘솔 런타임 오류 제거)
+- Customer check-in onboarding entry stabilization:
+  - `components/customer/CustomerApp.tsx`
+  - 초기 진입에서 검증 완료 전에는 실패 문구를 고정 노출하지 않도록 조정
+  - 자동 verify 재시도 조건을 `flowState === "IDLE"` 중심으로 정렬
+- Customer check-in e2e helper/spec 정렬:
+  - `tests/e2e/helpers/customer.ts`, `tests/e2e/customer-checkin.spec.ts`
+  - revoked 경로는 “성공 온보딩 미진입” 기준으로 검증하도록 계약 보강
 
 ## Verification Baseline
 
@@ -113,8 +127,8 @@
 
 - E2E skip는 제거했지만 deterministic pass 전환은 아직 미완료.
 - Failing surface:
-  - admin panel title assertion mismatch (`현장 운영 대시보드` 대신 현재 렌더는 `운영 콘솔`)
-  - customer onboarding fail state remains (`입장 실패`), indicating QR/context binding이 여전히 런타임에서 깨짐
+  - admin live ops: 브랜치 대시보드 기본 진입 상태에서 live panel 가시성 전환이 스펙 기대와 불일치(앱: 정상 동작, spec: 이동/검증 순서 보완 필요)
+  - customer onboarding: QR verify 응답이 IDLE→SUCCESS로 전환되지 않는 케이스가 남아 닉네임 필드 미노출(앱/seed 계약 추가 추적 필요)
   - full-suite legacy deploy/paid-beta e2e expectations mismatch remains
 - Affected files:
   - `app/api/test/e2e/bootstrap/route.ts`

@@ -137,7 +137,6 @@ function OnboardingView() {
   const onboardingProfileUploadSubjectRef = useRef("");
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [onboardingDraftParticipantId, setOnboardingDraftParticipantId] = useState<string | null>(null);
-  const hasAutoRequestedRef = useRef(false);
   if (!onboardingProfileUploadSubjectRef.current) {
     onboardingProfileUploadSubjectRef.current =
       globalThis.crypto?.randomUUID?.() ??
@@ -151,6 +150,8 @@ function OnboardingView() {
   }
 
   const hasEntryContext = checkinDraft.flowState === "SUCCESS" && Boolean(checkinDraft.resolution);
+  const shouldShowCheckinFailure =
+    checkinDraft.flowState === "BLOCKED" || checkinDraft.flowState === "FAILURE";
 
   useEffect(() => {
     if (checkinDraft.value.trim() || typeof window === "undefined") {
@@ -168,28 +169,21 @@ function OnboardingView() {
       return;
     }
     updateCheckinValue(canonicalQr);
-  }, [checkinDraft.value, updateCheckinValue]);
+  }, [checkinDraft.value, updateCheckinValue, verifyCheckin]);
 
   useEffect(() => {
-    if (
-      hasAutoRequestedRef.current ||
-      hasEntryContext ||
-      checkinDraft.isSubmitting ||
-      !checkinDraft.value.trim()
-    ) {
+    const hasQrValue = Boolean(checkinDraft.value.trim());
+    const shouldAttemptVerify =
+      hasQrValue &&
+      !hasEntryContext &&
+      !checkinDraft.isSubmitting &&
+      checkinDraft.flowState === "IDLE";
+    if (!shouldAttemptVerify) {
       return;
     }
-    hasAutoRequestedRef.current = true;
     track("ENTRY", { source: "qr" });
     void verifyCheckin();
-  }, [
-    checkinDraft.flowState,
-    checkinDraft.isSubmitting,
-    checkinDraft.resolution,
-    checkinDraft.value,
-    hasEntryContext,
-    verifyCheckin
-  ]);
+  }, [checkinDraft.flowState, checkinDraft.isSubmitting, checkinDraft.value, hasEntryContext, verifyCheckin]);
 
   return (
     <main className="customer-shell" data-phase="CHECKIN">
@@ -203,8 +197,8 @@ function OnboardingView() {
         {!hasEntryContext ? (
           <Surface>
             <EmptyState
-              title="입장 실패"
-              description="QR 다시 스캔"
+              title={shouldShowCheckinFailure ? "입장 실패" : "입장 확인 중"}
+              description={shouldShowCheckinFailure ? "QR 다시 스캔" : "QR 정보를 확인하고 있어요"}
             />
             {checkinDraft.error ? <p className="field-error">{checkinDraft.error}</p> : null}
           </Surface>

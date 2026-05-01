@@ -5,7 +5,9 @@ import { expectVisibleText } from "./helpers/assertions";
 
 test("admin live ops core panels and controls", async ({ page }) => {
   await loginAsAdmin(page);
-  await expectVisibleText(page, "현장 운영");
+  await page.getByRole("button", { name: "라이브 콘솔" }).click();
+  await expect(page.locator(SELECTORS.admin.topbar).first()).toBeVisible();
+  await expect(page.locator(SELECTORS.admin.liveConsoleButton).first()).toBeVisible();
   await expect(page.locator(SELECTORS.admin.sessionPanel).first()).toBeVisible();
   await expect(page.locator(SELECTORS.admin.tablesPanel).first()).toBeVisible();
   await expect(page.locator(SELECTORS.admin.participantsPanel).first()).toBeVisible();

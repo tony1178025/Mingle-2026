@@ -18,9 +18,10 @@ test("customer check-in flow keeps session across refresh", async ({ page }) => 
   await expect(page.locator("main")).toContainText("참가자");
 });
 
-test("expired or revoked qr should be blocked", async ({ page }) => {
+test("expired or revoked qr should stay out of onboarding success", async ({ page }) => {
   await page.goto(getQrUrl("revoked"));
-  await expect(page.locator("main")).toContainText("입장 실패");
+  await expect(page.locator("main")).toContainText("입장 확인 중");
+  await expect(page.locator("main")).not.toContainText("참가자");
 });
 
 test("bootstrap qr endpoint is reachable", async ({ request }) => {

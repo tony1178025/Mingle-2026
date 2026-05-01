@@ -28,7 +28,7 @@
 - [x] QR revoke 전용 API 분리(`/api/admin/sessions/[sessionId]/tables/[tableId]/qr/revoke`)
 - [x] /api/customer/* visibility 계약 테스트 확장
 - [x] QR lifecycle 완전 검증 테스트 추가
-- [ ] E2E deterministic seed/bootstrap 고정 완료(bootstrap API + globalSetup + fixture 연동 완료, 남은 2건은 스펙-UI 계약 불일치)
+- [ ] E2E deterministic seed/bootstrap 고정 완료(bootstrap API + globalSetup + fixture 연동 완료, 남은 2건은 앱 런타임/체크인 검증 정합 이슈)
 - [ ] Admin Live Ops 스모크 체크리스트 자동화
 
 ### P2
@@ -38,7 +38,7 @@
 - [ ] 콘텐츠 UX 구조화 (카드 리스트 / 바텀시트 / renderer 분리 / TableStageCard 책임 축소)
 
 ## 마지막 업데이트
-- 2026-05-01: 테스트 전용 `/api/test/e2e/bootstrap` + `tests/e2e/global-setup.ts` 도입. e2e state 파일 기반 fixture 연결 및 skip 제거. 현재 타깃 e2e는 2 passed / 2 failed(실패 원인: 스펙 기대 텍스트/온보딩 전제와 실제 UI 계약 불일치).
+- 2026-05-01: admin/customer 타깃 E2E 원인 수정 진행. selector를 UI 계약 기반으로 조정하고 `data-testid`를 최소 추가했으며, 온보딩 초기 상태를 `입장 확인 중`으로 정리. 현재 타깃 e2e는 2 passed / 2 failed(원인: admin helper가 지점 대시보드 텍스트에 과의존, customer verifyCheckin 흐름이 seed QR에서 SUCCESS로 수렴하지 않음).
 - 2026-05-01: AGENT.md에 skill.fish 21개 스킬 운영 프레임(Primary SoT/우선순위/비협상 규칙/사용 정책/사전 체크리스트) 반영.
 - 2026-04-29: 문서 부재 복구 + 자동화 정책/Safety Gate 반영 + 현재 브랜치 상태 기준 진행 계획 동기화.
 - 2026-04-29: P1 우선 이슈로 QR revoke 전용 API 추가, 전체 검증(lint/typecheck/test/build) 재통과.

@@ -64,3 +64,15 @@ System supports operator.
 - production 환경에서는 bootstrap을 항상 차단한다(404).
 - bootstrap은 운영 DB를 변경하지 않고 파일 기반 테스트 데이터(`.mingle-data`)만 갱신한다.
 - bootstrap 응답에는 테스트 실행에 필요한 최소 정보만 포함하고 운영 민감정보는 포함하지 않는다.
+
+## 9. Admin E2E selector 계약 (최소 안정화)
+
+- Admin E2E는 헤더 문구 문자열(`현장 운영 대시보드`) 고정 비교를 기본 계약으로 삼지 않는다.
+- 우선 계약은 `라이브 콘솔` 네비게이션 진입 + 실제 렌더된 패널/섹션 존재 여부로 판정한다.
+- 테스트 안정화를 위해 패널 래퍼에 최소 `data-testid`를 부여할 수 있으며, 구조/상태 모델/API는 변경하지 않는다.
+
+## 10. Customer check-in onboarding 실패 메시지 노출 규칙
+
+- 온보딩 초기 `IDLE/LOADING` 상태에서는 즉시 `입장 실패`를 노출하지 않는다.
+- `BLOCKED/FAILURE` 상태에서만 실패 메시지를 노출한다.
+- 이 규칙은 UI 오탐 방지 목적이며, 서버 authoritative check-in 정책/검증 로직은 유지한다.
