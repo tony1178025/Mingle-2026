@@ -4,6 +4,7 @@
 
 - 2026-04-29 (16:34 UTC)
 - 2026-04-29 (16:44 UTC)
+- 2026-05-01 (07:43 UTC)
 
 ## Current Branch
 
@@ -45,6 +46,11 @@
 
 ## This Iteration Changes
 
+- Added explicit "installed skill.fish 21-skill active frame" policy to `AGENT.md`, including:
+  - primary source-of-truth order
+  - Mingle non-negotiable operating model constraints
+  - skill usage policy by domain
+  - pre-change execution checklist
 - Restored missing agent control documents.
 - Synced current known status and next actions into TASKS/ROADMAP.
 - Added autonomous execution policy + safety gate decisions to top-level docs.

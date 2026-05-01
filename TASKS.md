@@ -38,6 +38,7 @@
 - [ ] 콘텐츠 UX 구조화 (카드 리스트 / 바텀시트 / renderer 분리 / TableStageCard 책임 축소)
 
 ## 마지막 업데이트
+- 2026-05-01: AGENT.md에 skill.fish 21개 스킬 운영 프레임(Primary SoT/우선순위/비협상 규칙/사용 정책/사전 체크리스트) 반영.
 - 2026-04-29: 문서 부재 복구 + 자동화 정책/Safety Gate 반영 + 현재 브랜치 상태 기준 진행 계획 동기화.
 - 2026-04-29: P1 우선 이슈로 QR revoke 전용 API 추가, 전체 검증(lint/typecheck/test/build) 재통과.
 - 2026-04-29: `/api/customer/*` visibility 계약 테스트 확장 완료(ROUND_1/ROUND_2 필드 정책 + normalize 회귀 + phase 전환 + blocked/logged-out 가시성).
