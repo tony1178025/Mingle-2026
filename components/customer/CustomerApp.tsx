@@ -49,11 +49,18 @@ import type {
 } from "@/types/mingle";
 
 const TAB_LABELS: Record<CustomerTab, string> = {
-  all: "전체",
+  all: "참가자",
   table: "테이블",
   content: "콘텐츠",
-  me: "내 정보"
+  me: "설정"
 };
+
+function customerToastHeading(tone: string) {
+  if (tone === "success") return "완료";
+  if (tone === "warning") return "확인";
+  if (tone === "error") return "문제";
+  return "알림";
+}
 
 const PHASE_LABELS: Record<string, string> = {
   CHECKIN: "체크인",
@@ -233,8 +240,12 @@ function OnboardingView() {
         {!hasEntryContext ? (
           <Surface>
             <EmptyState
-              title={shouldShowCheckinFailure ? "입장 실패" : "입장 확인 중"}
-              description={shouldShowCheckinFailure ? "QR 다시 스캔" : "QR 정보를 확인하고 있어요"}
+              title={shouldShowCheckinFailure ? "입장할 수 없어요" : "입장 확인 중이에요"}
+              description={
+                shouldShowCheckinFailure
+                  ? "QR을 다시 스캔하거나 운영 스태프에게 문의해 주세요."
+                  : "테이블 QR 정보를 확인하고 있어요. 잠시만 기다려 주세요."
+              }
             />
             {checkinDraft.error ? <p className="field-error">{checkinDraft.error}</p> : null}
           </Surface>
@@ -653,7 +664,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           <div className="hero-copy-stack">
             <p className="eyebrow">테이블 중심 진행</p>
             <h1 className="hero-title">
-              {participant.nickname}님, 지금은 {resolveTableLabel(participant)} 라운드입니다.
+              {participant.nickname}님, 지금은 {resolveTableLabel(participant)} 단계예요.
             </h1>
             <p className="hero-description">{phaseGuideMessage}</p>
           </div>
@@ -665,7 +676,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               <Surface>
                 <SectionHeader
                   eyebrow="참가자"
-                  title="참가자 목록"
+                  title="같은 회차 참가자"
                   description={phaseGuideMessage}
                 />
                 <ParticipantFilterTabs value={participantFilter} onChange={setParticipantFilter} />
@@ -712,7 +723,8 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
             <div className="customer-main-column">
               <TableStageCard
                 participant={participant}
-                liveContent={null}
+                liveContent={effectiveLiveContent}
+                layout="compact"
                 responseCount={stageContent.responseCount}
                 alreadyResponded={stageContent.alreadyResponded}
                 anonymousMessageCount={
@@ -733,7 +745,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                 <SectionHeader
                   eyebrow="내 테이블"
                   title={`${resolveTableLabel(participant)} 참가자`}
-                  description="현재 같은 테이블의 참가자입니다."
+                  description="지금 같은 테이블에 배정된 참가자예요."
                 />
                 <div className="participant-grid">
                   {currentTableMembers.map((member) => (
@@ -763,6 +775,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               <TableStageCard
                 participant={participant}
                 liveContent={effectiveLiveContent}
+                layout="full"
                 responseCount={stageContent.responseCount}
                 alreadyResponded={stageContent.alreadyResponded}
                 anonymousMessageCount={
@@ -1086,7 +1099,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
 
         {toast ? (
           <div className="toast" onClick={() => dismissToast()}>
-            <strong>{toast.tone.toUpperCase()}</strong>
+            <strong>{customerToastHeading(toast.tone)}</strong>
             <span>{toast.message}</span>
           </div>
         ) : null}
@@ -1248,12 +1261,12 @@ export function CustomerApp() {
         <div className="customer-stage">
           <Surface>
             <EmptyState
-              title="입장 정보를 확인할 수 없어요."
-              description="QR을 다시 스캔해주세요."
+              title="입장 정보를 불러오지 못했어요"
+              description="QR을 다시 스캔하거나, 아래에서 새로고침해 보세요."
             />
             {snapshotLoadErrorCode ? (
               <p className="field-help customer-snapshot-help">
-                문제가 계속되면 운영팀에 코드({snapshotLoadErrorCode})를 전달해주세요.
+                문제가 계속되면 운영팀에 아래 코드를 알려 주세요: {snapshotLoadErrorCode}
               </p>
             ) : null}
             <div className="customer-snapshot-form">

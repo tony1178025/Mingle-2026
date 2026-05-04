@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type {
   AdminSessionRecord,
@@ -495,10 +497,68 @@ function createSupabaseAdminClient() {
 }
 
 let defaultAdminUserStore: AdminUserStore | null = null;
+let e2eSeedAdminStoreCache: AdminUserStore | null | "unset" = "unset";
+
+/**
+ * Playwright `webServer` runs in a separate Node process from Vitest globalSetup,
+ * so `setAdminUserStoreForTests` from globalSetup does not apply. When deterministic
+ * E2E seed is enabled, mirror bootstrap credentials from the committed seed file.
+ */
+function tryLoadE2eSeedAdminStore(): AdminUserStore | null {
+  if (e2eSeedAdminStoreCache !== "unset") {
+    return e2eSeedAdminStoreCache;
+  }
+  if (process.env.E2E_SEED_ENABLED !== "true") {
+    e2eSeedAdminStoreCache = null;
+    return null;
+  }
+  try {
+    const file = path.join(process.cwd(), "tests/e2e/.state/e2e-seed.json");
+    if (!existsSync(file)) {
+      return null;
+    }
+    const raw = JSON.parse(readFileSync(file, "utf8")) as {
+      ok?: boolean;
+      branchId?: string;
+      admin?: { email?: string; password?: string };
+    };
+    if (!raw?.ok || !raw.branchId || !raw.admin?.email || !raw.admin?.password) {
+      e2eSeedAdminStoreCache = null;
+      return null;
+    }
+    const nowIso = new Date().toISOString();
+    e2eSeedAdminStoreCache = createInMemoryAdminUserStore({
+      users: [
+        {
+          id: "e2e_admin",
+          email: raw.admin.email,
+          passwordHash: hashAdminPassword(raw.admin.password),
+          role: "BRANCH_ADMIN",
+          branchId: raw.branchId,
+          isActive: true,
+          displayName: "E2E Branch Admin",
+          createdAt: nowIso,
+          updatedAt: nowIso,
+          lastLoginAt: null,
+          updatedBy: "e2e-seed-file"
+        }
+      ]
+    });
+    return e2eSeedAdminStoreCache;
+  } catch {
+    e2eSeedAdminStoreCache = null;
+    return null;
+  }
+}
 
 export function getAdminUserStore() {
   if (adminUserStoreOverride) {
     return adminUserStoreOverride;
+  }
+
+  const e2eFromFile = tryLoadE2eSeedAdminStore();
+  if (e2eFromFile) {
+    return e2eFromFile;
   }
 
   if (!isSupabaseAdminStoreConfigured()) {

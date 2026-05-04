@@ -221,6 +221,7 @@ export async function POST() {
       round1TargetNickname: round1Target?.nickname ?? null,
       round2Target: round2Target?.id ?? null,
       round2TargetNickname: round2Target?.nickname ?? null,
+      round2TargetTableId: round2Target?.tableId ?? 1,
       reportTarget: round2Target?.id ?? null
     },
     onboardingProfile: {
