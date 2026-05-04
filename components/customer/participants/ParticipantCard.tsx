@@ -2,8 +2,11 @@
 
 import { UserPhoto } from "@/components/shared/Avatar";
 import { Button } from "@/components/shared/ui";
-import { formatTableName } from "@/lib/mingle";
-import type { ParticipantRecord } from "@/types/mingle";
+import type { CustomerParticipantView, ParticipantRecord } from "@/types/mingle";
+
+function resolveProfileImage(participant: ParticipantRecord | CustomerParticipantView) {
+  return "photoUrl" in participant ? participant.photoUrl : participant.profileImage;
+}
 
 export function ParticipantCard({
   phase,
@@ -13,7 +16,7 @@ export function ParticipantCard({
   onSendHeart
 }: {
   phase: string;
-  participant: ParticipantRecord;
+  participant: ParticipantRecord | CustomerParticipantView;
   canSendHeart: boolean;
   onOpen: () => void;
   onSendHeart: () => void;
@@ -21,15 +24,19 @@ export function ParticipantCard({
   return (
     <article className={phase === "ROUND_2" ? "mg-participant-card round2" : "mg-participant-card round1"}>
       <button type="button" className="participant-head" onClick={onOpen}>
-        <UserPhoto photoUrl={participant.photoUrl} gender={participant.gender} size={48} />
+        <UserPhoto
+          photoUrl={resolveProfileImage(participant) ?? null}
+          gender={participant.gender ?? "M"}
+          size={48}
+        />
         <div className="participant-copy">
           <strong>{participant.nickname}</strong>
           {phase === "ROUND_2" ? (
             <p>
-              {participant.age} · {participant.job}
+              {participant.age ?? "-"} · {participant.job ?? "-"}
             </p>
           ) : (
-            <p>{formatTableName(participant.tableId)}</p>
+            <p>{participant.tableLabel ?? "테이블 정보 없음"}</p>
           )}
         </div>
       </button>

@@ -15,6 +15,7 @@ import {
   parseManualReservationCsv,
   type ManualReservationRow
 } from "@/lib/reservations/manual-reservation";
+import { parseFetchResponseJson } from "@/lib/api/parse-fetch-response";
 import { getMingleRepository } from "@/lib/repositories";
 import {
   ADMIN_DEFAULT_CONFIG,
@@ -41,6 +42,7 @@ type AdminPageKey =
   | "branch-reservations"
   | "branch-session"
   | "branch-live"
+  | "branch-automation-center"
   | "branch-customers"
   | "branch-reports"
   | "branch-settings";
@@ -99,6 +101,7 @@ function getContextPageLabel(page: AdminPageKey) {
   if (page === "branch-reservations") return "예약 현황";
   if (page === "branch-session") return "현재 회차";
   if (page === "branch-live") return "라이브 콘솔";
+  if (page === "branch-automation-center") return "AI Automation Center";
   if (page === "branch-customers") return "참가자/고객 현황";
   if (page === "branch-reports") return "신고/제재";
   return "지점 설정";
@@ -176,7 +179,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     })
       .then(async (response) => {
         if (!response.ok) return;
-        const payload = (await response.json()) as { branches?: BranchRecord[] };
+        const payload = await parseFetchResponseJson<{ branches?: BranchRecord[] }>(response);
         if (!active) return;
         setBranches(payload.branches ?? []);
       })
@@ -201,7 +204,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
         if (!response.ok) {
           return null;
         }
-        const payload = (await response.json()) as { session: ManagedSessionRecord | null };
+        const payload = await parseFetchResponseJson<{ session: ManagedSessionRecord | null }>(response);
         return payload.session;
       })
       .then((session) => {
@@ -502,7 +505,8 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
   };
 
   const renderLiveOps = () => (
-    <div className="admin-grid">
+    <div className="admin-grid" data-testid="admin-live-ops-grid">
+      <div data-testid="admin-live-ops-session-panel">
       <LiveOpsControls
         snapshot={snapshot}
         revealReadyCount={revealReadyCount}
@@ -510,8 +514,9 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
         onTriggerReveal={triggerReveal}
         onPublishAnnouncement={publishAnnouncement}
       />
+      </div>
       <div className="admin-side-column">
-        <Surface>
+        <Surface data-testid="admin-live-ops-tables-panel">
           <SectionHeader eyebrow="위험 경고" title="운영 위험 경고" description="주의/위험 신호를 먼저 확인합니다." />
           {recommendations.length ? (
             <div className="compact-stack">
@@ -527,7 +532,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           )}
         </Surface>
 
-        <Surface>
+        <Surface data-testid="admin-live-ops-participants-panel">
           <SectionHeader
             eyebrow="테이블 상태"
             title="테이블 상태"
@@ -706,7 +711,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           ) : null}
         </Surface>
 
-        <Surface>
+        <Surface data-testid="admin-live-ops-content-panel">
           <SectionHeader
             eyebrow="하트/연락처 통계"
             title="하트 공개와 연락처 공유"
@@ -728,7 +733,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
           ) : null}
         </Surface>
 
-        <Surface>
+        <Surface data-testid="admin-live-ops-content-picks-panel">
           <SectionHeader eyebrow="QR/보조 도구" title="현장 보조 기능" description="QR과 수동 하트 지급 도구입니다." />
           <SessionQrCard
             branchId={snapshot.session.branchId}
@@ -741,7 +746,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
             onSetBlacklistStatus={setBlacklistStatus}
           />
         </Surface>
-        <Surface>
+        <Surface data-testid="admin-live-ops-content-messages-panel">
           <SectionHeader eyebrow="콘텐츠" title="테이블 픽" description="회차별 제출 현황" />
           <div className="compact-stack">
             <div className="compact-row">
@@ -762,7 +767,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
             </div>
           </div>
         </Surface>
-        <Surface>
+        <Surface data-testid="admin-live-ops-content-selected-messages-panel">
           <SectionHeader eyebrow="콘텐츠" title="익명 메시지" description="메시지 수집/선별" />
           <p className="field-help">메시지는 최대 2개까지 작성할 수 있습니다</p>
           {anonymousMessages.length ? (
@@ -1911,6 +1916,23 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     if (activePage === "branch-live") return renderLiveOps();
     if (activePage === "branch-customers") return renderBranchCustomers();
     if (activePage === "branch-reports") return renderBranchReports();
+    if (activePage === "branch-automation-center") {
+      return (
+        <Surface>
+          <SectionHeader
+            eyebrow="AI Automation Center"
+            title="설계 구조 등록 완료"
+            description="이번 주는 설계 등록만 수행합니다. OpenClaw/AI 자동응답/자동발송/환불 자동화는 구현하지 않습니다."
+          />
+          <p className="field-help">
+            문서: docs/ai-automation/README.md, docs/ai-automation/architecture.md
+          </p>
+          <p className="field-help">
+            스키마 초안: db/automation-schema-draft.sql
+          </p>
+        </Surface>
+      );
+    }
     return renderBranchSettings();
   };
 
@@ -1959,6 +1981,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
                       <button type="button" className={activePage === "branch-reservations" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-reservations")}>예약 현황</button>
                       <button type="button" className={activePage === "branch-customers" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-customers")}>고객 현황</button>
                       <button type="button" className={activePage === "branch-reports" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-reports")}>신고/제재</button>
+                      <button type="button" className={activePage === "branch-automation-center" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-automation-center")}>AI Automation Center</button>
                       <button type="button" className={activePage === "branch-settings" ? "admin-console-nav-item admin-console-nav-item-active" : "admin-console-nav-item"} onClick={() => setActivePage("branch-settings")}>지점 설정</button>
                     </div>
                   ) : null}

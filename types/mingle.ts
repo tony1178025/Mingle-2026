@@ -170,6 +170,14 @@ export interface ParticipantRecord {
   lastActiveAt: string | null;
   participantSessionState?: ParticipantSessionState;
   presenceState?: PresenceState;
+  tableLabel?: string;
+  profileImage?: string | null;
+  appearanceSummary?: string;
+  personalitySummary?: string;
+  preferenceSummary?: string;
+  heartStatus?: {
+    heartsRemaining: number;
+  };
 }
 
 export interface HeartRecord {
@@ -404,19 +412,64 @@ export interface SessionSnapshot {
 
 export interface CustomerParticipantView {
   id: string;
+  nickname: string;
+  profileImage?: string | null;
+  tableLabel?: string;
+  appearanceSummary?: string;
+  personalitySummary?: string;
+  preferenceSummary?: string;
+  heartStatus?: {
+    heartsRemaining: number;
+  };
+  sessionId?: string;
+  branchId?: string;
+  gender?: ParticipantGender;
+  age?: number;
+  jobCategory?: string;
+  job?: string;
+  heightCm?: number;
+  animalType?: string;
+  energyType?: EnergyType;
+  tableId?: number;
+  round2Attendance?: Round2Attendance;
+  receivedHearts?: number;
+  sentHearts?: number;
+  profileViews?: number;
+  heartsRemaining?: number;
+  metParticipantIds?: string[];
+  encounterHistory?: ParticipantEncounterRecord[];
+  likedParticipantIds?: string[];
+  likedByParticipantIds?: string[];
+  joinedAt?: string;
+  lastActiveAt?: string | null;
+}
+
+export interface Round1CustomerParticipantView
+  extends Pick<
+    CustomerParticipantView,
+    | "id"
+    | "nickname"
+    | "profileImage"
+    | "tableLabel"
+    | "appearanceSummary"
+    | "personalitySummary"
+    | "preferenceSummary"
+    | "heartStatus"
+  > {}
+
+export interface Round2CustomerParticipantView extends CustomerParticipantView {
+  id: string;
   sessionId: string;
   branchId: string;
   nickname: string;
   gender: ParticipantGender;
-  age?: number;
-  jobCategory?: string;
-  job?: string;
-  photoUrl: string | null;
+  age: number;
+  jobCategory: string;
+  job: string;
+  profileImage: string | null;
   heightCm: number;
   animalType: string;
   energyType: EnergyType;
-  tableId?: number;
-  tableLabel?: string;
   round2Attendance: Round2Attendance;
   receivedHearts: number;
   sentHearts: number;
@@ -1010,6 +1063,10 @@ export interface CustomerEntryResponse {
     tableNumber: number;
   };
   message?: string;
+  /** Present when `code` was supplied on entry and server resolved check-in (same contract as session-context). */
+  checkinResolution?: CheckinResolution | null;
+  snapshot?: SessionView;
+  participantId?: string | null;
 }
 
 export interface CustomerProfileStepRequest {
@@ -1214,6 +1271,13 @@ export type MingleCommand =
     }
   | {
       type: "admin.regenerateTableQr";
+      sessionId: string;
+      tableId: number;
+      expectedVersion?: number;
+    }
+  | {
+      type: "admin.revokeTableQr";
+      sessionId: string;
       tableId: number;
       expectedVersion?: number;
     }

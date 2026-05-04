@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { handleCustomerMatchConsent } from "@/lib/services/match-service";
 
 export const runtime = "nodejs";
@@ -16,9 +17,10 @@ export async function POST(request: NextRequest) {
       };
     };
     const result = await handleCustomerMatchConsent(request, payload);
-    return NextResponse.json(result);
+    return jsonOk(result);
   } catch (error) {
+    console.error("[api/customer/match]", error);
     const message = error instanceof Error ? error.message : "연락처 동의 처리에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "CUSTOMER_MATCH_CONSENT_FAILED" });
   }
 }

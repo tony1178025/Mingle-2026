@@ -8,6 +8,7 @@ import type {
   ManagedSessionUpsertInput,
   SessionLifecycleStatus
 } from "@/types/mingle";
+import { parseFetchResponseJson } from "@/lib/api/parse-fetch-response";
 
 type SessionFormState = {
   id: string;
@@ -46,11 +47,7 @@ const EMPTY_FORM: SessionFormState = {
 };
 
 async function parseJson<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    throw new Error((await response.text()) || "요청 처리에 실패했습니다.");
-  }
-
-  return (await response.json()) as T;
+  return parseFetchResponseJson<T>(response);
 }
 
 export function SessionsPanel({ adminBranchId }: { adminBranchId: string | null }) {

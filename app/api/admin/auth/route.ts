@@ -5,12 +5,13 @@ import {
   hasAdminPasswordConfigured,
   resolveAdminSessionByCredentials
 } from "@/lib/admin-auth";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import type { AdminSessionRecord } from "@/types/mingle";
 
 export const runtime = "nodejs";
 
-function buildCookieResponse(payload: { ok: true; adminSession: AdminSessionRecord }) {
-  const response = NextResponse.json(payload);
+function buildCookieResponse(payload: { adminSession: AdminSessionRecord }) {
+  const response = jsonOk(payload);
   response.cookies.set({
     name: ADMIN_SESSION_COOKIE,
     value: getAdminSessionCookieValue(payload.adminSession),
@@ -24,8 +25,8 @@ function buildCookieResponse(payload: { ok: true; adminSession: AdminSessionReco
 
 export async function POST(request: NextRequest) {
   if (!hasAdminPasswordConfigured()) {
-    return new NextResponse("관리자 사용자 스토어가 아직 준비되지 않았습니다.", {
-      status: 503
+    return jsonError("관리자 사용자 스토어가 아직 준비되지 않았습니다.", 503, {
+      code: "ADMIN_STORE_NOT_CONFIGURED"
     });
   }
 
@@ -36,21 +37,21 @@ export async function POST(request: NextRequest) {
   // Passwords are always verified against password_hash; bootstrap env passwords only help
   // first-login recovery for seeded accounts inside the store layer.
   if (!body.login || !body.password) {
-    return new NextResponse("관리자 로그인 ID와 비밀번호를 모두 입력해 주세요.", {
-      status: 401
+    return jsonError("관리자 로그인 ID와 비밀번호를 모두 입력해 주세요.", 401, {
+      code: "ADMIN_LOGIN_INVALID"
     });
   }
 
   const adminSession = await resolveAdminSessionByCredentials(body.login, body.password);
   if (!adminSession) {
-    return new NextResponse("관리자 로그인 정보가 올바르지 않습니다.", { status: 401 });
+    return jsonError("관리자 로그인 정보가 올바르지 않습니다.", 401, { code: "ADMIN_LOGIN_FAILED" });
   }
 
-  return buildCookieResponse({ ok: true, adminSession });
+  return buildCookieResponse({ adminSession });
 }
 
 export async function DELETE() {
-  const response = NextResponse.json({ ok: true });
+  const response = jsonOk({});
   response.cookies.set({
     name: ADMIN_SESSION_COOKIE,
     value: "",

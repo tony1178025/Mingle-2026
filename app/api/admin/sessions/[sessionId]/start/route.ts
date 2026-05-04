@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole, requireBranchScope, requireDbRepository } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { executeServerCommand, getServerSessionSnapshot } from "@/lib/repositories/server-repository";
 
 export const runtime = "nodejs";
@@ -20,7 +21,7 @@ export async function POST(
     const { sessionId } = await context.params;
     const current = await db.repository.getSessionRow(sessionId);
     if (!current) {
-      return new NextResponse("Session not found.", { status: 404 });
+      return jsonError("Session not found.", 404, { code: "SESSION_NOT_FOUND" });
     }
     const scopeError = requireBranchScope(auth.adminSession, current.branch_id);
     if (scopeError) {
@@ -40,9 +41,10 @@ export async function POST(
       });
     }
 
-    return NextResponse.json({ session });
+    return jsonOk({ session });
   } catch (error) {
+    console.error("[api/admin/sessions/start]", error);
     const message = error instanceof Error ? error.message : "세션 시작에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_SESSION_START_FAILED" });
   }
 }

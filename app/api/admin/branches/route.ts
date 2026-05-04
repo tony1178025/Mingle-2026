@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole, requireDbRepository } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import type { BranchUpsertInput } from "@/types/mingle";
 
 export const runtime = "nodejs";
@@ -21,11 +22,12 @@ export async function GET(request: NextRequest) {
       auth.adminSession.role === "HQ_ADMIN"
         ? branches
         : branches.filter((branch) => branch.id === auth.adminSession.branchId);
-    return NextResponse.json({ branches: visibleBranches });
+    return jsonOk({ branches: visibleBranches });
   } catch (error) {
+    console.error("[api/admin/branches GET]", error);
     const message =
       error instanceof Error ? error.message : "Failed to load branches.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_BRANCHES_LIST_FAILED" });
   }
 }
 
@@ -46,10 +48,11 @@ export async function POST(request: NextRequest) {
       ...input,
       updatedBy: auth.adminSession.adminUserId
     });
-    return NextResponse.json({ branch });
+    return jsonOk({ branch });
   } catch (error) {
+    console.error("[api/admin/branches POST]", error);
     const message =
       error instanceof Error ? error.message : "Failed to create branch.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_BRANCH_CREATE_FAILED" });
   }
 }

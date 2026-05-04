@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import {
   buildCustomerSession,
   clearCustomerSession,
@@ -33,19 +34,13 @@ function getRequiredEnvErrorCode() {
 export async function POST(request: NextRequest) {
   const missingEnvCode = getRequiredEnvErrorCode();
   if (missingEnvCode) {
-    return NextResponse.json(
-      {
-        code: missingEnvCode,
-        message: "Supabase 필수 환경변수가 누락되었습니다."
-      },
-      { status: 500 }
-    );
+    return jsonError("Supabase 필수 환경변수가 누락되었습니다.", 500, { code: missingEnvCode });
   }
 
   try {
     const body = (await request.json()) as ReservationSessionContextRequest;
     const result = await getReservationSessionContext(body);
-    const response = NextResponse.json({
+    const response = jsonOk({
       ...result,
       snapshot: sanitizeSnapshotForClient(result.snapshot)
     });
@@ -71,9 +66,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
+    console.error("[api/reservations/session-context]", error);
     const message =
       error instanceof Error ? error.message : "예약 세션 컨텍스트를 확인하지 못했습니다.";
-    const response = new NextResponse(message, { status: 400 });
+    const response = jsonError(message, 400, { code: "RESERVATION_SESSION_CONTEXT_FAILED" });
     clearCustomerSession(response);
     return response;
   }

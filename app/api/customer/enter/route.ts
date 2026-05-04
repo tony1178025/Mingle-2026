@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import {
   attachOnboardingSessionCookie,
   finalizeOnboardingEnter
@@ -11,15 +12,16 @@ export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as CustomerEnterRequest;
     const result = await finalizeOnboardingEnter(payload);
-    const response = NextResponse.json({
-      status: "OK",
+    const response = jsonOk({
+      status: "OK" as const,
       participantId: result.payload.participantId,
       snapshot: result.payload.snapshot
     });
     attachOnboardingSessionCookie(response, result.customerSession);
     return response;
   } catch (error) {
+    console.error("[api/customer/enter]", error);
     const message = error instanceof Error ? error.message : "입장 처리에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "CUSTOMER_ENTER_FAILED" });
   }
 }

@@ -8,6 +8,7 @@ import type {
   ParticipantRecord,
   SessionSnapshot
 } from "@/types/mingle";
+import { readRouteResponseData } from "@/tests/helpers/read-route-json";
 
 const originalCwd = process.cwd();
 const SESSION_ID = "session_signature_20260412";
@@ -146,7 +147,7 @@ async function requestSessionContext(body: Record<string, unknown>) {
   });
 
   const response = await POST(request);
-  const payload = (await response.json()) as {
+  const payload = await readRouteResponseData<{
     participantId?: string | null;
     checkinResolution?: {
       flowState: string;
@@ -154,7 +155,7 @@ async function requestSessionContext(body: Record<string, unknown>) {
       reservationExternalId?: string | null;
       phone?: string | null;
     };
-  };
+  }>(response);
 
   return { response, payload };
 }

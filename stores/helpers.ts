@@ -9,13 +9,9 @@ import type { SessionCommandResponse, SessionSnapshot, SessionView } from "@/typ
 
 export function normalizeSnapshot(snapshot: SessionView): SessionSnapshot {
   const contactExchanges = snapshot.contactExchanges ?? [];
-  const participants = classifyParticipants(
-    snapshot.participants.map((participant) => ({
+  const normalizedParticipants = snapshot.participants.map((participant) => {
+    const base = {
       ...participant,
-      age: participant.age ?? 0,
-      jobCategory: participant.jobCategory ?? "",
-      job: participant.job ?? "",
-      tableId: participant.tableId ?? 1,
       reservationId: null,
       reservationExternalId: null,
       phone: null,
@@ -30,8 +26,21 @@ export function normalizeSnapshot(snapshot: SessionView): SessionSnapshot {
       checkinMode: "qr",
       participantSessionState: "ACTIVE" as const,
       presenceState: "CHECKED_IN" as const
-    }))
-  );
+    };
+    if (snapshot.session.phase === "ROUND_1") {
+      return base;
+    }
+    return {
+      ...base,
+      age: participant.age ?? 0,
+      jobCategory: participant.jobCategory ?? "",
+      job: participant.job ?? ""
+    };
+  });
+  const participants =
+    snapshot.session.phase === "ROUND_1"
+      ? (normalizedParticipants as SessionSnapshot["participants"])
+      : classifyParticipants(normalizedParticipants as SessionSnapshot["participants"]);
   return {
     ...snapshot,
     participants,
@@ -96,7 +105,9 @@ export function applyCommandResult(
   set((state) => {
     const currentVersion = state.snapshot?.version ?? -1;
     if (snapshot.version < currentVersion) {
-      return {};
+      // Still apply client-only fields (e.g. checkinDraft) even when the snapshot is stale —
+      // otherwise verifyCheckin can succeed on the server but never update local draft state.
+      return Object.keys(extra).length > 0 ? extra : {};
     }
 
     const nextState: Record<string, unknown> = {

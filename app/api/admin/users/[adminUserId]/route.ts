@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole, requireDbRepository } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { getAdminUserStore } from "@/lib/admin-user-store";
 import type { AdminUserUpdateInput } from "@/types/mingle";
 
@@ -27,7 +28,7 @@ export async function PATCH(
 
     const store = getAdminUserStore();
     if (!store) {
-      return new NextResponse("Admin user store is not configured.", { status: 503 });
+      return jsonError("Admin user store is not configured.", 503, { code: "ADMIN_STORE_NOT_CONFIGURED" });
     }
 
     const { adminUserId } = await context.params;
@@ -36,8 +37,8 @@ export async function PATCH(
     if (body.type === "reset-password") {
       const password = body.password?.trim();
       if (!password || password.length < 8) {
-        return new NextResponse("Password must be at least 8 characters long.", {
-          status: 400
+        return jsonError("Password must be at least 8 characters long.", 400, {
+          code: "ADMIN_PASSWORD_TOO_SHORT"
         });
       }
 
@@ -46,11 +47,11 @@ export async function PATCH(
         password,
         auth.adminSession.adminUserId
       );
-      return NextResponse.json({ user });
+      return jsonOk({ user });
     }
 
     if (body.type !== "update") {
-      return new NextResponse("Unsupported admin user action.", { status: 400 });
+      return jsonError("Unsupported admin user action.", 400, { code: "ADMIN_USER_ACTION_UNSUPPORTED" });
     }
 
     const db = requireDbRepository();
@@ -61,8 +62,8 @@ export async function PATCH(
     if (body.input.role !== "HQ_ADMIN" && body.input.branchId) {
       const branch = await db.repository.getBranch(body.input.branchId);
       if (!branch || !branch.is_active) {
-        return new NextResponse("Select an active branch for this admin user.", {
-          status: 400
+        return jsonError("Select an active branch for this admin user.", 400, {
+          code: "ADMIN_USER_BRANCH_INVALID"
         });
       }
     }
@@ -72,10 +73,11 @@ export async function PATCH(
       body.input,
       auth.adminSession.adminUserId
     );
-    return NextResponse.json({ user });
+    return jsonOk({ user });
   } catch (error) {
+    console.error("[api/admin/users PATCH]", error);
     const message =
       error instanceof Error ? error.message : "Failed to update admin user.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_USER_UPDATE_FAILED" });
   }
 }

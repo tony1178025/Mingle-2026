@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import {
   requireAdminRole,
   requireBranchScope,
   requireDbRepository
 } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import type { ManagedSessionUpsertInput } from "@/types/mingle";
 
 export const runtime = "nodejs";
@@ -23,11 +24,12 @@ export async function GET(request: NextRequest) {
     const requestedBranchId = request.nextUrl.searchParams.get("branchId");
     const branchScope = auth.adminSession.role === "HQ_ADMIN" ? requestedBranchId : auth.adminSession.branchId;
     const sessions = await db.repository.listManagedSessions(branchScope);
-    return NextResponse.json({ sessions });
+    return jsonOk({ sessions });
   } catch (error) {
+    console.error("[api/admin/sessions GET]", error);
     const message =
       error instanceof Error ? error.message : "Failed to load sessions.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_SESSIONS_LIST_FAILED" });
   }
 }
 
@@ -53,10 +55,11 @@ export async function POST(request: NextRequest) {
       ...input,
       updatedBy: auth.adminSession.adminUserId
     });
-    return NextResponse.json({ session });
+    return jsonOk({ session });
   } catch (error) {
+    console.error("[api/admin/sessions POST]", error);
     const message =
       error instanceof Error ? error.message : "Failed to create session.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_SESSION_CREATE_FAILED" });
   }
 }

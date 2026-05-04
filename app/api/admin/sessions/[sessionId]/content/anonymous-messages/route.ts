@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { getServerSessionSnapshot } from "@/lib/repositories/server-repository";
 
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ export async function GET(
     const { sessionId } = await context.params;
     const snapshot = await getServerSessionSnapshot();
     if (snapshot.session.id !== sessionId) {
-      return new NextResponse("세션을 찾을 수 없습니다.", { status: 404 });
+      return jsonError("세션을 찾을 수 없습니다.", 404, { code: "SESSION_NOT_FOUND" });
     }
 
     const participantsById = new Map(snapshot.participants.map((participant) => [participant.id, participant]));
@@ -34,9 +35,10 @@ export async function GET(
         };
       });
 
-    return NextResponse.json({ items: messages });
+    return jsonOk({ items: messages });
   } catch (error) {
+    console.error("[api/admin/anonymous-messages]", error);
     const message = error instanceof Error ? error.message : "익명 메시지 목록을 조회하지 못했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_ANONYMOUS_MESSAGES_LIST_FAILED" });
   }
 }

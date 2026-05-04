@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole, requireDbRepository } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import type { BranchUpsertInput } from "@/types/mingle";
 
 export const runtime = "nodejs";
@@ -22,7 +23,7 @@ export async function PATCH(
     const { branchId } = await context.params;
     const existing = await db.repository.getBranch(branchId);
     if (!existing) {
-      return new NextResponse("Branch not found.", { status: 404 });
+      return jsonError("Branch not found.", 404, { code: "BRANCH_NOT_FOUND" });
     }
 
     const input = (await request.json()) as BranchUpsertInput;
@@ -37,10 +38,11 @@ export async function PATCH(
       updatedBy: auth.adminSession.adminUserId
     });
 
-    return NextResponse.json({ branch });
+    return jsonOk({ branch });
   } catch (error) {
+    console.error("[api/admin/branches PATCH]", error);
     const message =
       error instanceof Error ? error.message : "Failed to update branch.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_BRANCH_UPDATE_FAILED" });
   }
 }

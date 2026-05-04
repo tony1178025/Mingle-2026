@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { executeServerCommand, sanitizeSnapshotForAdmin } from "@/lib/repositories/server-repository";
 import type { RotationPreview } from "@/types/mingle";
 import {
@@ -30,19 +31,21 @@ export async function POST(
     const { sessionId } = await context.params;
     const previewId = body.previewId ?? body.preview?.previewId;
     if (!previewId) {
-      return new NextResponse("previewId가 필요합니다.", { status: 400 });
+      return jsonError("previewId가 필요합니다.", 400, { code: "PREVIEW_ID_REQUIRED" });
     }
     const preview = await getRotationPreview(sessionId, previewId);
     if (!preview) {
-      return new NextResponse("유효한 프리뷰를 찾지 못했습니다. 프리뷰를 다시 생성해주세요.", {
-        status: 400
+      return jsonError("유효한 프리뷰를 찾지 못했습니다. 프리뷰를 다시 생성해주세요.", 400, {
+        code: "ROTATION_PREVIEW_NOT_FOUND"
       });
     }
     const locked = await acquireRotationApplyLock(sessionId);
     if (!locked) {
-      return new NextResponse("다른 운영자가 rotation apply를 진행 중입니다. 잠시 후 다시 시도해주세요.", {
-        status: 409
-      });
+      return jsonError(
+        "다른 운영자가 rotation apply를 진행 중입니다. 잠시 후 다시 시도해주세요.",
+        409,
+        { code: "ROTATION_APPLY_LOCKED" }
+      );
     }
     try {
     const result = await executeServerCommand({
@@ -88,7 +91,7 @@ export async function POST(
       sessionId: result.snapshot.session.id,
       participantIds: preview.moves.map((move) => move.participantId)
     });
-    return NextResponse.json({
+    return jsonOk({
       snapshot: sanitizeSnapshotForAdmin(result.snapshot),
       rotationPreview: result.rotationPreview ?? null
     });
@@ -96,7 +99,8 @@ export async function POST(
       await releaseRotationApplyLock(sessionId);
     }
   } catch (error) {
+    console.error("[api/admin/rotation/apply]", error);
     const message = error instanceof Error ? error.message : "회전 적용에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_ROTATION_APPLY_FAILED" });
   }
 }

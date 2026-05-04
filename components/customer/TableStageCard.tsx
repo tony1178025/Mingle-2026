@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Badge, Button, SectionHeader, Surface } from "@/components/shared/ui";
-import type { LiveContentRecord, ParticipantRecord } from "@/types/mingle";
+import type { CustomerParticipantView, LiveContentRecord, ParticipantRecord } from "@/types/mingle";
 
 function toneForContent(kind: LiveContentRecord["kind"]) {
   if (kind === "announcement") return "warning";
@@ -23,16 +23,16 @@ export function TableStageCard({
   onRespond,
   encounterParticipants
 }: {
-  participant: ParticipantRecord;
+  participant: ParticipantRecord | CustomerParticipantView;
   liveContent: LiveContentRecord | null;
   responseCount: number;
   alreadyResponded: boolean;
   anonymousMessageCount: number;
   tablePickWindowOpen: boolean;
   tablePickRotationIndex: 0 | 1 | null;
-  tablePickCandidates: ParticipantRecord[];
+  tablePickCandidates: Array<ParticipantRecord | CustomerParticipantView>;
   tablePickExisting: { wantToKnowParticipantId: string | null; funnyParticipantId: string | null };
-  encounterParticipants: ParticipantRecord[];
+  encounterParticipants: Array<ParticipantRecord | CustomerParticipantView>;
   onRespond: (value: string, recipientId?: string | null) => Promise<boolean>;
 }) {
   const [textValue, setTextValue] = useState("");

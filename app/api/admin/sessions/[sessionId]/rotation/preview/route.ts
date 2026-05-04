@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { getServerSessionSnapshot, sanitizeSnapshotForAdmin } from "@/lib/repositories/server-repository";
 import { runRotationPreview } from "@/server/rotation/rotation-runner";
 import { saveRotationPreview } from "@/server/rotation/rotation.redis";
@@ -21,14 +22,15 @@ export async function POST(request: NextRequest) {
       type: "rotation:previewed",
       sessionId: snapshot.session.id
     });
-    return NextResponse.json({
+    return jsonOk({
       snapshot: sanitizeSnapshotForAdmin(snapshot),
       rotationPreview: computed.preview,
       warnings: computed.warnings,
       fallbackUsed: computed.fallbackUsed
     });
   } catch (error) {
+    console.error("[api/admin/rotation/preview]", error);
     const message = error instanceof Error ? error.message : "회전 프리뷰 생성에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_ROTATION_PREVIEW_FAILED" });
   }
 }

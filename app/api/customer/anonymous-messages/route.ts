@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { submitAnonymousMessage } from "@/lib/services/customer-session-service";
 
 export const runtime = "nodejs";
@@ -15,9 +16,10 @@ export async function POST(request: NextRequest) {
       revealSender?: boolean;
     };
     const result = await submitAnonymousMessage(request, body);
-    return NextResponse.json(result);
+    return jsonOk(result);
   } catch (error) {
+    console.error("[api/customer/anonymous-messages]", error);
     const message = error instanceof Error ? error.message : "메시지 전송에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ANONYMOUS_MESSAGE_FAILED" });
   }
 }

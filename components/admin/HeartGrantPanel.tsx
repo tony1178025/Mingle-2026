@@ -42,7 +42,11 @@ export function HeartGrantPanel({
 
     return pool
       .slice()
-      .sort((left, right) => left.nickname.localeCompare(right.nickname, "ko"))
+      .sort((left, right) => {
+        const leftName = (left.nickname ?? left.id ?? "").toString();
+        const rightName = (right.nickname ?? right.id ?? "").toString();
+        return leftName.localeCompare(rightName, "ko");
+      })
       .slice(0, 8);
   }, [query, snapshot.participants]);
 

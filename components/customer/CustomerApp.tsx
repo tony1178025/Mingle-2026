@@ -22,17 +22,31 @@ import {
   isRotationInstructionActive
 } from "@/engine/content";
 import { buildRevealState } from "@/engine/reveal";
+import { parseFetchResponseJson } from "@/lib/api/parse-fetch-response";
 import { cn, createToast, formatTableName, REPORT_REASONS } from "@/lib/mingle";
 import { triggerHaptic } from "@/lib/haptics";
-import { parseCheckinQrValue } from "@/features/checkin/model";
+import {
+  CHECKIN_REENTRY_MESSAGE,
+  CHECKIN_SUCCESS_MESSAGE,
+  parseCheckinQrValue
+} from "@/features/checkin/model";
 import { track } from "@/lib/analytics/track";
 import type { ParticipantFilter } from "@/lib/customer-ui/filterParticipants";
 import { filterParticipants } from "@/lib/customer-ui/filterParticipants";
 import { paginate } from "@/lib/customer-ui/paginate";
 import { useDesignQA } from "@/lib/ux/design-qa";
 import { useScrollTopButton } from "@/hooks/useScrollTopButton";
+import { applyCommandResult } from "@/stores/helpers";
 import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStore";
-import type { ContactExchangeMethod, CustomerTab, ParticipantRecord } from "@/types/mingle";
+import type {
+  CheckinResolution,
+  ContactExchangeMethod,
+  CustomerParticipantView,
+  ParticipantRecord,
+  CustomerTab,
+  SessionCommandResponse,
+  SessionView
+} from "@/types/mingle";
 
 const TAB_LABELS: Record<CustomerTab, string> = {
   all: "전체",
@@ -59,6 +73,20 @@ function formatOperationalPhaseLabel(phase: string) {
   if (phase === "ROUND_2") return "2라운드";
   if (phase === "CLOSED") return "종료";
   return "1라운드";
+}
+
+function resolveTableLabel(participant: CustomerParticipantView) {
+  return participant.tableLabel ?? "테이블 정보 없음";
+}
+
+function isRound2ParticipantView(participant: CustomerParticipantView) {
+  return Boolean(
+    participant &&
+      typeof participant === "object" &&
+      "sessionId" in participant &&
+      "tableLabel" in participant &&
+      "gender" in participant
+  );
 }
 
 function formatContactExchangeStatus(status: "PENDING" | "COMPLETED" | "BLOCKED") {
@@ -118,7 +146,7 @@ function OnboardingView() {
   const onboardingProfileUploadSubjectRef = useRef("");
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [onboardingDraftParticipantId, setOnboardingDraftParticipantId] = useState<string | null>(null);
-  const hasAutoRequestedRef = useRef(false);
+  const verifyInFlightRef = useRef(false);
   if (!onboardingProfileUploadSubjectRef.current) {
     onboardingProfileUploadSubjectRef.current =
       globalThis.crypto?.randomUUID?.() ??
@@ -127,53 +155,74 @@ function OnboardingView() {
   const profileUploadSubjectId =
     checkinDraft.resolution?.participantId ?? onboardingProfileUploadSubjectRef.current;
 
+  const hasEntryContext = checkinDraft.flowState === "SUCCESS" && Boolean(checkinDraft.resolution);
+  const shouldShowCheckinFailure =
+    checkinDraft.flowState === "BLOCKED" || checkinDraft.flowState === "FAILURE";
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !snapshot || verifyInFlightRef.current) {
+      return;
+    }
+
+    let qrValue = checkinDraft.value.trim();
+    if (!qrValue) {
+      const params = new URLSearchParams(window.location.search);
+      const branchId = params.get("branchId")?.trim() ?? "";
+      const tableId = params.get("tableId")?.trim() ?? "";
+      const code = params.get("code")?.trim() ?? "";
+      if (!branchId || !tableId) {
+        return;
+      }
+      const canonicalQr = `mingle://table/${branchId}/${tableId}${code ? `?code=${code}` : ""}`;
+      if (!parseCheckinQrValue(canonicalQr)) {
+        return;
+      }
+      updateCheckinValue(canonicalQr);
+      qrValue = canonicalQr;
+    }
+
+    const effectiveQr = qrValue || checkinDraft.value.trim();
+    const shouldAttemptVerify =
+      Boolean(effectiveQr) &&
+      !hasEntryContext &&
+      !checkinDraft.isSubmitting &&
+      checkinDraft.flowState === "IDLE";
+    if (!shouldAttemptVerify) {
+      return;
+    }
+
+    verifyInFlightRef.current = true;
+    track("ENTRY", { source: "qr" });
+    // Defer until after Zustand/React have applied `updateCheckinValue` so `verifyCheckin` reads the latest draft.
+    queueMicrotask(() => {
+      void verifyCheckin().finally(() => {
+        verifyInFlightRef.current = false;
+      });
+    });
+
+    return () => {
+      verifyInFlightRef.current = false;
+    };
+  }, [
+    snapshot,
+    checkinDraft.flowState,
+    checkinDraft.isSubmitting,
+    checkinDraft.value,
+    hasEntryContext,
+    verifyCheckin,
+    updateCheckinValue
+  ]);
+
   if (!snapshot) {
     return <LoadingView />;
   }
 
-  const hasEntryContext = checkinDraft.flowState === "SUCCESS" && Boolean(checkinDraft.resolution);
-
-  useEffect(() => {
-    if (checkinDraft.value.trim() || typeof window === "undefined") {
-      return;
-    }
-    const params = new URLSearchParams(window.location.search);
-    const branchId = params.get("branchId")?.trim() ?? "";
-    const tableId = params.get("tableId")?.trim() ?? "";
-    const code = params.get("code")?.trim() ?? "";
-    if (!branchId || !tableId) {
-      return;
-    }
-    const canonicalQr = `mingle://table/${branchId}/${tableId}${code ? `?code=${code}` : ""}`;
-    if (!parseCheckinQrValue(canonicalQr)) {
-      return;
-    }
-    updateCheckinValue(canonicalQr);
-  }, [checkinDraft.value, updateCheckinValue]);
-
-  useEffect(() => {
-    if (
-      hasAutoRequestedRef.current ||
-      hasEntryContext ||
-      checkinDraft.isSubmitting ||
-      !checkinDraft.value.trim()
-    ) {
-      return;
-    }
-    hasAutoRequestedRef.current = true;
-    track("ENTRY", { source: "qr" });
-    void verifyCheckin();
-  }, [
-    checkinDraft.flowState,
-    checkinDraft.isSubmitting,
-    checkinDraft.resolution,
-    checkinDraft.value,
-    hasEntryContext,
-    verifyCheckin
-  ]);
-
   return (
-    <main className="customer-shell" data-phase="CHECKIN">
+    <main
+      className="customer-shell"
+      data-phase="CHECKIN"
+      data-testid={hasEntryContext ? "customer-onboarding-ready" : undefined}
+    >
       <div className="customer-stage onboarding-stage">
         <Surface className="customer-hero">
           <div className="hero-copy-stack">
@@ -184,8 +233,8 @@ function OnboardingView() {
         {!hasEntryContext ? (
           <Surface>
             <EmptyState
-              title="입장 실패"
-              description="QR 다시 스캔"
+              title={shouldShowCheckinFailure ? "입장 실패" : "입장 확인 중"}
+              description={shouldShowCheckinFailure ? "QR 다시 스캔" : "QR 정보를 확인하고 있어요"}
             />
             {checkinDraft.error ? <p className="field-error">{checkinDraft.error}</p> : null}
           </Surface>
@@ -210,26 +259,31 @@ function OnboardingView() {
                     if (!checkinDraft.resolution?.sessionId || !checkinDraft.resolution.tableId) {
                       return;
                     }
-                    const response = await fetch("/api/customer/profile/step", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json"
-                      },
-                      body: JSON.stringify({
-                        sessionId: checkinDraft.resolution.sessionId,
-                        tableId: checkinDraft.resolution.tableId,
-                        step,
-                        data,
-                        draftParticipantId: onboardingDraftParticipantId ?? undefined
-                      })
-                    });
-                    if (!response.ok) {
-                      const message = await response.text();
-                      throw new Error(message || "임시 저장에 실패했습니다.");
+                    try {
+                      const response = await fetch("/api/customer/profile/step", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Accept: "application/json"
+                        },
+                        body: JSON.stringify({
+                          sessionId: checkinDraft.resolution.sessionId,
+                          tableId: checkinDraft.resolution.tableId,
+                          step,
+                          data,
+                          draftParticipantId: onboardingDraftParticipantId ?? undefined
+                        })
+                      });
+                      const payload = await parseFetchResponseJson<{
+                        status: string;
+                        draftParticipantId: string;
+                      }>(response);
+                      if (payload.draftParticipantId) {
+                        setOnboardingDraftParticipantId(payload.draftParticipantId);
+                      }
+                    } catch {
+                      // Onboarding step persistence is best-effort; completion still commits final profile.
                     }
-                    const payload = (await response.json()) as { draftParticipantId: string };
-                    setOnboardingDraftParticipantId(payload.draftParticipantId);
                   }}
                   completeButtonDisabled={isSubmittingProfile}
                   onComplete={() => {
@@ -237,21 +291,27 @@ function OnboardingView() {
                     setIsSubmittingProfile(true);
                     const commit = async () => {
                       if (onboardingDraftParticipantId) {
-                        const response = await fetch("/api/customer/enter", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Accept: "application/json"
-                          },
-                          body: JSON.stringify({
-                            draftParticipantId: onboardingDraftParticipantId
-                          })
-                        });
-                        if (!response.ok) {
-                          throw new Error(await response.text());
+                        try {
+                          const response = await fetch("/api/customer/enter", {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Accept: "application/json"
+                            },
+                            body: JSON.stringify({
+                              draftParticipantId: onboardingDraftParticipantId
+                            })
+                          });
+                          await parseFetchResponseJson<{
+                            status: string;
+                            participantId: string;
+                          }>(response);
+                          await syncFromRepository();
+                          return true;
+                        } catch {
+                          // Draft may be missing server-side (e.g. step saves were best-effort); fall back to command path.
+                          return completeProfile();
                         }
-                        await syncFromRepository();
-                        return true;
                       }
                       return completeProfile();
                     };
@@ -309,12 +369,10 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
                   {matches.map((match) => (
                     <article key={match.id} className="participant-card match-card">
                       <div className="participant-head">
-                        <UserPhoto photoUrl={match.photoUrl} gender={match.gender} size={56} />
+                        <UserPhoto photoUrl={match.profileImage ?? null} gender={match.gender} size={56} />
                         <div className="participant-copy">
                           <strong>{match.nickname}</strong>
-                          <p>
-                            {match.job} · {match.animalType}
-                          </p>
+                          <p>{match.job}</p>
                         </div>
                       </div>
                       <Button block disabled>
@@ -340,6 +398,9 @@ function MatchEndView({ participant }: { participant: ParticipantRecord }) {
 function CustomerView({ participant }: { participant: ParticipantRecord }) {
   useDesignQA();
   const snapshot = useMingleStore((state) => state.snapshot)!;
+  if (!isRound2ParticipantView(participant)) {
+    return <LoadingView />;
+  }
   const customerTab = useMingleStore((state) => state.customerTab);
   const setCustomerTab = useMingleStore((state) => state.setCustomerTab);
   const toast = useMingleStore((state) => state.toast);
@@ -382,8 +443,11 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
   });
 
   const currentTableMembers = useMemo(
-    () => snapshot.participants.filter((candidate) => candidate.tableId === participant.tableId),
-    [participant.tableId, snapshot.participants]
+    () =>
+      snapshot.participants.filter(
+        (candidate) => candidate.tableLabel && candidate.tableLabel === participant.tableLabel
+      ),
+    [participant.tableLabel, snapshot.participants]
   );
   const encounterParticipants = useMemo(
     () => getEncounterParticipants(snapshot, participant),
@@ -403,11 +467,19 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
         (candidate) =>
           candidate.id !== participant.id &&
           candidate.sessionId === snapshot.session.id &&
-          candidate.tableId === participant.tableId &&
+          candidate.tableLabel &&
+          candidate.tableLabel === participant.tableLabel &&
           candidate.gender !== participant.gender &&
           ["ACTIVE", "IDLE"].includes(snapshot.participantStatusMap?.[candidate.id] ?? "ACTIVE")
       ),
-    [participant.gender, participant.id, participant.tableId, snapshot.participantStatusMap, snapshot.participants, snapshot.session.id]
+    [
+      participant.gender,
+      participant.id,
+      participant.tableLabel,
+      snapshot.participantStatusMap,
+      snapshot.participants,
+      snapshot.session.id
+    ]
   );
   const myTablePicks = useMemo(() => {
     if (!openTablePickWindow) {
@@ -440,14 +512,14 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
       description: "같은 테이블에서 선택해주세요",
       ctaLabel: "제출",
       scope: "TABLE" as const,
-      targetTableId: participant.tableId,
+      targetTableId: null,
       createdAt: openTablePickWindow.openedAt,
       expiresAt: null,
       status: "LIVE" as const,
       options: [],
       message: null
     };
-  }, [openTablePickWindow, participant.tableId, stageContent.liveContent]);
+  }, [openTablePickWindow, stageContent.liveContent]);
   const heartInbox = useMemo(
     () => buildRevealState(snapshot.session, participant, snapshot.hearts, snapshot.participants),
     [participant, snapshot]
@@ -581,7 +653,7 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
           <div className="hero-copy-stack">
             <p className="eyebrow">테이블 중심 진행</p>
             <h1 className="hero-title">
-              {participant.nickname}님, 지금은 {formatTableName(participant.tableId)} 라운드입니다.
+              {participant.nickname}님, 지금은 {resolveTableLabel(participant)} 라운드입니다.
             </h1>
             <p className="hero-description">{phaseGuideMessage}</p>
           </div>
@@ -660,14 +732,18 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
               <Surface>
                 <SectionHeader
                   eyebrow="내 테이블"
-                  title={`${formatTableName(participant.tableId)} 참가자`}
+                  title={`${resolveTableLabel(participant)} 참가자`}
                   description="현재 같은 테이블의 참가자입니다."
                 />
                 <div className="participant-grid">
                   {currentTableMembers.map((member) => (
                     <article key={member.id} className="participant-card">
                       <div className="participant-head">
-                        <UserPhoto photoUrl={member.photoUrl} gender={member.gender} size={52} />
+                        <UserPhoto
+                          photoUrl={member.profileImage ?? null}
+                          gender={member.gender ?? "M"}
+                          size={52}
+                        />
                         <div className="participant-copy">
                           <strong>{member.nickname}</strong>
                           <p>{member.job}</p>
@@ -746,11 +822,11 @@ function CustomerView({ participant }: { participant: ParticipantRecord }) {
                       {heartInbox.visibleSenders.slice(0, revealVisibleCount).map((sender) => (
                         <article key={sender.id} className="participant-card">
                           <div className="participant-head">
-                            <UserPhoto photoUrl={sender.photoUrl} gender={sender.gender} size={52} />
+                            <UserPhoto photoUrl={sender.profileImage ?? null} gender={sender.gender ?? "M"} size={52} />
                             <div className="participant-copy">
                               <strong>{sender.nickname}</strong>
                               <p>
-                                {sender.job} · {sender.animalType}
+                                {sender.job}
                               </p>
                             </div>
                           </div>
@@ -1057,6 +1133,110 @@ export function CustomerApp() {
   const snapshot = useMingleStore((state) => state.snapshot);
   const snapshotLoadErrorCode = useMingleStore((state) => state.snapshotLoadErrorCode);
   const hydrate = useMingleStore((state) => state.hydrate);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code")?.trim() ?? "";
+    if (!code) {
+      return;
+    }
+    const branchId = params.get("branchId")?.trim() ?? "";
+    const tableId = Number(params.get("tableId") ?? "0");
+    if (!branchId || !Number.isInteger(tableId) || tableId < 1) {
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/customer/entry?branchId=${encodeURIComponent(branchId)}&tableId=${tableId}&code=${encodeURIComponent(code)}`,
+          { headers: { Accept: "application/json" }, cache: "no-store" }
+        );
+        const entry = await parseFetchResponseJson<{
+          status: string;
+          checkinResolution?: CheckinResolution | null;
+          snapshot?: SessionView;
+          participantId?: string | null;
+        }>(response);
+        if (cancelled || entry.status !== "OK" || !entry.checkinResolution || !entry.snapshot) {
+          return;
+        }
+        const resolution = entry.checkinResolution;
+        const canonicalQr = `mingle://table/${branchId}/${tableId}?code=${code}`;
+        const set = useMingleStore.setState;
+        const payload: SessionCommandResponse = {
+          snapshot: entry.snapshot,
+          participantId: entry.participantId ?? null,
+          checkinResolution: resolution
+        };
+
+        if (resolution.flowState === "RE_ENTRY" && entry.participantId) {
+          const participantTableId =
+            entry.snapshot.participants.find((p) => p.id === entry.participantId)?.tableId ?? 1;
+          applyCommandResult(set, payload, {
+            customerTab: "all",
+            selectedTableId: participantTableId,
+            checkinDraft: {
+              value: "",
+              flowState: "IDLE",
+              customerMessage: null,
+              customerSecondaryMessage: null,
+              isSubmitting: false,
+              isVerified: false,
+              error: null,
+              resolution: null
+            },
+            toast: createToast("info", CHECKIN_REENTRY_MESSAGE)
+          });
+          return;
+        }
+
+        if (resolution.flowState === "BLOCKED") {
+          applyCommandResult(set, payload, {
+            checkinDraft: {
+              value: canonicalQr,
+              flowState: "BLOCKED",
+              customerMessage: resolution.customerMessage,
+              customerSecondaryMessage: resolution.customerSecondaryMessage,
+              isSubmitting: false,
+              isVerified: false,
+              error: resolution.customerMessage ?? "입장 확인을 진행할 수 없습니다",
+              resolution
+            },
+            toast: createToast("warning", resolution.customerMessage ?? "입장 확인을 진행할 수 없습니다")
+          });
+          return;
+        }
+
+        applyCommandResult(set, payload, {
+          checkinDraft: {
+            value: canonicalQr,
+            flowState: resolution.flowState,
+            customerMessage: resolution.customerMessage,
+            customerSecondaryMessage: resolution.customerSecondaryMessage,
+            isSubmitting: false,
+            isVerified: resolution.flowState === "SUCCESS",
+            error: null,
+            resolution
+          },
+          toast: createToast(
+            "success",
+            resolution.flowState === "SUCCESS" ? CHECKIN_SUCCESS_MESSAGE : CHECKIN_REENTRY_MESSAGE
+          )
+        });
+      } catch {
+        // Entry hydration is best-effort; OnboardingView still runs verifyCheckin as fallback.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated]);
 
   if (!hydrated) {
     return <LoadingView />;

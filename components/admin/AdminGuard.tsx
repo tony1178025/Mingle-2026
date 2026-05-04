@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { Button, Surface } from "@/components/shared/ui";
+import { parseFetchResponseJson } from "@/lib/api/parse-fetch-response";
 
 export function AdminGuard({ configured }: { configured: boolean }) {
   const [login, setLogin] = useState("");
@@ -28,9 +29,7 @@ export function AdminGuard({ configured }: { configured: boolean }) {
         body: JSON.stringify({ login, password })
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      await parseFetchResponseJson<{ adminSession: unknown }>(response);
 
       window.location.reload();
     } catch (nextError) {
