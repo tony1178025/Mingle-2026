@@ -28,6 +28,7 @@ export type E2eBootstrapState = {
     round1TargetNickname: string | null;
     round2Target: string | null;
     round2TargetNickname: string | null;
+    round2TargetTableId?: number;
     reportTarget: string | null;
   };
   onboardingProfile: {

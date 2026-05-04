@@ -76,3 +76,9 @@ System supports operator.
 - 온보딩 초기 `IDLE/LOADING` 상태에서는 즉시 `입장 실패`를 노출하지 않는다.
 - `BLOCKED/FAILURE` 상태에서만 실패 메시지를 노출한다.
 - 이 규칙은 UI 오탐 방지 목적이며, 서버 authoritative check-in 정책/검증 로직은 유지한다.
+
+## 11. Playwright `customer-checkin` E2E는 알려진 플래키로 관리
+
+- 앱·API JSON 봉투 안정화 이후에도, 멀티스텝 온보딩 + 브라우저 런타임에서 간헐적으로 타임아웃·컨텍스트 종료가 남을 수 있다.
+- **우선순위**: 이 스펙 1건에 하루 이상을 쓰지 않는다. 회귀는 단위·통합·`admin-live-ops` E2E와 수동 QA로 보완한다.
+- 스펙을 약화하거나 서버 계약을 풀어 테스트만 통과시키는 방향은 채택하지 않는다.

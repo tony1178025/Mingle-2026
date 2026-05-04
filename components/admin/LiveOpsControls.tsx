@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, MetricCard, SectionHeader, Surface } from "@/components/shared/ui";
+import { Badge, Button, MetricCard, SectionHeader, Surface } from "@/components/shared/ui";
 import type { SessionOperationalState, SessionSnapshot } from "@/types/mingle";
 
 const SESSION_STATE_ACTIONS: Array<{ state: SessionOperationalState; label: string }> = [
@@ -14,12 +14,15 @@ const SESSION_STATE_ACTIONS: Array<{ state: SessionOperationalState; label: stri
 export function LiveOpsControls({
   snapshot,
   revealReadyCount,
+  phaseLabel,
   onSetSessionState,
   onTriggerReveal,
   onPublishAnnouncement
 }: {
   snapshot: SessionSnapshot;
   revealReadyCount: number;
+  /** 한 줄로 현재 단계를 읽을 수 있게 표시 */
+  phaseLabel: string;
   onSetSessionState: (state: SessionOperationalState) => Promise<void>;
   onTriggerReveal: () => Promise<void>;
   onPublishAnnouncement: (message: string) => Promise<void>;
@@ -32,12 +35,12 @@ export function LiveOpsControls({
         <SectionHeader
           eyebrow="라이브 운영"
           title="운영 제어"
-          description="단계 전환, 공개, 공지 발행만 빠르게 처리합니다."
-          actions={null}
+          description="단계 전환 · 하트 공개 · 공지만 이 화면에서 처리합니다."
+          actions={<Badge tone="neutral">{phaseLabel}</Badge>}
         />
         <div className="compact-row">
-          <strong>상태 변경</strong>
-          <span>1라운드 / 휴식 / 2라운드 / 종료</span>
+          <strong>단계</strong>
+          <span>1라운드 → 휴식 → 2라운드 → 종료</span>
         </div>
         <div className="button-row wrap-row">
           {SESSION_STATE_ACTIONS.map((action) => (
@@ -80,12 +83,12 @@ export function LiveOpsControls({
       </Surface>
 
       <div className="metric-grid">
-        <MetricCard label="참가 인원" value={snapshot.participants.length} hint="현재 세션 기준 참여 인원" accent />
-        <MetricCard label="공개 대기" value={revealReadyCount} hint="하트를 받은 인원" />
+        <MetricCard label="참가 인원" value={snapshot.participants.length} hint="이 세션에 등록된 인원" accent />
+        <MetricCard label="공개 대기" value={revealReadyCount} hint="공개 전 하트 수신 인원" />
         <MetricCard
           label="신고 대기"
           value={snapshot.reports.filter((report) => report.status !== "RESOLVED").length}
-          hint="즉시 처리해야 할 안전 이슈"
+          hint="처리 전 안전·운영 신고"
         />
       </div>
 
@@ -93,11 +96,11 @@ export function LiveOpsControls({
         <SectionHeader
           eyebrow="공지"
           title="현장 공지 발행"
-          description="고객은 테이블 카드에서 공지를 바로 확인합니다."
+          description="고객 앱 상단·테이블 영역에 바로 반영됩니다."
         />
         <div className="compact-row">
-          <strong>콘텐츠</strong>
-          <span>운영 공지 발행</span>
+          <strong>발행</strong>
+          <span>문구 확인 후 발행</span>
         </div>
         <label className="field">
           <span>공지 메시지</span>

@@ -25,7 +25,8 @@ export const round1Participant = {
 } as const;
 
 export const round2Participant = {
-  nickname: "민수",
+  nickname: bootstrap.participants.round2TargetNickname ?? "민재",
+  tableId: bootstrap.participants.round2TargetTableId ?? 1,
   age: "29",
   job: "Engineer",
   jobCategory: "IT"

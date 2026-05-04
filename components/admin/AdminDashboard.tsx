@@ -445,7 +445,13 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     return (
       <main className="admin-shell">
         <div className="admin-stage">
-          <Surface className="skeleton-block" />
+          <Surface>
+            <EmptyState title="불러오는 중" description="세션과 지점 정보를 준비하고 있어요." />
+            <div className="admin-loading-skeleton" aria-hidden>
+              <div className="skeleton-block" />
+              <div className="skeleton-block skeleton-block-short" />
+            </div>
+          </Surface>
         </div>
       </main>
     );
@@ -457,14 +463,16 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
         <div className="admin-stage">
           <Surface>
             <EmptyState
-              title="세션 정보를 불러오지 못했습니다."
+              title="세션을 불러오지 못했어요"
               description={
                 snapshotLoadErrorCode === "SESSION_SNAPSHOT_LOAD_FAILED"
-                  ? "열린 세션 없음"
-                  : "새로고침"
+                  ? "이 지점에 열린 회차가 없습니다. 세션을 시작했는지 확인하거나 페이지를 새로고침해 주세요."
+                  : "네트워크 또는 권한 문제일 수 있어요. 새로고침 후에도 같으면 본부에 문의해 주세요."
               }
             />
-            {snapshotLoadErrorCode ? <p className="field-help admin-error-code">오류 코드: {snapshotLoadErrorCode}</p> : null}
+            {snapshotLoadErrorCode ? (
+              <p className="field-help admin-error-code">오류 코드: {snapshotLoadErrorCode}</p>
+            ) : null}
           </Surface>
         </div>
       </main>
@@ -510,6 +518,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
       <LiveOpsControls
         snapshot={snapshot}
         revealReadyCount={revealReadyCount}
+        phaseLabel={formatPhaseLabel(snapshot.session.phase)}
         onSetSessionState={setSessionState}
         onTriggerReveal={triggerReveal}
         onPublishAnnouncement={publishAnnouncement}
@@ -517,7 +526,11 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
       </div>
       <div className="admin-side-column">
         <Surface data-testid="admin-live-ops-tables-panel">
-          <SectionHeader eyebrow="위험 경고" title="운영 위험 경고" description="주의/위험 신호를 먼저 확인합니다." />
+          <SectionHeader
+            eyebrow="주의"
+            title="운영 주의 신호"
+            description="테이블·참여 흐름에서 먼저 살펴볼 항목입니다."
+          />
           {recommendations.length ? (
             <div className="compact-stack">
               {recommendations.map((item) => (

@@ -19,8 +19,19 @@ export function ParticipantDetailSheet({
 }) {
   if (!open || !participant) return null;
   return (
-    <div className="rotation-modal-backdrop" onClick={onClose}>
-      <Surface className="rotation-modal" onClick={(event) => event.stopPropagation()}>
+    <div
+      className="rotation-modal-backdrop"
+      role="presentation"
+      onClick={onClose}
+    >
+      <Surface
+        as="div"
+        className="rotation-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="participant-sheet-title"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="participant-head">
           <UserPhoto
             photoUrl={participant.profileImage ?? null}
@@ -28,7 +39,7 @@ export function ParticipantDetailSheet({
             size={72}
           />
           <div className="participant-copy">
-            <strong>{participant.nickname}</strong>
+            <strong id="participant-sheet-title">{participant.nickname}</strong>
             {phase === "ROUND_2" ? (
               <p>
                 {participant.age ?? "-"} · {participant.job ?? "-"}

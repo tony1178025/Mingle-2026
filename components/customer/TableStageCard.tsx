@@ -21,7 +21,8 @@ export function TableStageCard({
   tablePickCandidates,
   tablePickExisting,
   onRespond,
-  encounterParticipants
+  encounterParticipants,
+  layout = "full"
 }: {
   participant: ParticipantRecord | CustomerParticipantView;
   liveContent: LiveContentRecord | null;
@@ -34,6 +35,8 @@ export function TableStageCard({
   tablePickExisting: { wantToKnowParticipantId: string | null; funnyParticipantId: string | null };
   encounterParticipants: Array<ParticipantRecord | CustomerParticipantView>;
   onRespond: (value: string, recipientId?: string | null) => Promise<boolean>;
+  /** `compact`: 테이블 탭용 요약(입력·제출 없음). `full`: 콘텐츠 탭에서 실제 참여 UI. */
+  layout?: "full" | "compact";
 }) {
   const [textValue, setTextValue] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
@@ -53,13 +56,66 @@ export function TableStageCard({
     return "";
   }, [liveContent]);
 
+  const kindSummary =
+    liveContent?.kind === "announcement"
+      ? "공지"
+      : liveContent?.kind === "nudge"
+        ? "유도"
+        : liveContent?.kind === "vote"
+          ? "투표"
+          : liveContent?.kind === "anonymous"
+            ? "익명 메시지"
+            : liveContent?.kind === "table_impression_pick"
+              ? "테이블 픽"
+              : liveContent?.kind === "prompt"
+                ? "질문"
+                : "";
+
+  if (layout === "compact") {
+    if (!liveContent) {
+      return (
+        <Surface className="table-stage-card table-stage-card--compact">
+          <SectionHeader
+            eyebrow="테이블"
+            title="진행 중인 미션이 없어요"
+            description="미션이 열리면 아래 콘텐츠 탭에서 참여할 수 있어요."
+          />
+        </Surface>
+      );
+    }
+    return (
+      <Surface className={`table-stage-card table-stage-card--compact table-stage-${liveContent.kind}`}>
+        <SectionHeader
+          eyebrow={kindSummary ? `콘텐츠 · ${kindSummary}` : "콘텐츠"}
+          title={liveContent.title}
+          description={liveContent.description}
+          actions={
+            <Badge tone={toneForContent(liveContent.kind)}>{kindSummary || "미션"}</Badge>
+          }
+        />
+        <div className="compact-row">
+          <strong>응답</strong>
+          <span>
+            {responseCount}명 · {alreadyResponded ? "이 미션은 응답했어요" : "콘텐츠 탭에서 참여해 주세요"}
+          </span>
+        </div>
+        {liveContent.kind === "anonymous" ? (
+          <p className="field-help">익명 메시지는 콘텐츠 탭에서만 작성할 수 있어요. (최대 2개)</p>
+        ) : null}
+        {liveContent.kind === "table_impression_pick" && !tablePickWindowOpen ? (
+          <p className="field-help">테이블 픽은 마감되었거나 콘텐츠 탭에서만 제출할 수 있어요.</p>
+        ) : null}
+      </Surface>
+    );
+  }
+
   if (!liveContent) {
     return (
       <Surface className="table-stage-card">
         <SectionHeader
-          eyebrow="테이블 진행"
-          title={`${participant.nickname}님, 지금은 테이블 대화 시간입니다`}
-          description=""
+          eyebrow="테이블"
+          title={`${participant.nickname}님, 지금은 테이블 대화 시간이에요`}
+          description="미션이 열리면 콘텐츠 탭에서 함께 참여할 수 있어요."
         />
       </Surface>
     );

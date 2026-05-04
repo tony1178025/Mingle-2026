@@ -1,6 +1,21 @@
 import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { testBranch } from "@/tests/e2e/fixtures/test-data";
 import { expectVisibleText } from "@/tests/e2e/helpers/assertions";
 import { loginAsAdmin as loginWithAuth } from "@/tests/e2e/helpers/auth";
+
+/** 본부 계정은 기본 화면에서 지점 트리가 접혀 있을 수 있음 → 시드 지점을 펼친 뒤 라이브로 진입 */
+async function ensureLiveOpsNavVisible(page: Page) {
+  const liveBtn = page.getByRole("button", { name: "라이브 콘솔" });
+  if (await liveBtn.isVisible().catch(() => false)) {
+    return;
+  }
+  const branchBtn = page.getByRole("button", { name: testBranch.name });
+  if (await branchBtn.isVisible().catch(() => false)) {
+    await branchBtn.click();
+  }
+  await expect(liveBtn).toBeVisible({ timeout: 15000 });
+}
 
 export async function loginAsAdmin(page: Page) {
   await loginWithAuth(page);
@@ -53,13 +68,19 @@ export async function revokeTableQr(page: Page, tableLabel: string) {
 
 export async function moveParticipant(page: Page, nickname: string, tableLabel: string) {
   await page.goto("/admin");
-  await expectVisibleText(page, "참가자");
-  await expectVisibleText(page, nickname);
-  await expectVisibleText(page, tableLabel);
+  await ensureLiveOpsNavVisible(page);
+  await page.getByRole("button", { name: "라이브 콘솔" }).click();
+  const participantsPanel = page.getByTestId("admin-live-ops-participants-panel");
+  await expect(participantsPanel).toBeVisible();
+  await participantsPanel.getByText(tableLabel, { exact: true }).click();
+  await expect(participantsPanel.getByText(nickname, { exact: false })).toBeVisible();
 }
 
 export async function blockParticipant(page: Page, nickname: string) {
   await page.goto("/admin");
-  await expectVisibleText(page, "신고/제재");
+  await ensureLiveOpsNavVisible(page);
+  const reportsNav = page.getByRole("navigation", { name: "운영 메뉴" }).getByRole("button", { name: "신고/제재" });
+  await reportsNav.click();
+  await expect(reportsNav).toBeVisible();
   await expectVisibleText(page, nickname);
 }

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { loginAsAdmin, changeSessionPhase, moveParticipant, blockParticipant } from "./helpers/admin";
 import { SELECTORS } from "./fixtures/selectors";
+import { round2Participant } from "./fixtures/test-data";
 import { expectVisibleText } from "./helpers/assertions";
 
 test("admin live ops core panels and controls", async ({ page }) => {
@@ -17,6 +18,6 @@ test("admin live ops core panels and controls", async ({ page }) => {
   await changeSessionPhase(page, "ROUND_1");
   await changeSessionPhase(page, "ROUND_2");
 
-  await moveParticipant(page, "민수", "테이블 1");
-  await blockParticipant(page, "민수");
+  await moveParticipant(page, round2Participant.nickname, `테이블 ${round2Participant.tableId}`);
+  await blockParticipant(page, round2Participant.nickname);
 });

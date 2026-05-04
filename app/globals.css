@@ -1014,6 +1014,27 @@ img {
   border-color: #cbd5e1;
 }
 
+.admin-shell .admin-mini-button-danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.qr-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.customer-shell .table-stage-card--compact {
+  padding: 16px 18px;
+}
+
+.customer-shell .table-stage-card--compact .section-header {
+  margin-bottom: 0.35rem;
+}
+
 .admin-mini-button-table {
   font-size: 0.7rem;
   padding: 0.2rem 0.42rem;
@@ -2169,6 +2190,22 @@ img {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.04));
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
+}
+
+.admin-loading-skeleton {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.admin-shell .admin-loading-skeleton .skeleton-block {
+  min-height: 72px;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.06));
+}
+
+.skeleton-block-short {
+  min-height: 48px;
+  max-width: 70%;
 }
 
 @keyframes shimmer {
