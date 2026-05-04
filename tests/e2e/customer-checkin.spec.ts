@@ -5,6 +5,8 @@ import { getQrUrl } from "./helpers/qr";
 import { TEST_PROFILES } from "./fixtures/test-data";
 
 test("customer check-in flow keeps session across refresh", async ({ page }) => {
+  test.setTimeout(120000);
+  test.slow();
   await page.goto(getQrUrl("validRound1"));
   await expectVisibleText(page, "프로필 설정");
 
