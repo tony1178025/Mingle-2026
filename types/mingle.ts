@@ -1063,6 +1063,10 @@ export interface CustomerEntryResponse {
     tableNumber: number;
   };
   message?: string;
+  /** Present when `code` was supplied on entry and server resolved check-in (same contract as session-context). */
+  checkinResolution?: CheckinResolution | null;
+  snapshot?: SessionView;
+  participantId?: string | null;
 }
 
 export interface CustomerProfileStepRequest {

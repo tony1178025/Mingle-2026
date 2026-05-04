@@ -7,6 +7,7 @@ import {
 } from "@/lib/admin-user-store";
 import type { AdminUserRecord, AdminUserRow } from "@/types/mingle";
 import { buildSeedAdminUserRows } from "@/scripts/seed-admin-users";
+import { readRouteResponseData } from "@/tests/helpers/read-route-json";
 
 function mapSeedRowToRecord(row: AdminUserRow): AdminUserRecord {
   return {
@@ -61,13 +62,11 @@ describe("admin login bootstrap contract", () => {
         })
       })
     );
-    const payload = (await response.json()) as {
-      ok: boolean;
+    const payload = await readRouteResponseData<{
       adminSession: { adminUserId: string; role: string; branchId: string | null };
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
-    expect(payload.ok).toBe(true);
     expect(payload.adminSession.adminUserId).toBe("hq_admin_default");
     expect(payload.adminSession.role).toBe("HQ_ADMIN");
   }, 30000);
@@ -91,9 +90,9 @@ describe("admin login bootstrap contract", () => {
         })
       })
     );
-    const payload = (await response.json()) as {
+    const payload = await readRouteResponseData<{
       adminSession: { adminUserId: string; role: string; branchId: string | null };
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
     expect(payload.adminSession.adminUserId).toBe("branch_admin_seongsu");

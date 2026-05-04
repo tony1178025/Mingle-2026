@@ -18,6 +18,7 @@ import {
   createDbAuthorityRepository,
   createMemoryDbAuthorityAdapter
 } from "@/lib/repositories/db-repository";
+import { readRouteResponseData } from "@/tests/helpers/read-route-json";
 
 function buildCustomerCookie(participantId: string, reservationId: string, sessionId: string, sessionVersion: number) {
   const response = NextResponse.json({ ok: true });
@@ -99,10 +100,10 @@ describe("db authority integration", () => {
         headers: { cookie }
       })
     );
-    const payload = (await response.json()) as {
+    const payload = await readRouteResponseData<{
       currentParticipantId: string | null;
       data: { session: { branchId: string } };
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
     expect(payload.currentParticipantId).toBe(participant!.id);
@@ -120,13 +121,11 @@ describe("db authority integration", () => {
         body: JSON.stringify({ login: "hq-admin@mingle.local", password: "admin-secret" })
       })
     );
-    const payload = (await response.json()) as {
-      ok: boolean;
+    const payload = await readRouteResponseData<{
       adminSession: { adminUserId: string; role: string; branchId: string | null };
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
-    expect(payload.ok).toBe(true);
     expect(payload.adminSession.adminUserId).toBe("admin_hq");
     expect(payload.adminSession.role).toBe("HQ_ADMIN");
     expect(response.headers.get("set-cookie")).toContain("mingle_admin_session");

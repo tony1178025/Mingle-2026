@@ -9,6 +9,7 @@ import type {
   ParticipantRecord,
   SessionSnapshot
 } from "@/types/mingle";
+import { readRouteResponseData } from "@/tests/helpers/read-route-json";
 
 const originalCwd = process.cwd();
 const originalSecret = process.env.MINGLE_CUSTOMER_SESSION_SECRET;
@@ -191,9 +192,9 @@ describe("customer signed session routes", () => {
         headers: { "content-type": "application/json" }
       })
     );
-    const payload = (await response.json()) as {
+    const payload = await readRouteResponseData<{
       checkinResolution?: { flowState: string };
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
     expect(payload.checkinResolution?.flowState).toBe("SUCCESS");
@@ -215,10 +216,10 @@ describe("customer signed session routes", () => {
         headers: { "content-type": "application/json" }
       })
     );
-    const payload = (await response.json()) as {
+    const payload = await readRouteResponseData<{
       participantId?: string | null;
       checkinResolution?: { flowState: string };
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
     expect(payload.checkinResolution?.flowState).toBe("RE_ENTRY");
@@ -323,18 +324,20 @@ describe("customer signed session routes", () => {
         headers: cookie ? { cookie } : undefined
       })
     );
-    const authorizedPayload = (await authorizedResponse.json()) as {
+    const authorizedPayload = await readRouteResponseData<{
+      data: unknown;
       currentParticipantId: string | null;
-    };
+    }>(authorizedResponse);
 
     const anonymousResponse = await currentRoute.GET(
       new NextRequest("http://localhost/api/session/current", {
         method: "GET"
       })
     );
-    const anonymousPayload = (await anonymousResponse.json()) as {
+    const anonymousPayload = await readRouteResponseData<{
+      data: unknown;
       currentParticipantId: string | null;
-    };
+    }>(anonymousResponse);
 
     expect(authorizedPayload.currentParticipantId).toBe("participant_1");
     expect(anonymousPayload.currentParticipantId).toBeNull();

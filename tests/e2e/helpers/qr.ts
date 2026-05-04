@@ -32,6 +32,11 @@ export function buildQrUrl(baseUrl: string, code?: string) {
 export async function getSessionStatePayload(request: APIRequestContext) {
   const response = await request.get("/api/customer/session-state");
   expect(response.status()).toBe(200);
-  return (await response.json()) as Record<string, unknown>;
+  const text = await response.text();
+  const parsed = JSON.parse(text) as { ok?: boolean; data?: Record<string, unknown> };
+  if (parsed && typeof parsed === "object" && "ok" in parsed && parsed.ok === true && "data" in parsed) {
+    return parsed.data ?? {};
+  }
+  return parsed as Record<string, unknown>;
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, readAdminSessionValue } from "@/lib/admin-auth";
-import { getAuthorityRuntimeDiagnostics } from "@/lib/repositories/authority-backend";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import {
   getServerSessionSnapshot,
   sanitizeSnapshotForAdmin,
@@ -32,22 +32,32 @@ function getRequiredEnvErrorCode() {
 export async function GET(request: NextRequest) {
   const missingEnvCode = getRequiredEnvErrorCode();
   if (missingEnvCode) {
-    const diagnostics = getAuthorityRuntimeDiagnostics();
-    return NextResponse.json(
-      {
-        code: missingEnvCode,
-        message: "Supabase 필수 환경변수가 누락되었습니다.",
-        source: diagnostics.source,
-        env: diagnostics.env
-      },
-      { status: 500 }
-    );
+    return jsonError("Supabase 필수 환경변수가 누락되었습니다.", 500, { code: missingEnvCode });
   }
+
+  const acceptHeader = request.headers.get("accept") ?? "";
+  const wantsJsonHandshake = acceptHeader.includes("application/json");
 
   try {
     const initial = await getServerSessionSnapshot();
     const adminSession = readAdminSessionValue(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
     const sanitize = adminSession ? sanitizeSnapshotForAdmin : sanitizeSnapshotForCustomer;
+
+    if (wantsJsonHandshake) {
+      const event: SessionSyncEvent = { type: "snapshot", snapshot: sanitize(initial) };
+      return jsonOk(
+        {
+          mode: "handshake" as const,
+          event
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate"
+          }
+        }
+      );
+    }
+
     const encoder = new TextEncoder();
     let unsubscribe: (() => void) | null = null;
     let heartbeat: ReturnType<typeof setInterval> | null = null;
@@ -88,19 +98,10 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    const diagnostics = getAuthorityRuntimeDiagnostics();
     const message =
       error instanceof Error && error.message.trim()
         ? error.message
         : "세션 이벤트 스트림을 시작하지 못했습니다.";
-    return NextResponse.json(
-      {
-        code: "SESSION_EVENTS_STREAM_INIT_FAILED",
-        message,
-        source: diagnostics.source,
-        env: diagnostics.env
-      },
-      { status: 500 }
-    );
+    return jsonError(message, 500, { code: "SESSION_EVENTS_STREAM_INIT_FAILED" });
   }
 }

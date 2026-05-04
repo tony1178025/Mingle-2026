@@ -7,19 +7,10 @@ import type {
   SessionSnapshotResponse
 } from "@/types/mingle";
 import type { MingleRepository } from "@/lib/repositories";
+import { parseFetchResponseJson } from "@/lib/api/parse-fetch-response";
 
 async function parseJson<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const raw = await response.text();
-    let parsed: { code?: string; message?: string; error?: string } | null = null;
-    try {
-      parsed = JSON.parse(raw) as { code?: string; message?: string; error?: string };
-    } catch {}
-    const message = parsed?.message ?? parsed?.error ?? (raw || "요청에 실패했습니다.");
-    throw new Error(parsed?.code ? `[${parsed.code}] ${message}` : message);
-  }
-
-  return (await response.json()) as T;
+  return parseFetchResponseJson<T>(response);
 }
 
 export function createHttpRepository(): MingleRepository {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import {
   ADMIN_SESSION_COOKIE,
   canAccessAdminBranch,
@@ -183,13 +184,7 @@ function publishLiveEvents(command: MingleCommand, result: CommandResult) {
 export async function POST(request: NextRequest) {
   const missingEnvCode = getRequiredEnvErrorCode();
   if (missingEnvCode) {
-    return NextResponse.json(
-      {
-        code: missingEnvCode,
-        message: "Supabase 필수 환경변수가 누락되었습니다."
-      },
-      { status: 500 }
-    );
+    return jsonError("Supabase 필수 환경변수가 누락되었습니다.", 500, { code: missingEnvCode });
   }
 
   try {
@@ -199,17 +194,19 @@ export async function POST(request: NextRequest) {
     if (isAdminCommand(command)) {
       const adminSession = readAdminSessionFromRequest(request);
       if (!adminSession) {
-        return new NextResponse("관리자 인증이 필요합니다.", { status: 401 });
+        return jsonError("관리자 인증이 필요합니다.", 401, { code: "ADMIN_AUTH_REQUIRED" });
       }
 
       if (!hasRequiredAdminRole(adminSession, getRequiredAdminRoles(command))) {
-        return new NextResponse("현재 관리자 역할로는 이 작업을 수행할 수 없습니다.", {
-          status: 403
+        return jsonError("현재 관리자 역할로는 이 작업을 수행할 수 없습니다.", 403, {
+          code: "ADMIN_ROLE_FORBIDDEN"
         });
       }
 
       if (!canAccessAdminBranch(adminSession, snapshot.session.branchId)) {
-        return new NextResponse("현재 브랜치 세션에 접근할 권한이 없습니다.", { status: 403 });
+        return jsonError("현재 브랜치 세션에 접근할 권한이 없습니다.", 403, {
+          code: "ADMIN_BRANCH_FORBIDDEN"
+        });
       }
     }
 
@@ -221,7 +218,9 @@ export async function POST(request: NextRequest) {
           commandType: command.type,
           reason: "missing-or-invalid-signed-session"
         });
-        const response = new NextResponse("유효한 참가자 세션이 필요합니다.", { status: 401 });
+        const response = jsonError("유효한 참가자 세션이 필요합니다.", 401, {
+          code: "CUSTOMER_SESSION_REQUIRED"
+        });
         clearCustomerSession(response);
         return response;
       }
@@ -230,7 +229,9 @@ export async function POST(request: NextRequest) {
         customerSession
       );
       if (!authorityValidation.valid) {
-        const response = new NextResponse("유효한 참가자 세션이 필요합니다.", { status: 401 });
+        const response = jsonError("유효한 참가자 세션이 필요합니다.", 401, {
+          code: "CUSTOMER_SESSION_INVALID"
+        });
         clearCustomerSession(response);
         return response;
       }
@@ -247,8 +248,8 @@ export async function POST(request: NextRequest) {
             reservationId: customerSession.reservationId,
             reason: "snapshot-participant-mismatch"
           });
-          const response = new NextResponse("유효한 참가자 세션이 필요합니다.", {
-            status: 401
+          const response = jsonError("유효한 참가자 세션이 필요합니다.", 401, {
+            code: "CUSTOMER_SESSION_MISMATCH"
           });
           clearCustomerSession(response);
           return response;
@@ -265,15 +266,16 @@ export async function POST(request: NextRequest) {
       ...result,
       snapshot: responseSnapshot
     };
-    const response = NextResponse.json(payload);
+    const response = jsonOk(payload);
     publishLiveEvents(command, result);
     attachCustomerSession(response, command, result);
     return response;
   } catch (error) {
+    console.error("[api/session/command]", error);
     const message =
       error instanceof Error ? error.message : "명령 처리에 실패했습니다.";
-    return new NextResponse(message, {
-      status: error instanceof Error && error.name === "BlockedParticipantError" ? 403 : 400
-    });
+    const status =
+      error instanceof Error && error.name === "BlockedParticipantError" ? 403 : 400;
+    return jsonError(message, status, { code: "SESSION_COMMAND_FAILED" });
   }
 }

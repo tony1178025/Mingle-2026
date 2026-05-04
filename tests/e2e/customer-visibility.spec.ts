@@ -8,8 +8,12 @@ test.describe("customer visibility by phase", () => {
     let sessionPayload: unknown = null;
     await page.route("**/api/customer/session-state**", async (route) => {
       const response = await route.fetch();
-      const json = (await response.json()) as unknown;
-      sessionPayload = json;
+      const text = await response.text();
+      const parsed = JSON.parse(text) as { ok?: boolean; data?: unknown };
+      sessionPayload =
+        typeof parsed === "object" && parsed !== null && parsed.ok === true && "data" in parsed
+          ? parsed.data
+          : parsed;
       await route.fulfill({ response });
     });
 
@@ -45,7 +49,12 @@ test.describe("customer visibility by phase", () => {
         const body = request.postDataJSON() as { type?: string } | null;
         if (body?.type === "admin.setSessionState") {
           const response = await route.fetch();
-          commandPayload = await response.json();
+          const text = await response.text();
+          const parsed = JSON.parse(text) as { ok?: boolean; data?: unknown };
+          commandPayload =
+            typeof parsed === "object" && parsed !== null && parsed.ok === true && "data" in parsed
+              ? parsed.data
+              : parsed;
           await route.fulfill({ response });
           return;
         }

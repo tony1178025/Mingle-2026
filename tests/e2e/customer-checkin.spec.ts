@@ -20,7 +20,7 @@ test("customer check-in flow keeps session across refresh", async ({ page }) => 
 
 test("expired or revoked qr should stay out of onboarding success", async ({ page }) => {
   await page.goto(getQrUrl("revoked"));
-  await expect(page.locator("main")).toContainText("입장 확인 중");
+  await expect(page.locator("main")).toContainText(/입장 확인 중|입장 실패/);
   await expect(page.locator("main")).not.toContainText("참가자");
 });
 

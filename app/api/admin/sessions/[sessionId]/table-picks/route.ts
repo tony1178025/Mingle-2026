@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { getServerSessionSnapshot } from "@/lib/repositories/server-repository";
 
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ export async function GET(
     const { sessionId } = await context.params;
     const snapshot = await getServerSessionSnapshot();
     if (snapshot.session.id !== sessionId) {
-      return new NextResponse("세션을 찾을 수 없습니다.", { status: 404 });
+      return jsonError("세션을 찾을 수 없습니다.", 404, { code: "SESSION_NOT_FOUND" });
     }
     const eligible = snapshot.participants.length;
     const countByRotation = (rotationIndex: 0 | 1) =>
@@ -25,8 +26,8 @@ export async function GET(
           .filter((pick) => pick.sessionId === sessionId && pick.rotationIndex === rotationIndex)
           .map((pick) => pick.pickerParticipantId)
       ).size;
-    return NextResponse.json({
-      status: "OK",
+    return jsonOk({
+      status: "OK" as const,
       summary: {
         rotationIndex0: {
           submittedCount: countByRotation(0),
@@ -39,7 +40,8 @@ export async function GET(
       }
     });
   } catch (error) {
+    console.error("[api/admin/table-picks GET]", error);
     const message = error instanceof Error ? error.message : "테이블 픽 요약 조회에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_TABLE_PICKS_SUMMARY_FAILED" });
   }
 }

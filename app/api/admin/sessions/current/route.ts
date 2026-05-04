@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole, requireBranchScope, requireDbRepository } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     const requestedBranchId = request.nextUrl.searchParams.get("branchId");
     const branchId = auth.adminSession.role === "HQ_ADMIN" ? requestedBranchId : auth.adminSession.branchId;
     if (!branchId) {
-      return new NextResponse("branchId가 필요합니다.", { status: 400 });
+      return jsonError("branchId가 필요합니다.", 400, { code: "BRANCH_ID_REQUIRED" });
     }
     const scopeError = requireBranchScope(auth.adminSession, branchId);
     if (scopeError) {
@@ -27,9 +28,10 @@ export async function GET(request: NextRequest) {
     const sessions = await db.repository.listManagedSessions(branchId);
     const currentSession =
       sessions.find((session) => session.status === "OPEN" && session.phase !== "CLOSED") ?? null;
-    return NextResponse.json({ session: currentSession });
+    return jsonOk({ session: currentSession });
   } catch (error) {
+    console.error("[api/admin/sessions/current]", error);
     const message = error instanceof Error ? error.message : "현재 세션을 조회하지 못했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_CURRENT_SESSION_FAILED" });
   }
 }

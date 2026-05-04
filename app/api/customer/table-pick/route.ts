@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { getServerSessionSnapshot } from "@/lib/repositories/server-repository";
 import { submitTablePick } from "@/lib/services/customer-session-service";
 
@@ -9,15 +10,17 @@ export async function GET(request: NextRequest) {
     const sessionId = request.nextUrl.searchParams.get("sessionId");
     const participantId = request.nextUrl.searchParams.get("participantId");
     if (!sessionId || !participantId) {
-      return new NextResponse("sessionId와 participantId가 필요합니다.", { status: 400 });
+      return jsonError("sessionId와 participantId가 필요합니다.", 400, {
+        code: "TABLE_PICK_QUERY_INVALID"
+      });
     }
     const snapshot = await getServerSessionSnapshot();
     if (snapshot.session.id !== sessionId) {
-      return new NextResponse("세션을 찾을 수 없습니다.", { status: 404 });
+      return jsonError("세션을 찾을 수 없습니다.", 404, { code: "SESSION_NOT_FOUND" });
     }
     const participant = snapshot.participants.find((item) => item.id === participantId);
     if (!participant) {
-      return new NextResponse("참가자를 찾을 수 없습니다.", { status: 404 });
+      return jsonError("참가자를 찾을 수 없습니다.", 404, { code: "PARTICIPANT_NOT_FOUND" });
     }
     const openWindow =
       (snapshot.tablePickWindows ?? []).find(
@@ -49,8 +52,8 @@ export async function GET(request: NextRequest) {
         pick.pickerParticipantId === participantId &&
         pick.rotationIndex === rotationIndex
     );
-    return NextResponse.json({
-      status: "OK",
+    return jsonOk({
+      status: "OK" as const,
       isOpen: Boolean(openWindow),
       rotationIndex,
       tableLabel: participant.tableLabel,
@@ -61,8 +64,9 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
+    console.error("[api/customer/table-pick GET]", error);
     const message = error instanceof Error ? error.message : "테이블 픽 상태를 조회하지 못했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "TABLE_PICK_STATUS_FAILED" });
   }
 }
 
@@ -77,9 +81,10 @@ export async function POST(request: NextRequest) {
       contentBlockId?: string | null;
     };
     await submitTablePick(request, body);
-    return NextResponse.json({ status: "OK" });
+    return jsonOk({ status: "OK" as const });
   } catch (error) {
+    console.error("[api/customer/table-pick POST]", error);
     const message = error instanceof Error ? error.message : "테이블 픽 저장에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "TABLE_PICK_SAVE_FAILED" });
   }
 }

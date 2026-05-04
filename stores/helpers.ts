@@ -105,7 +105,9 @@ export function applyCommandResult(
   set((state) => {
     const currentVersion = state.snapshot?.version ?? -1;
     if (snapshot.version < currentVersion) {
-      return {};
+      // Still apply client-only fields (e.g. checkinDraft) even when the snapshot is stale —
+      // otherwise verifyCheckin can succeed on the server but never update local draft state.
+      return Object.keys(extra).length > 0 ? extra : {};
     }
 
     const nextState: Record<string, unknown> = {

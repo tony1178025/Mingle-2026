@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Badge, Surface } from "@/components/shared/ui";
+import { parseFetchResponseJson } from "@/lib/api/parse-fetch-response";
 import { generateQrDataUrl } from "@/lib/qr/generate";
 
 export function SessionQrCard({
@@ -43,9 +44,10 @@ export function SessionQrCard({
     void fetch("/api/session/current", { headers: { Accept: "application/json" }, cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) return null;
-        const payload = (await response.json()) as {
-          data?: { tableQrCodes?: Array<{ tableId: number; status: string; code: string }> };
-        };
+        const payload = await parseFetchResponseJson<{
+          data: { tableQrCodes?: Array<{ tableId: number; status: string; code: string }> };
+          currentParticipantId: string | null;
+        }>(response);
         return payload.data?.tableQrCodes ?? [];
       })
       .then((codes) => {
@@ -92,18 +94,22 @@ export function SessionQrCard({
         onClick={async () => {
           const confirmed = window.confirm("선택한 테이블 QR을 재생성할까요?");
           if (!confirmed) return;
-          const response = await fetch(
-            `/api/admin/sessions/${sessionId}/tables/${tableId}/qr/regenerate`,
-            { method: "POST", headers: { "Content-Type": "application/json" } }
-          );
-          if (!response.ok) return;
-          const payload = (await response.json()) as {
-            snapshot?: { tableQrCodes?: Array<{ tableId: number; status: string; code: string }> };
-          };
-          const active = (payload.snapshot?.tableQrCodes ?? []).find(
-            (item) => item.tableId === tableId && item.status === "ACTIVE"
-          );
-          setCheckinCode(active?.code ?? "");
+          try {
+            const response = await fetch(
+              `/api/admin/sessions/${sessionId}/tables/${tableId}/qr/regenerate`,
+              { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" } }
+            );
+            const payload = await parseFetchResponseJson<{
+              status: string;
+              snapshot: { tableQrCodes?: Array<{ tableId: number; status: string; code: string }> };
+            }>(response);
+            const active = (payload.snapshot?.tableQrCodes ?? []).find(
+              (item) => item.tableId === tableId && item.status === "ACTIVE"
+            );
+            setCheckinCode(active?.code ?? "");
+          } catch {
+            setCheckinCode("");
+          }
         }}
       >
         QR 재생성

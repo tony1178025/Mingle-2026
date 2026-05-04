@@ -14,6 +14,7 @@ import {
   type DbAuthorityRepository
 } from "@/lib/repositories/db-repository";
 import type { AdminRole, AdminUserRecord, SessionSnapshot } from "@/types/mingle";
+import { readRouteResponseData } from "@/tests/helpers/read-route-json";
 
 const HQ_ADMIN_ID = "hq_admin";
 const BRANCH_ADMIN_ID = "branch_admin_seongsu";
@@ -161,9 +162,9 @@ describe("admin operations management routes", () => {
         headers: { cookie: buildAdminCookie("HQ_ADMIN", null, HQ_ADMIN_ID) }
       })
     );
-    const payload = (await response.json()) as {
+    const payload = await readRouteResponseData<{
       users: Array<Record<string, unknown>>;
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
     expect(payload.users).toHaveLength(3);
@@ -189,9 +190,9 @@ describe("admin operations management routes", () => {
         })
       })
     )) as Response;
-    const payload = (await response.json()) as {
+    const payload = await readRouteResponseData<{
       user: { email: string; role: string; branchId: string | null; updatedBy: string | null };
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
     expect(payload.user.email).toBe("ops-new@mingle.local");
@@ -222,9 +223,9 @@ describe("admin operations management routes", () => {
       }),
       { params: Promise.resolve({ adminUserId: BRANCH_ADMIN_ID }) }
     )) as Response;
-    const payload = (await response.json()) as {
+    const payload = await readRouteResponseData<{
       user: { email: string; displayName: string; updatedBy: string | null; updatedAt: string };
-    };
+    }>(response);
 
     expect(response.status).toBe(200);
     expect(payload.user.email).toBe("seongsu-ops@mingle.local");
@@ -289,7 +290,7 @@ describe("admin operations management routes", () => {
       }),
       { params: Promise.resolve({ adminUserId: STAFF_ID }) }
     )) as Response;
-    const payload = (await response.json()) as { user: { isActive: boolean } };
+    const payload = await readRouteResponseData<{ user: { isActive: boolean } }>(response);
 
     expect(response.status).toBe(200);
     expect(payload.user.isActive).toBe(false);
@@ -379,9 +380,9 @@ describe("admin operations management routes", () => {
         })
       })
     )) as Response;
-    const createdPayload = (await createResponse.json()) as {
+    const createdPayload = await readRouteResponseData<{
       branch: { id: string; name: string; updatedBy: string | null };
-    };
+    }>(createResponse);
 
     expect(createResponse.status).toBe(200);
     expect(createdPayload.branch.id).toBe("branch_sinsa");
@@ -406,9 +407,9 @@ describe("admin operations management routes", () => {
       }),
       { params: Promise.resolve({ branchId: "branch_sinsa" }) }
     )) as Response;
-    const updatedPayload = (await updateResponse.json()) as {
+    const updatedPayload = await readRouteResponseData<{
       branch: { name: string; defaultMaxCapacity: number; updatedBy: string | null };
-    };
+    }>(updateResponse);
 
     expect(updateResponse.status).toBe(200);
     expect(updatedPayload.branch.name).toBe("Sinsa Prime");
@@ -445,9 +446,9 @@ describe("admin operations management routes", () => {
         headers: { cookie: buildAdminCookie("HQ_ADMIN", null, HQ_ADMIN_ID) }
       })
     )) as Response;
-    const payload = (await listResponse.json()) as {
+    const payload = await readRouteResponseData<{
       branches: Array<{ id: string; isActive: boolean }>;
-    };
+    }>(listResponse);
 
     const disabledBranch = payload.branches.find((branch) => branch.id === BRANCH_GANGNAM);
     expect(disabledBranch?.isActive).toBe(false);
@@ -481,9 +482,9 @@ describe("admin operations management routes", () => {
         })
       })
     )) as Response;
-    const createPayload = (await createResponse.json()) as {
+    const createPayload = await readRouteResponseData<{
       session: { id: string; branchId: string; status: string; updatedBy: string | null };
-    };
+    }>(createResponse);
 
     expect(createResponse.status).toBe(200);
     expect(createPayload.session.id).toBe("session_ops_20260425");
@@ -505,9 +506,9 @@ describe("admin operations management routes", () => {
       }),
       { params: Promise.resolve({ sessionId: GANGNAM_SESSION_ID }) }
     )) as Response;
-    const updatePayload = (await updateResponse.json()) as {
+    const updatePayload = await readRouteResponseData<{
       session: { id: string; status: string; maxCapacity: number; updatedBy: string | null };
-    };
+    }>(updateResponse);
 
     expect(updateResponse.status).toBe(200);
     expect(updatePayload.session.id).toBe(GANGNAM_SESSION_ID);
@@ -525,9 +526,9 @@ describe("admin operations management routes", () => {
         }
       })
     )) as Response;
-    const listPayload = (await listResponse.json()) as {
+    const listPayload = await readRouteResponseData<{
       sessions: Array<{ branchId: string }>;
-    };
+    }>(listResponse);
 
     expect(listResponse.status).toBe(200);
     expect(listPayload.sessions.every((session) => session.branchId === BRANCH_SEONGSU)).toBe(true);
@@ -631,9 +632,9 @@ describe("admin operations management routes", () => {
         headers: { cookie: buildAdminCookie("HQ_ADMIN", null, HQ_ADMIN_ID) }
       })
     )) as Response;
-    const payload = (await listResponse.json()) as {
+    const payload = await readRouteResponseData<{
       sessions: Array<{ id: string; name: string; status: string; maxCapacity: number }>;
-    };
+    }>(listResponse);
 
     const session = payload.sessions.find((item) => item.id === "session_ops_20260426");
     expect(session).toMatchObject({

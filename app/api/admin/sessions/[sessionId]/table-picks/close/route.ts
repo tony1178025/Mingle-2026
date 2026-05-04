@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireAdminRole } from "@/app/api/admin/helpers";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import { executeServerCommand } from "@/lib/repositories/server-repository";
 
 export const runtime = "nodejs";
@@ -20,9 +21,10 @@ export async function POST(
       type: "admin.closeTablePickWindow",
       rotationIndex
     });
-    return NextResponse.json({ status: "OK", sessionId, snapshot: result.snapshot });
+    return jsonOk({ status: "OK" as const, sessionId, snapshot: result.snapshot });
   } catch (error) {
+    console.error("[api/admin/table-picks/close]", error);
     const message = error instanceof Error ? error.message : "테이블 픽 마감에 실패했습니다.";
-    return new NextResponse(message, { status: 400 });
+    return jsonError(message, 400, { code: "ADMIN_TABLE_PICK_CLOSE_FAILED" });
   }
 }

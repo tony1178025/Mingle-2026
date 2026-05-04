@@ -1,14 +1,41 @@
-import { getServerSessionSnapshot } from "@/lib/repositories/server-repository";
 import { getDbAuthorityRepository } from "@/lib/repositories/authority-backend";
+import {
+  getReservationSessionContext,
+  getServerSessionSnapshot,
+  sanitizeSnapshotForClient
+} from "@/lib/repositories/server-repository";
 import type { CustomerEntryResponse } from "@/types/mingle";
 
 type ResolveEntryInput = {
   branchId: string;
   tableId: number;
+  checkinCode?: string;
 };
 
 function isOpenSessionPhase(phase: string) {
   return phase === "WAITING" || phase === "CHECKIN" || phase === "ROUND_1" || phase === "ROUND_2";
+}
+
+async function maybeResolveCheckinFromCode(
+  branchId: string,
+  tableId: number,
+  checkinCode?: string
+): Promise<Pick<CustomerEntryResponse, "checkinResolution" | "snapshot" | "participantId">> {
+  const trimmed = checkinCode?.trim() ?? "";
+  if (!trimmed) {
+    return {};
+  }
+  const result = await getReservationSessionContext({
+    branchId,
+    tableId,
+    checkinCode: trimmed,
+    participantId: null
+  });
+  return {
+    checkinResolution: result.checkinResolution ?? null,
+    snapshot: sanitizeSnapshotForClient(result.snapshot),
+    participantId: result.participantId ?? null
+  };
 }
 
 export async function resolveCustomerEntry(input: ResolveEntryInput): Promise<CustomerEntryResponse> {
@@ -38,7 +65,7 @@ export async function resolveCustomerEntry(input: ResolveEntryInput): Promise<Cu
         message: "현재 입장 가능한 세션이 없습니다."
       };
     }
-    return {
+    const base: CustomerEntryResponse = {
       status: "OK",
       sessionId: activeSession.id,
       branch: {
@@ -50,6 +77,8 @@ export async function resolveCustomerEntry(input: ResolveEntryInput): Promise<Cu
         tableNumber: tableId
       }
     };
+    const checkin = await maybeResolveCheckinFromCode(branchId, tableId, input.checkinCode);
+    return { ...base, ...checkin };
   }
 
   const snapshot = await getServerSessionSnapshot();
@@ -75,7 +104,7 @@ export async function resolveCustomerEntry(input: ResolveEntryInput): Promise<Cu
     };
   }
 
-  return {
+  const base: CustomerEntryResponse = {
     status: "OK",
     sessionId: snapshot.session.id,
     branch: {
@@ -87,4 +116,6 @@ export async function resolveCustomerEntry(input: ResolveEntryInput): Promise<Cu
       tableNumber: tableId
     }
   };
+  const checkin = await maybeResolveCheckinFromCode(branchId, tableId, input.checkinCode);
+  return { ...base, ...checkin };
 }

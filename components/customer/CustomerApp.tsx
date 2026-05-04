@@ -22,21 +22,30 @@ import {
   isRotationInstructionActive
 } from "@/engine/content";
 import { buildRevealState } from "@/engine/reveal";
+import { parseFetchResponseJson } from "@/lib/api/parse-fetch-response";
 import { cn, createToast, formatTableName, REPORT_REASONS } from "@/lib/mingle";
 import { triggerHaptic } from "@/lib/haptics";
-import { parseCheckinQrValue } from "@/features/checkin/model";
+import {
+  CHECKIN_REENTRY_MESSAGE,
+  CHECKIN_SUCCESS_MESSAGE,
+  parseCheckinQrValue
+} from "@/features/checkin/model";
 import { track } from "@/lib/analytics/track";
 import type { ParticipantFilter } from "@/lib/customer-ui/filterParticipants";
 import { filterParticipants } from "@/lib/customer-ui/filterParticipants";
 import { paginate } from "@/lib/customer-ui/paginate";
 import { useDesignQA } from "@/lib/ux/design-qa";
 import { useScrollTopButton } from "@/hooks/useScrollTopButton";
+import { applyCommandResult } from "@/stores/helpers";
 import { selectCurrentParticipant, useMingleStore } from "@/stores/useMingleStore";
 import type {
+  CheckinResolution,
   ContactExchangeMethod,
   CustomerParticipantView,
   ParticipantRecord,
-  CustomerTab
+  CustomerTab,
+  SessionCommandResponse,
+  SessionView
 } from "@/types/mingle";
 
 const TAB_LABELS: Record<CustomerTab, string> = {
@@ -146,54 +155,74 @@ function OnboardingView() {
   const profileUploadSubjectId =
     checkinDraft.resolution?.participantId ?? onboardingProfileUploadSubjectRef.current;
 
-  if (!snapshot) {
-    return <LoadingView />;
-  }
-
   const hasEntryContext = checkinDraft.flowState === "SUCCESS" && Boolean(checkinDraft.resolution);
   const shouldShowCheckinFailure =
     checkinDraft.flowState === "BLOCKED" || checkinDraft.flowState === "FAILURE";
 
   useEffect(() => {
-    if (checkinDraft.value.trim() || typeof window === "undefined") {
+    if (typeof window === "undefined" || !snapshot || verifyInFlightRef.current) {
       return;
     }
-    const params = new URLSearchParams(window.location.search);
-    const branchId = params.get("branchId")?.trim() ?? "";
-    const tableId = params.get("tableId")?.trim() ?? "";
-    const code = params.get("code")?.trim() ?? "";
-    if (!branchId || !tableId) {
-      return;
-    }
-    const canonicalQr = `mingle://table/${branchId}/${tableId}${code ? `?code=${code}` : ""}`;
-    if (!parseCheckinQrValue(canonicalQr)) {
-      return;
-    }
-    updateCheckinValue(canonicalQr);
-  }, [checkinDraft.value, updateCheckinValue, verifyCheckin]);
 
-  useEffect(() => {
-    if (verifyInFlightRef.current) {
-      return;
+    let qrValue = checkinDraft.value.trim();
+    if (!qrValue) {
+      const params = new URLSearchParams(window.location.search);
+      const branchId = params.get("branchId")?.trim() ?? "";
+      const tableId = params.get("tableId")?.trim() ?? "";
+      const code = params.get("code")?.trim() ?? "";
+      if (!branchId || !tableId) {
+        return;
+      }
+      const canonicalQr = `mingle://table/${branchId}/${tableId}${code ? `?code=${code}` : ""}`;
+      if (!parseCheckinQrValue(canonicalQr)) {
+        return;
+      }
+      updateCheckinValue(canonicalQr);
+      qrValue = canonicalQr;
     }
-    const hasQrValue = Boolean(checkinDraft.value.trim());
+
+    const effectiveQr = qrValue || checkinDraft.value.trim();
     const shouldAttemptVerify =
-      hasQrValue &&
+      Boolean(effectiveQr) &&
       !hasEntryContext &&
       !checkinDraft.isSubmitting &&
       checkinDraft.flowState === "IDLE";
     if (!shouldAttemptVerify) {
       return;
     }
+
     verifyInFlightRef.current = true;
     track("ENTRY", { source: "qr" });
-    void verifyCheckin().finally(() => {
-      verifyInFlightRef.current = false;
+    // Defer until after Zustand/React have applied `updateCheckinValue` so `verifyCheckin` reads the latest draft.
+    queueMicrotask(() => {
+      void verifyCheckin().finally(() => {
+        verifyInFlightRef.current = false;
+      });
     });
-  }, [checkinDraft.flowState, checkinDraft.isSubmitting, checkinDraft.value, hasEntryContext, verifyCheckin]);
+
+    return () => {
+      verifyInFlightRef.current = false;
+    };
+  }, [
+    snapshot,
+    checkinDraft.flowState,
+    checkinDraft.isSubmitting,
+    checkinDraft.value,
+    hasEntryContext,
+    verifyCheckin,
+    updateCheckinValue
+  ]);
+
+  if (!snapshot) {
+    return <LoadingView />;
+  }
 
   return (
-    <main className="customer-shell" data-phase="CHECKIN">
+    <main
+      className="customer-shell"
+      data-phase="CHECKIN"
+      data-testid={hasEntryContext ? "customer-onboarding-ready" : undefined}
+    >
       <div className="customer-stage onboarding-stage">
         <Surface className="customer-hero">
           <div className="hero-copy-stack">
@@ -245,10 +274,10 @@ function OnboardingView() {
                           draftParticipantId: onboardingDraftParticipantId ?? undefined
                         })
                       });
-                      if (!response.ok) {
-                        return;
-                      }
-                      const payload = (await response.json()) as { draftParticipantId?: string };
+                      const payload = await parseFetchResponseJson<{
+                        status: string;
+                        draftParticipantId: string;
+                      }>(response);
                       if (payload.draftParticipantId) {
                         setOnboardingDraftParticipantId(payload.draftParticipantId);
                       }
@@ -262,21 +291,27 @@ function OnboardingView() {
                     setIsSubmittingProfile(true);
                     const commit = async () => {
                       if (onboardingDraftParticipantId) {
-                        const response = await fetch("/api/customer/enter", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Accept: "application/json"
-                          },
-                          body: JSON.stringify({
-                            draftParticipantId: onboardingDraftParticipantId
-                          })
-                        });
-                        if (!response.ok) {
-                          throw new Error(await response.text());
+                        try {
+                          const response = await fetch("/api/customer/enter", {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Accept: "application/json"
+                            },
+                            body: JSON.stringify({
+                              draftParticipantId: onboardingDraftParticipantId
+                            })
+                          });
+                          await parseFetchResponseJson<{
+                            status: string;
+                            participantId: string;
+                          }>(response);
+                          await syncFromRepository();
+                          return true;
+                        } catch {
+                          // Draft may be missing server-side (e.g. step saves were best-effort); fall back to command path.
+                          return completeProfile();
                         }
-                        await syncFromRepository();
-                        return true;
                       }
                       return completeProfile();
                     };
@@ -1098,6 +1133,110 @@ export function CustomerApp() {
   const snapshot = useMingleStore((state) => state.snapshot);
   const snapshotLoadErrorCode = useMingleStore((state) => state.snapshotLoadErrorCode);
   const hydrate = useMingleStore((state) => state.hydrate);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code")?.trim() ?? "";
+    if (!code) {
+      return;
+    }
+    const branchId = params.get("branchId")?.trim() ?? "";
+    const tableId = Number(params.get("tableId") ?? "0");
+    if (!branchId || !Number.isInteger(tableId) || tableId < 1) {
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/customer/entry?branchId=${encodeURIComponent(branchId)}&tableId=${tableId}&code=${encodeURIComponent(code)}`,
+          { headers: { Accept: "application/json" }, cache: "no-store" }
+        );
+        const entry = await parseFetchResponseJson<{
+          status: string;
+          checkinResolution?: CheckinResolution | null;
+          snapshot?: SessionView;
+          participantId?: string | null;
+        }>(response);
+        if (cancelled || entry.status !== "OK" || !entry.checkinResolution || !entry.snapshot) {
+          return;
+        }
+        const resolution = entry.checkinResolution;
+        const canonicalQr = `mingle://table/${branchId}/${tableId}?code=${code}`;
+        const set = useMingleStore.setState;
+        const payload: SessionCommandResponse = {
+          snapshot: entry.snapshot,
+          participantId: entry.participantId ?? null,
+          checkinResolution: resolution
+        };
+
+        if (resolution.flowState === "RE_ENTRY" && entry.participantId) {
+          const participantTableId =
+            entry.snapshot.participants.find((p) => p.id === entry.participantId)?.tableId ?? 1;
+          applyCommandResult(set, payload, {
+            customerTab: "all",
+            selectedTableId: participantTableId,
+            checkinDraft: {
+              value: "",
+              flowState: "IDLE",
+              customerMessage: null,
+              customerSecondaryMessage: null,
+              isSubmitting: false,
+              isVerified: false,
+              error: null,
+              resolution: null
+            },
+            toast: createToast("info", CHECKIN_REENTRY_MESSAGE)
+          });
+          return;
+        }
+
+        if (resolution.flowState === "BLOCKED") {
+          applyCommandResult(set, payload, {
+            checkinDraft: {
+              value: canonicalQr,
+              flowState: "BLOCKED",
+              customerMessage: resolution.customerMessage,
+              customerSecondaryMessage: resolution.customerSecondaryMessage,
+              isSubmitting: false,
+              isVerified: false,
+              error: resolution.customerMessage ?? "입장 확인을 진행할 수 없습니다",
+              resolution
+            },
+            toast: createToast("warning", resolution.customerMessage ?? "입장 확인을 진행할 수 없습니다")
+          });
+          return;
+        }
+
+        applyCommandResult(set, payload, {
+          checkinDraft: {
+            value: canonicalQr,
+            flowState: resolution.flowState,
+            customerMessage: resolution.customerMessage,
+            customerSecondaryMessage: resolution.customerSecondaryMessage,
+            isSubmitting: false,
+            isVerified: resolution.flowState === "SUCCESS",
+            error: null,
+            resolution
+          },
+          toast: createToast(
+            "success",
+            resolution.flowState === "SUCCESS" ? CHECKIN_SUCCESS_MESSAGE : CHECKIN_REENTRY_MESSAGE
+          )
+        });
+      } catch {
+        // Entry hydration is best-effort; OnboardingView still runs verifyCheckin as fallback.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated]);
 
   if (!hydrated) {
     return <LoadingView />;

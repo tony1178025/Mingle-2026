@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { ADMIN_SESSION_COOKIE, readAdminSessionValue } from "@/lib/admin-auth";
+import { jsonError, jsonOk } from "@/lib/api/json-response";
 import {
   clearCustomerSession,
   isCustomerSessionCompatibleWithSnapshot,
@@ -7,7 +8,6 @@ import {
   resolveCustomerSessionParticipantId,
   validateCustomerSessionAgainstDbAuthority
 } from "@/lib/customer-session";
-import { getAuthorityRuntimeDiagnostics } from "@/lib/repositories/authority-backend";
 import {
   getServerSessionSnapshot,
   sanitizeSnapshotForAdmin,
@@ -33,16 +33,7 @@ function getRequiredEnvErrorCode() {
 export async function GET(request: NextRequest) {
   const missingEnvCode = getRequiredEnvErrorCode();
   if (missingEnvCode) {
-    const diagnostics = getAuthorityRuntimeDiagnostics();
-    return NextResponse.json(
-      {
-        code: missingEnvCode,
-        message: "Supabase 필수 환경변수가 누락되었습니다.",
-        source: diagnostics.source,
-        env: diagnostics.env
-      },
-      { status: 500 }
-    );
+    return jsonError("Supabase 필수 환경변수가 누락되었습니다.", 500, { code: missingEnvCode });
   }
 
   try {
@@ -58,7 +49,7 @@ export async function GET(request: NextRequest) {
     const currentParticipantId = authorityValidation.valid
       ? resolveCustomerSessionParticipantId(snapshot, customerSession)
       : null;
-    const response = NextResponse.json({ data: responseSnapshot, currentParticipantId });
+    const response = jsonOk({ data: responseSnapshot, currentParticipantId });
     response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
     if (
@@ -71,19 +62,10 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    const diagnostics = getAuthorityRuntimeDiagnostics();
     const message =
       error instanceof Error && error.message.trim()
         ? error.message
         : "세션 스냅샷을 불러오지 못했습니다.";
-    return NextResponse.json(
-      {
-        code: "SESSION_SNAPSHOT_LOAD_FAILED",
-        message,
-        source: diagnostics.source,
-        env: diagnostics.env
-      },
-      { status: 500 }
-    );
+    return jsonError(message, 500, { code: "SESSION_SNAPSHOT_LOAD_FAILED" });
   }
 }

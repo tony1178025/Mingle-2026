@@ -15,6 +15,7 @@ import {
   parseManualReservationCsv,
   type ManualReservationRow
 } from "@/lib/reservations/manual-reservation";
+import { parseFetchResponseJson } from "@/lib/api/parse-fetch-response";
 import { getMingleRepository } from "@/lib/repositories";
 import {
   ADMIN_DEFAULT_CONFIG,
@@ -178,7 +179,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
     })
       .then(async (response) => {
         if (!response.ok) return;
-        const payload = (await response.json()) as { branches?: BranchRecord[] };
+        const payload = await parseFetchResponseJson<{ branches?: BranchRecord[] }>(response);
         if (!active) return;
         setBranches(payload.branches ?? []);
       })
@@ -203,7 +204,7 @@ export function AdminDashboard({ adminSession }: { adminSession: AdminSessionRec
         if (!response.ok) {
           return null;
         }
-        const payload = (await response.json()) as { session: ManagedSessionRecord | null };
+        const payload = await parseFetchResponseJson<{ session: ManagedSessionRecord | null }>(response);
         return payload.session;
       })
       .then((session) => {

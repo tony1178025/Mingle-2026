@@ -5,6 +5,7 @@ import path from "node:path";
 import { NextRequest } from "next/server";
 import { createSeedSnapshot } from "@/lib/mingle";
 import type { CheckinResolution, SessionSnapshot } from "@/types/mingle";
+import { readRouteResponseData } from "@/tests/helpers/read-route-json";
 
 const originalCwd = process.cwd();
 
@@ -147,7 +148,7 @@ describe("reservation persistence and rotation linkage", () => {
     expect(snapshot.auditLogs.some((log) => log.action === "ROTATION_APPLIED")).toBe(true);
 
     const customerCurrent = await currentRoute.GET(new NextRequest("http://localhost/api/session/current"));
-    const customerPayload = (await customerCurrent.json()) as { data: Record<string, unknown> };
+    const customerPayload = await readRouteResponseData<{ data: Record<string, unknown> }>(customerCurrent);
     expect(customerPayload.data).not.toHaveProperty("reservations");
     expect(customerPayload.data).not.toHaveProperty("auditLogs");
   });
